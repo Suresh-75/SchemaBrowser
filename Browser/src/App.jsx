@@ -186,12 +186,20 @@ export default function App() {
               Entities
             </h3>
             <div className="space-y-2">
-              {["User", "Order", "Product", "Category"].map((entity) => (
+              {[
+                "customers",
+                "accounts",
+                "transactions",
+                "branches",
+                "employees",
+              ].map((entity) => (
                 <div
                   key={entity}
                   className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"
                 >
-                  <div className="font-medium text-gray-800">{entity}</div>
+                  <div className="font-medium text-gray-800 capitalize">
+                    {entity}
+                  </div>
                   <div className="text-sm text-gray-500">Click to edit</div>
                 </div>
               ))}
@@ -210,17 +218,21 @@ export default function App() {
               Relationships
             </h3>
             <div className="space-y-2">
-              {["User → Order", "Order → Product", "Product → Category"].map(
-                (rel) => (
-                  <div
-                    key={rel}
-                    className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"
-                  >
-                    <div className="font-medium text-gray-800">{rel}</div>
-                    <div className="text-sm text-gray-500">One-to-many</div>
-                  </div>
-                )
-              )}
+              {[
+                "accounts.customer_id → customers.customer_id",
+                "accounts.branch_id → branches.branch_id",
+                "transactions.account_id → accounts.account_id",
+                "branches.manager_id → employees.employee_id",
+                "employees.branch_id → branches.branch_id",
+              ].map((rel) => (
+                <div
+                  key={rel}
+                  className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"
+                >
+                  <div className="font-medium text-gray-800">{rel}</div>
+                  <div className="text-sm text-gray-500">Foreign Key</div>
+                </div>
+              ))}
             </div>
             <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
               <Plus size={16} />
@@ -274,11 +286,11 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <div className="text-gray-600">Entities</div>
-                    <div className="font-semibold text-gray-800">4</div>
+                    <div className="font-semibold text-gray-800">5</div>
                   </div>
                   <div>
                     <div className="text-gray-600">Relations</div>
-                    <div className="font-semibold text-gray-800">3</div>
+                    <div className="font-semibold text-gray-800">5</div>
                   </div>
                 </div>
               </div>
@@ -287,9 +299,11 @@ export default function App() {
                   Recent Activity
                 </div>
                 <div className="space-y-1 text-sm text-gray-600">
-                  <div>• Added User entity</div>
-                  <div>• Created Order relationship</div>
-                  <div>• Updated Product attributes</div>
+                  <div>• Added employees entity</div>
+                  <div>• Added branches entity</div>
+                  <div>• Linked accounts to customers</div>
+                  <div>• Linked transactions to accounts</div>
+                  <div>• Linked employees to branches</div>
                 </div>
               </div>
             </div>
