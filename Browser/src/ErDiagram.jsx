@@ -11,7 +11,6 @@ import {
 import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
 
-// 1. Memoized custom node component
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
     <div style={{ display: "inline-block" }}>
@@ -21,7 +20,6 @@ const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
 });
 
 function ErDiagram() {
-  // 2. Memoize table data
   const customerTable = useMemo(
     () => ({
       name: "customers",
@@ -155,31 +153,31 @@ function ErDiagram() {
         id: "1",
         type: "schemaCard",
         data: { table: customerTable },
-        position: { x: 0, y: 0 },
+        position: { x: -100, y: -300 },
       },
       {
         id: "2",
         type: "schemaCard",
         data: { table: accountTable },
-        position: { x: 350, y: 0 },
+        position: { x: 350, y: -300 },
       },
       {
         id: "3",
         type: "schemaCard",
         data: { table: transactionTable },
-        position: { x: 700, y: 0 },
+        position: { x: 800, y: -300 },
       },
       {
         id: "4",
         type: "schemaCard",
         data: { table: branchTable },
-        position: { x: 175, y: 300 },
+        position: { x: 400, y: 500 },
       },
       {
         id: "5",
         type: "schemaCard",
         data: { table: employeeTable },
-        position: { x: 525, y: 300 },
+        position: { x: 800, y: 300 },
       },
     ],
     [customerTable, accountTable, transactionTable, branchTable, employeeTable]
@@ -250,7 +248,7 @@ function ErDiagram() {
   );
 
   return (
-    <div className="w-screen h-screen">
+    <div className="w-[100%] h-[100%]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
