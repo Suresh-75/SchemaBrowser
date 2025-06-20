@@ -24,17 +24,24 @@ const VersionControlPanel = () => {
       id: 1,
       name: "v1.0.0",
       date: "2024-06-15",
-      author: "John Doe",
+      author: "Kavya",
       current: false,
     },
     {
       id: 2,
-      name: "v1.1.0",
-      date: "2024-06-18",
-      author: "Jane Smith",
+      name: "v1.0.1",
+      date: "2024-06-17",
+      author: "Ananya",
       current: false,
     },
-    { id: 3, name: "v1.2.0", date: "2024-06-20", author: "You", current: true },
+    {
+      id: 3,
+      name: "v1.1.0",
+      date: "2024-06-18",
+      author: "Andrew",
+      current: false,
+    },
+    { id: 4, name: "v1.2.0", date: "2024-06-20", author: "You", current: true },
   ]);
 
   return (
