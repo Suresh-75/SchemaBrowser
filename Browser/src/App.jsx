@@ -192,7 +192,7 @@ export default function App() {
               <Box className="text-blue-600" size={20} />
               Entities
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
                 "customers",
                 "accounts",
@@ -202,16 +202,19 @@ export default function App() {
               ].map((entity) => (
                 <div
                   key={entity}
-                  className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"
+                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
                 >
-                  <div className="font-medium text-gray-800 capitalize">
-                    {entity}
+                  <Box className="text-blue-500" size={20} />
+                  <div>
+                    <div className="font-semibold text-gray-800 capitalize text-base">
+                      {entity}
+                    </div>
+                    <div className="text-xs text-gray-500">Click to edit</div>
                   </div>
-                  <div className="text-sm text-gray-500">Click to edit</div>
                 </div>
               ))}
             </div>
-            <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+            <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow">
               <Plus size={16} />
               Add Entity
             </button>
@@ -224,7 +227,7 @@ export default function App() {
               <Network className="text-green-600" size={20} />
               Relationships
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
                 "accounts.customer_id → customers.customer_id",
                 "accounts.branch_id → branches.branch_id",
@@ -234,14 +237,19 @@ export default function App() {
               ].map((rel) => (
                 <div
                   key={rel}
-                  className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 cursor-pointer"
+                  className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
                 >
-                  <div className="font-medium text-gray-800">{rel}</div>
-                  <div className="text-sm text-gray-500">Foreign Key</div>
+                  <Network className="text-green-500" size={20} />
+                  <div>
+                    <div className="font-semibold text-gray-800 text-base">
+                      {rel}
+                    </div>
+                    <div className="text-xs text-gray-500">Foreign Key</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+            <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow">
               <Plus size={16} />
               Add Relationship
             </button>
