@@ -13,7 +13,7 @@ const Login = ({ setUser }) => {
     admin: {
       username: "admin",
       password: "admin",
-      name: "Database Admin",
+      name: "Database modeler",
     },
     developer: {
       username: "dev",
@@ -68,7 +68,7 @@ const Login = ({ setUser }) => {
                 }`}
               >
                 <Database className="w-4 h-4 mr-2" />
-                Admin
+                Modeler
               </button>
               <button
                 onClick={() => setRole("developer")}
@@ -79,7 +79,7 @@ const Login = ({ setUser }) => {
                 }`}
               >
                 <Code className="w-4 h-4 mr-2" />
-                Developer
+                Analyst
               </button>
             </div>
 
@@ -95,7 +95,9 @@ const Login = ({ setUser }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={`Enter ${role} usernmae`}
+                    placeholder={`Enter ${
+                      role === "admin" ? "Modeler" : "Analyst"
+                    } username`}
                     required
                   />
                 </div>
@@ -127,14 +129,14 @@ const Login = ({ setUser }) => {
                     : "bg-purple-600 hover:bg-purple-700"
                 }`}
               >
-                Sign In as {role === "admin" ? "Admin" : "Developer"}
+                Sign In as {role === "admin" ? "Modeler" : "Analyst"}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-500">
               <p>Demo Credentials:</p>
-              <p>Admin: admin / admin</p>
-              <p>Developer: dev / dev</p>
+              <p>Modeler: admin / admin</p>
+              <p>Analyst: dev / dev</p>
             </div>
           </div>
         </motion.div>
