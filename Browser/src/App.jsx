@@ -9,17 +9,13 @@ import {
   Eye,
   RefreshCcw,
   User,
-  Filter,
 } from "lucide-react";
 import ErDiagram from "./ErDiagram";
 import { useNavigate } from "react-router-dom";
 import SidebarComponent from "./Components/SidebarComponent";
 import FilterBar from "./Components/FilterBar";
-
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
-  // const [filter, setFilter] = useState(false);
-  // const toggleFilter = () => setFilter(!filter);
   const navigate = useNavigate();
 
   const sidebarItems = [
@@ -29,7 +25,6 @@ export default function App() {
     { id: "versions", label: "Version Control", icon: GitBranch },
     { id: "annotations", label: "Annotations", icon: MessageSquare },
     { id: "settings", label: "Settings", icon: Settings },
-    // { id: "FilterBar", label: "FilterBar", icon: Filter },
   ];
 
   return (
@@ -57,20 +52,12 @@ export default function App() {
             <RefreshCcw size={16} />
             Refresh
           </button>
-          {/* <button
-            onClick={toggleFilter}
-            className={`px-4 py-2 text-sm  border ${
-              filter
-                ? "bg-blue-400 text-white hover:text-black hover:bg-white"
-                : "bg-white hover:text-white hover:bg-blue-400"
-            } border-gray-300 rounded-lg  transition-colors flex items-center gap-2`}
-          >
-            Filter
-          </button> */}
         </div>
       </nav>
-
-      <div className="w-full h-[calc(100%-4rem)] flex ">
+      <div>
+        <FilterBar />
+      </div>
+      <div className="w-full h-[80vh] mt-3 flex ">
         <div className="w-80 h-full bg-white/90 backdrop-blur-sm shadow-xl  mr-4 ml-2 rounded-3xl flex flex-col ">
           <div className="border-b border-gray-200 p-4 b">
             <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-lg p-1">

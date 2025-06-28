@@ -22,13 +22,12 @@ const Login = ({ setUser }) => {
     },
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setLoading(true);
 
     const mockUser = mockUsers[role];
     if (username === mockUser.username && password === mockUser.password) {
-      console.log(`Logged in as ${mockUser.name} (${role})`);
       navigate("/dashboard");
     } else {
       alert("Invalid credentials");
