@@ -10,15 +10,9 @@ import {
   Server,
 } from "lucide-react";
 
-const FilterBar = () => {
+const FilterBar = ({ selectedPath, setSelectedPath }) => {
   const [hoveredLob, setHoveredLob] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
-  const [selectedPath, setSelectedPath] = useState({
-    lob: null,
-    subject: null,
-    database: null,
-    table: null,
-  });
 
   const businessData = {
     "Branded Cards": {
@@ -223,9 +217,10 @@ const FilterBar = () => {
     });
   };
 
-  const handleDatabaseSelect = (database) => {
+  const handleDatabaseSelect = (lob, subject, database) => {
     setSelectedPath({
-      ...selectedPath,
+      lob,
+      subject,
       database,
       table: null,
     });
@@ -350,9 +345,13 @@ const FilterBar = () => {
                                 (database) => (
                                   <button
                                     key={database}
-                                    onClick={() =>
-                                      handleDatabaseSelect(database)
-                                    }
+                                    onClick={() => {
+                                      handleDatabaseSelect(
+                                        lob,
+                                        subject,
+                                        database
+                                      );
+                                    }}
                                     className={`w-full flex items-center px-4 py-3 text-sm text-left transition-colors ${
                                       selectedPath.database === database
                                         ? "bg-green-50 text-green-700 border-r-2 border-green-600"
@@ -373,12 +372,27 @@ const FilterBar = () => {
                                   (table) => (
                                     <button
                                       key={table}
-                                      onClick={() =>
-                                        setSelectedPath({
-                                          ...selectedPath,
-                                          table,
-                                        })
-                                      }
+                                      onClick={() => {
+                                        if (selectedPath.database === null) {
+                                          // handleDatabaseSelect(
+                                          //   lob,
+                                          //   subject,
+                                          //   businessData[lob][subject]
+                                          //     .databases[0]
+                                          // );
+                                          alert(
+                                            "Please select a database first."
+                                          );
+                                          return;
+                                        }
+                                        console.log(selectedPath);
+                                        setSelectedPath((path) => {
+                                          return {
+                                            ...path,
+                                            table,
+                                          };
+                                        });
+                                      }}
                                       className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
                                         selectedPath.table === table
                                           ? "bg-purple-50 text-purple-700"

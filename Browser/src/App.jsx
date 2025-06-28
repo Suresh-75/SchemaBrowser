@@ -17,7 +17,12 @@ import FilterBar from "./Components/FilterBar";
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
-
+  const [selectedPath, setSelectedPath] = useState({
+    lob: null,
+    subject: null,
+    database: null,
+    table: null,
+  });
   const sidebarItems = [
     { id: "overview", label: "Overview", icon: Eye },
     { id: "entities", label: "Entities", icon: Box },
@@ -54,10 +59,13 @@ export default function App() {
           </button>
         </div>
       </nav>
-      <div>
-        <FilterBar />
+      <div className="mt-5 my-3 ">
+        <FilterBar
+          selectedPath={selectedPath}
+          setSelectedPath={setSelectedPath}
+        />
       </div>
-      <div className="w-full h-[80vh] mt-3 flex ">
+      <div className="w-full h-[80vh] flex">
         <div className="w-80 h-full bg-white/90 backdrop-blur-sm shadow-xl  mr-4 ml-2 rounded-3xl flex flex-col ">
           <div className="border-b border-gray-200 p-4 b">
             <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-lg p-1">
@@ -102,7 +110,10 @@ export default function App() {
             </div>
           </div>
           <div className="flex-1 p-4 overflow-y-auto">
-            <SidebarComponent activeTab={activeTab} />
+            <SidebarComponent
+              activeTab={activeTab}
+              selectedPath={selectedPath}
+            />
           </div>
         </div>
         <main className="flex-1">
