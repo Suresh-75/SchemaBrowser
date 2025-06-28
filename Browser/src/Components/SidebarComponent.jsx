@@ -1,12 +1,15 @@
 import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
+import FilterBar from "./FilterBar";
 
 function SidebarComponent({ activeTab = "overview" }) {
   console.log("Active Tab:", activeTab);
   switch (activeTab) {
     case "versions":
       return <VersionControlPanel />;
+    // case "FilterBar":
+    //   return <FilterBar />;
     case "annotations":
       return <AnnotationsPanel />;
     case "entities":
