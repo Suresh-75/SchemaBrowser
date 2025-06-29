@@ -1,4 +1,4 @@
-App.jsx
+App.jsx;
 import React, { useState } from "react";
 import {
   Database,
@@ -17,9 +17,11 @@ import SidebarComponent from "./Components/SidebarComponent";
 import SearchBar from "./Components/SearchBar";
 import FilterBar from "./Components/FilterBar";
 import { ReactFlowProvider } from "@xyflow/react";
+// import AddEntityComponent from "./Components/AddEntity"; // Uncomment if you have this component
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [create, setCreate] = useState("");
   const navigate = useNavigate();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
@@ -43,229 +45,443 @@ export default function App() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  // businessData for SearchBar and FilterBar
+  // --- businessData: all databases are arrays of table names ---
   const businessData = {
     "Branded Cards": {
       Accounts: {
-        databases: ["card_accounts_db", "card_profile_db"],
-        tables: ["card_accounts", "card_holders", "card_limits"],
+        databases: {
+          card_accounts_db: [
+            "card_accounts",
+            "account_status",
+            "card_issuance",
+          ],
+          card_profile_db: [
+            "card_holders",
+            "cardholder_details",
+            "card_limits",
+          ],
+        },
       },
       Payments: {
-        databases: ["card_payments_db", "transaction_db"],
-        tables: ["card_transactions", "payments", "authorizations"],
+        databases: {
+          card_payments_db: [
+            "card_transactions",
+            "payment_history",
+            "transaction_fees",
+          ],
+          transaction_db: ["payments", "authorizations", "settlement_records"],
+        },
       },
       Fraud: {
-        databases: ["fraud_detection_db", "security_db"],
-        tables: ["fraud_alerts", "suspicious_transactions", "blocked_cards"],
+        databases: {
+          fraud_detection_db: [
+            "fraud_alerts",
+            "fraud_patterns",
+            "risk_scoring",
+          ],
+          security_db: [
+            "suspicious_transactions",
+            "blocked_cards",
+            "security_logs",
+          ],
+        },
       },
       Collections: {
-        databases: ["collections_db", "delinquency_db"],
-        tables: ["collection_cases", "payment_plans", "recovery_actions"],
+        databases: {
+          collections_db: [
+            "collection_cases",
+            "collector_assignments",
+            "case_status",
+          ],
+          delinquency_db: [
+            "payment_plans",
+            "recovery_actions",
+            "delinquent_accounts",
+          ],
+        },
       },
     },
     CRS: {
       Customer: {
-        databases: ["crs_customer_db", "profile_db"],
-        tables: ["customer_profiles", "contact_info", "preferences"],
+        databases: {
+          crs_customer_db: [
+            "customer_profiles",
+            "kyc_documents",
+            "onboarding_data",
+          ],
+          profile_db: [
+            "contact_info",
+            "preferences",
+            "communication_history",
+          ],
+        },
       },
       Compliance: {
-        databases: ["crs_compliance_db", "regulatory_db"],
-        tables: ["compliance_reports", "tax_reporting", "regulatory_filings"],
+        databases: {
+          crs_compliance_db: [
+            "compliance_reports",
+            "audit_findings",
+            "remediation_actions",
+          ],
+          regulatory_db: [
+            "tax_reporting",
+            "regulatory_filings",
+            "compliance_calendar",
+          ],
+        },
       },
       Risk: {
-        databases: ["crs_risk_db", "assessment_db"],
-        tables: ["risk_assessments", "credit_scores", "risk_factors"],
+        databases: {
+          crs_risk_db: ["risk_assessments", "risk_models", "stress_testing"],
+          assessment_db: ["credit_scores", "risk_factors", "portfolio_metrics"],
+        },
       },
     },
     Deposits: {
       Accounts: {
-        databases: ["deposit_accounts_db", "savings_db"],
-        tables: ["savings_accounts", "checking_accounts", "account_balances"],
+        databases: {
+          deposit_accounts_db: [
+            "savings_accounts",
+            "account_opening",
+            "account_closure",
+          ],
+          savings_db: [
+            "checking_accounts",
+            "account_balances",
+            "interest_calculations",
+          ],
+        },
       },
       "Money Movement": {
-        databases: ["transfer_db", "wire_db"],
-        tables: ["transfers", "wire_transfers", "ach_transactions"],
+        databases: {
+          transfer_db: [
+            "transfers",
+            "transfer_limits",
+            "beneficiary_management",
+          ],
+          wire_db: [
+            "wire_transfers",
+            "ach_transactions",
+            "international_transfers",
+          ],
+        },
       },
       Rate: {
-        databases: ["interest_rates_db", "pricing_db"],
-        tables: ["interest_rates", "rate_tiers", "promotional_rates"],
+        databases: {
+          interest_rates_db: [
+            "interest_rates",
+            "rate_history",
+            "rate_changes",
+          ],
+          pricing_db: ["rate_tiers", "promotional_rates", "pricing_models"],
+        },
       },
       Fees: {
-        databases: ["fee_structure_db", "charges_db"],
-        tables: ["fee_schedule", "account_fees", "fee_waivers"],
+        databases: {
+          fee_structure_db: [
+            "fee_schedule",
+            "fee_types",
+            "fee_calculations",
+          ],
+          charges_db: ["account_fees", "fee_waivers", "fee_reversals"],
+        },
       },
     },
     Investments: {
       Accounts: {
-        databases: ["investment_accounts_db", "portfolio_db"],
-        tables: ["investment_accounts", "portfolios", "holdings"],
+        databases: {
+          investment_accounts_db: [
+            "investment_accounts",
+            "account_types",
+            "tax_wrappers",
+          ],
+          portfolio_db: ["portfolios", "holdings", "asset_allocation"],
+        },
       },
       Risk: {
-        databases: ["investment_risk_db", "market_risk_db"],
-        tables: ["risk_profiles", "market_risks", "portfolio_risks"],
+        databases: {
+          investment_risk_db: [
+            "risk_profiles",
+            "risk_tolerance",
+            "risk_questionnaires",
+          ],
+          market_risk_db: ["market_risks", "portfolio_risks", "var_calculations"],
+        },
       },
       Finance: {
-        databases: ["investment_finance_db", "valuation_db"],
-        tables: ["portfolio_valuations", "performance_metrics", "returns"],
+        databases: {
+          investment_finance_db: [
+            "portfolio_valuations",
+            "nav_calculations",
+            "cost_basis",
+          ],
+          valuation_db: ["performance_metrics", "returns", "benchmarking"],
+        },
       },
     },
     "Personal Loan": {
       Accounts: {
-        databases: ["loan_accounts_db", "borrower_db"],
-        tables: ["loan_accounts", "borrower_profiles", "loan_terms"],
+        databases: {
+          loan_accounts_db: [
+            "loan_accounts",
+            "loan_applications",
+            "approval_workflow",
+          ],
+          borrower_db: [
+            "borrower_profiles",
+            "loan_terms",
+            "repayment_schedules",
+          ],
+        },
       },
       Risk: {
-        databases: ["loan_risk_db", "credit_db"],
-        tables: ["credit_assessments", "default_risks", "loan_grades"],
+        databases: {
+          loan_risk_db: [
+            "credit_assessments",
+            "underwriting_decisions",
+            "risk_pricing",
+          ],
+          credit_db: ["default_risks", "loan_grades", "credit_bureau_data"],
+        },
       },
       Collections: {
-        databases: ["loan_collections_db", "recovery_db"],
-        tables: ["delinquent_loans", "collection_efforts", "recovery_plans"],
+        databases: {
+          loan_collections_db: [
+            "delinquent_loans",
+            "collection_strategies",
+            "workout_plans",
+          ],
+          recovery_db: ["collection_efforts", "recovery_plans", "charge_offs"],
+        },
       },
       Servicing: {
-        databases: ["loan_servicing_db", "payment_db"],
-        tables: ["loan_payments", "payment_schedules", "servicing_records"],
+        databases: {
+          loan_servicing_db: [
+            "loan_payments",
+            "payment_processing",
+            "escrow_management",
+          ],
+          payment_db: ["payment_schedules", "servicing_records", "payment_history"],
+        },
       },
     },
     Mortgage: {
       Accounts: {
-        databases: ["mortgage_accounts_db", "property_db"],
-        tables: ["mortgage_accounts", "property_details", "loan_documents"],
+        databases: {
+          mortgage_accounts_db: [
+            "mortgage_accounts",
+            "loan_origination",
+            "closing_documents",
+          ],
+          property_db: [
+            "property_details",
+            "loan_documents",
+            "title_information",
+          ],
+        },
       },
       Collateral: {
-        databases: ["collateral_db", "appraisal_db"],
-        tables: ["property_collateral", "appraisals", "collateral_valuations"],
+        databases: {
+          collateral_db: [
+            "property_collateral",
+            "collateral_tracking",
+            "lien_management",
+          ],
+          appraisal_db: [
+            "appraisals",
+            "collateral_valuations",
+            "property_inspections",
+          ],
+        },
       },
       Servicing: {
-        databases: ["mortgage_servicing_db", "escrow_db"],
-        tables: ["mortgage_payments", "escrow_accounts", "servicing_transfers"],
+        databases: {
+          mortgage_servicing_db: [
+            "mortgage_payments",
+            "payment_application",
+            "loan_modifications",
+          ],
+          escrow_db: [
+            "escrow_accounts",
+            "servicing_transfers",
+            "tax_insurance_payments",
+          ],
+        },
       },
       Risk: {
-        databases: ["mortgage_risk_db", "ltv_db"],
-        tables: ["loan_to_value", "mortgage_risks", "default_probabilities"],
+        databases: {
+          mortgage_risk_db: [
+            "loan_to_value",
+            "mortgage_insurance",
+            "risk_monitoring",
+          ],
+          ltv_db: ["mortgage_risks", "default_probabilities", "loss_given_default"],
+        },
       },
     },
     Customer: {
       Customer: {
-        databases: ["customer_master_db", "demographics_db"],
-        tables: ["customer_master", "demographics", "customer_segments"],
+        databases: {
+          customer_master_db: [
+            "customer_master",
+            "customer_hierarchy",
+            "relationship_mapping",
+          ],
+          demographics_db: ["demographics", "customer_segments", "behavioral_data"],
+        },
       },
       "Customer Communication": {
-        databases: ["communication_db", "notification_db"],
-        tables: ["communications", "notifications", "preferences"],
+        databases: {
+          communication_db: [
+            "communications",
+            "message_templates",
+            "delivery_tracking",
+          ],
+          notification_db: ["notifications", "preferences", "opt_in_management"],
+        },
       },
       Acquisitions: {
-        databases: ["acquisition_db", "prospect_db"],
-        tables: ["prospects", "acquisition_campaigns", "conversion_metrics"],
+        databases: {
+          acquisition_db: ["prospects", "lead_scoring", "conversion_tracking"],
+          prospect_db: [
+            "acquisition_campaigns",
+            "conversion_metrics",
+            "channel_attribution",
+          ],
+        },
       },
       Marketing: {
-        databases: ["marketing_db", "campaign_db"],
-        tables: ["campaigns", "customer_responses", "marketing_metrics"],
+        databases: {
+          marketing_db: ["campaigns", "campaign_performance", "a_b_testing"],
+          campaign_db: ["customer_responses", "marketing_metrics", "roi_analysis"],
+        },
       },
     },
     Channel: {
       Channels: {
-        databases: ["channel_db", "interaction_db"],
-        tables: [
-          "channel_interactions",
-          "channel_preferences",
-          "usage_patterns",
-        ],
+        databases: {
+          channel_db: ["channel_interactions", "session_data", "user_journeys"],
+          interaction_db: ["channel_preferences", "usage_patterns", "feature_usage"],
+        },
       },
       Operations: {
-        databases: ["channel_ops_db", "performance_db"],
-        tables: [
-          "channel_performance",
-          "operational_metrics",
-          "efficiency_reports",
-        ],
+        databases: {
+          channel_ops_db: ["channel_performance", "uptime_monitoring", "error_tracking"],
+          performance_db: ["operational_metrics", "efficiency_reports", "sla_monitoring"],
+        },
       },
       "Customer Communication": {
-        databases: ["channel_comm_db", "message_db"],
-        tables: ["channel_messages", "communication_logs", "response_tracking"],
+        databases: {
+          channel_comm_db: ["channel_messages", "cross_channel_tracking", "message_routing"],
+          message_db: ["communication_logs", "response_tracking", "escalation_management"],
+        },
       },
     },
     Others: {
       Reference: {
-        databases: ["reference_db", "lookup_db"],
-        tables: ["reference_data", "lookup_tables", "master_data"],
+        databases: {
+          reference_db: ["reference_data", "code_tables", "configuration_settings"],
+          lookup_db: ["lookup_tables", "master_data", "data_dictionary"],
+        },
       },
       Compliance: {
-        databases: ["general_compliance_db", "audit_db"],
-        tables: ["compliance_records", "audit_trails", "regulatory_reports"],
+        databases: {
+          general_compliance_db: ["compliance_records", "policy_management", "training_records"],
+          audit_db: ["audit_trails", "regulatory_reports", "examination_findings"],
+        },
       },
       Operations: {
-        databases: ["operations_db", "workflow_db"],
-        tables: ["operational_data", "workflow_instances", "process_metrics"],
+        databases: {
+          operations_db: ["operational_data", "batch_processing", "system_monitoring"],
+          workflow_db: ["workflow_instances", "process_metrics", "automation_rules"],
+        },
       },
       Disputes: {
-        databases: ["disputes_db", "resolution_db"],
-        tables: ["dispute_cases", "resolution_actions", "dispute_outcomes"],
+        databases: {
+          disputes_db: ["dispute_cases", "dispute_categories", "investigation_notes"],
+          resolution_db: ["resolution_actions", "dispute_outcomes", "chargeback_management"],
+        },
       },
       Complaints: {
-        databases: ["complaints_db", "feedback_db"],
-        tables: [
-          "customer_complaints",
-          "complaint_resolutions",
-          "feedback_analysis",
-        ],
+        databases: {
+          complaints_db: ["customer_complaints", "complaint_categories", "escalation_tracking"],
+          feedback_db: ["complaint_resolutions", "feedback_analysis", "satisfaction_surveys"],
+        },
       },
       Merchant: {
-        databases: ["merchant_db", "transaction_processing_db"],
-        tables: [
-          "merchant_accounts",
-          "merchant_transactions",
-          "settlement_data",
-        ],
+        databases: {
+          merchant_db: ["merchant_accounts", "merchant_onboarding", "merchant_profiles"],
+          transaction_processing_db: ["merchant_transactions", "settlement_data", "fee_calculations"],
+        },
       },
       "Account Promotions": {
-        databases: ["promotions_db", "offers_db"],
-        tables: [
-          "promotional_offers",
-          "account_promotions",
-          "promotion_results",
-        ],
+        databases: {
+          promotions_db: ["promotional_offers", "offer_management", "eligibility_rules"],
+          offers_db: ["account_promotions", "promotion_results", "performance_tracking"],
+        },
       },
     },
   };
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-auto">
-      <nav className="w-full h-16 bg-white/80 backdrop-blur-md shadow-lg mb-2 flex items-center justify-between px-8">
-        <div className="flex items-center gap-4">
+    <div
+      className={` min-h-screen min-w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-hidden flex flex-col`}
+    >
+      {/* {create == "Entity" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
+          <AddEntityComponent setCreate={setCreate} />
+        </>
+      )}
+      {create == "Relationship" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
+          <AddEntityComponent setCreate={setCreate} />
+        </>
+      )} */}
+      <nav className="w-full h-20 bg-white/90 backdrop-blur-lg shadow-lg flex items-center justify-between px-10 rounded-b-3xl border-b border-indigo-100 z-10">
+        <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Database className="text-white" size={20} />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Database className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent tracking-wide drop-shadow">
               DATABEE
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-base bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center gap-2 shadow-sm font-semibold"
           >
-            <User size={16} />
+            <User size={18} />
             Logout
           </button>
-          <button className="px-6 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2">
-            <RefreshCcw size={16} />
+          <button className="px-6 py-2 text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
+            <RefreshCcw size={18} />
             Refresh
           </button>
         </div>
       </nav>
-      <div className="mt-5 my-3 ">
+      {/* FilterBar */}
+      <div className="flex-shrink-0 px-6 py-3">
         <FilterBar
           selectedPath={selectedPath}
           onSelect={handleSelection}
+          setSelectedPath={setSelectedPath}
+          businessData={businessData}
         />
       </div>
-      <div className="w-full h-[80vh] flex">
+
+      <div
+        className={`flex flex-1  px-4 pb-4 gap-4 ${
+          create == "Entity" ? "pointer-events-none" : ""
+        } `}
+      >
         {/* Sidebar */}
-        <div className="w-72 h-full bg-white/90 backdrop-blur-sm shadow-xl mr-2 ml-1 rounded-3xl flex flex-col">
-          <div className="border-b border-gray-200 p-4 b">
+        <div className=" min-w-[20rem] max-w-xs  bg-white/90 backdrop-blur-sm shadow-xl rounded-3xl flex flex-col border border-indigo-100">
+          <div className="border-b border-gray-200 p-3">
             <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-lg p-1">
               {sidebarItems.slice(0, 3).map((item) => {
                 const Icon = item.icon;
@@ -273,20 +489,21 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${
                       activeTab === item.id
                         ? "bg-white text-blue-700 shadow-sm"
                         : "text-gray-600 hover:text-gray-800"
                     }`}
+                    style={{ minWidth: 0 }}
                   >
-                    <Icon size={14} />
-                    <span className="hidden sm:inline">{item.label}</span>
+                    <Icon size={16} />
+                    <span className=" max-w-[4.5rem]">{item.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="px-4 py-2 border-b border-gray-200">
+          <div className="px-3 py-2 border-b border-gray-200">
             <div className="space-y-1">
               {sidebarItems.slice(3).map((item) => {
                 const Icon = item.icon;
@@ -294,7 +511,7 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
+                    className={`w-full px-2 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
                       activeTab === item.id
                         ? "bg-blue-50 text-blue-700 border border-blue-200"
                         : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -307,21 +524,21 @@ export default function App() {
               })}
             </div>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-3 overflow-y-auto min-h-0">
             <SidebarComponent
               activeTab={activeTab}
               selectedPath={selectedPath}
+              create={create}
+              setCreate={setCreate}
+              businessData={businessData}
             />
           </div>
         </div>
         {/* Main Content */}
-        <div className="flex-1 flex flex-col items-center p-0 min-h-0">
+        <div className="flex-1  flex flex-col items-center p-0 min-h-0">
           {/* SearchBar above ER diagram, same width as ER diagram */}
-          <div className="w-full max-w-[1600px] mb-2 shrink-0">
-            <SearchBar
-              businessData={businessData}
-              onSelect={handleSelection}
-            />
+          <div className="w-full  max-w-[1600px] mb-2 shrink-0">
+            <SearchBar businessData={businessData} onSelect={handleSelection} />
           </div>
           <div
             className="w-full max-w-[1600px] flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-auto flex flex-col"
