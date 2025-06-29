@@ -56,28 +56,40 @@ const SearchBar = ({ businessData, onSelect }) => {
       : [];
 
   return (
-    <div className="w-full px-6 py-2 bg-white border-b border-gray-100 relative z-10">
-      <input
-        type="text"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        placeholder="Search LOB, Subject Area, Database, or Table..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 200)}
-      />
+    <div className="w-full rounded-2xl px-3 py-3 bg-gradient-to-r from-white via-blue-50 to-indigo-50 border border-indigo-100 shadow-md relative z-20">
+      <div className="relative">
+        <input
+          type="text"
+          className="w-full px-5 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-base transition-all placeholder-gray-400 bg-white"
+          placeholder="🔍  Search LOB, Subject Area, Database, or Table..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
+        />
+        {query.length > 0 && (
+          <button
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => setQuery("")}
+            tabIndex={-1}
+            type="button"
+          >
+            ×
+          </button>
+        )}
+      </div>
       {focused && filtered.length > 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto z-50">
+        <div className="absolute left-0 overflow-x-hidden right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-auto z-50 animate-fade-in">
           {filtered.map((item, idx) => (
             <button
               key={item.type + item.name + idx}
-              className={`w-full text-left px-4 py-2 transition-all duration-150
+              className={`w-full text-left px-5 py-3 transition-all duration-150 flex flex-col
                 ${
                   hoveredIdx === idx
                     ? "bg-blue-100 scale-[1.01] shadow"
                     : "hover:bg-blue-50"
                 }
-                rounded-md`}
+                rounded-lg`}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
               onClick={() => {
@@ -86,21 +98,25 @@ const SearchBar = ({ businessData, onSelect }) => {
               }}
             >
               <div className="flex justify-between items-center">
-                <span>
+                <span className="font-medium text-gray-800">
                   {item.name}
-                  <span className="ml-2 text-xs text-gray-500">
+                  <span className="ml-2 text-xs text-gray-500 font-normal">
                     ({item.type})
                   </span>
                 </span>
-                <span className="text-xs text-gray-400">{item.granularity}</span>
+                <span className="text-xs text-indigo-400 font-semibold">
+                  {item.granularity}
+                </span>
               </div>
-              <div className="text-xs text-gray-500 mt-1">{item.breadcrumb}</div>
+              <div className="text-xs text-gray-400 mt-1 italic">
+                {item.breadcrumb}
+              </div>
             </button>
           ))}
         </div>
       )}
       {focused && query.length > 0 && filtered.length === 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-2 text-gray-400">
+        <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 px-5 py-3 text-gray-400 text-center animate-fade-in">
           No results found.
         </div>
       )}
