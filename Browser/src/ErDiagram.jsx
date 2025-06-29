@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   Background,
   Controls,
@@ -7,6 +7,7 @@ import {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
@@ -153,19 +154,19 @@ function ErDiagram() {
         id: "1",
         type: "schemaCard",
         data: { table: customerTable },
-        position: { x: -100, y: -300 },
+        position: { x: -100, y: -200 },
       },
       {
         id: "2",
         type: "schemaCard",
         data: { table: accountTable },
-        position: { x: 350, y: -300 },
+        position: { x: 350, y: -200 },
       },
       {
         id: "3",
         type: "schemaCard",
         data: { table: transactionTable },
-        position: { x: 800, y: -300 },
+        position: { x: 800, y: -200 },
       },
       {
         id: "4",
@@ -247,8 +248,22 @@ function ErDiagram() {
     []
   );
 
+  // --- Auto-fit on Resize ---
+  const reactFlowInstance = useReactFlow();
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      reactFlowInstance.fitView({ padding: 0.3 });
+    }, 50);
+    window.addEventListener("resize", () => reactFlowInstance.fitView({ padding: 0.3 }));
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", () => reactFlowInstance.fitView({ padding: 0.3 }));
+    };
+  }, [reactFlowInstance, nodes, edges]);
+  // --------------------------
+
   return (
-    <div className="w-[100%] h-[100%]">
+    <div className="w-full h-full min-h-0 min-w-0 flex-1">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -256,11 +271,17 @@ function ErDiagram() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
         nodeTypes={nodeTypes}
         panOnDrag
         nodesDraggable
         proOptions={{ hideAttribution: true }}
-        style={{ willChange: "transform", background: "#f8f9fa" }}
+        style={{
+          willChange: "transform",
+          background: "#f8f9fa",
+          width: "100%",
+          height: "100%",
+        }}
       >
         <Background color="#ccc" gap={10} variant="dots" />
         <MiniMap nodeColor={"gray"} nodeStrokeWidth={3} zoomable pannable />
