@@ -40,23 +40,63 @@ const businessData = {
   // ... Add other LOBs and subject areas as needed
 };
 
-function getEntitiesAndRelationships(selectedPath) {
-  // Add a null/undefined check for selectedPath
+// Enhanced: Returns entities and relationships for the current selection
+function getEntitiesAndRelationships(selectedPath, businessData) {
   if (!selectedPath || !selectedPath.lob) {
+    return { entities: [], relationships: [] };
+  }
+  // Database selected
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    selectedPath.database &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject] &&
+    businessData[selectedPath.lob][selectedPath.subject].databases &&
+    businessData[selectedPath.lob][selectedPath.subject].databases[
+      selectedPath.database
+    ]
+  ) {
+    const db =
+      businessData[selectedPath.lob][selectedPath.subject].databases[
+        selectedPath.database
+      ];
     return {
-      entities: [],
-      relationships: [],
+      entities: db.entities || [],
+      relationships: db.relationships || [],
     };
   }
-  // Implement logic as per your businessData structure
-  // Placeholder: return empty arrays
-  return {
-    entities: [],
-    relationships: [],
-  };
+  // Subject selected: aggregate all entities/relationships in all databases
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject]
+  ) {
+    const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
+    return {
+      entities: Object.values(dbs).flatMap((db) => db.entities || []),
+      relationships: Object.values(dbs).flatMap((db) => db.relationships || []),
+    };
+  }
+  // LOB selected: aggregate all entities/relationships in all subjects/databases
+  if (selectedPath.lob && businessData[selectedPath.lob]) {
+    let entities = [];
+    let relationships = [];
+    Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
+      const dbs = subjectObj.databases;
+      entities = entities.concat(
+        ...Object.values(dbs).flatMap((db) => db.entities || [])
+      );
+      relationships = relationships.concat(
+        ...Object.values(dbs).flatMap((db) => db.relationships || [])
+      );
+    });
+    return { entities, relationships };
+  }
+  return { entities: [], relationships: [] };
 }
 
-// Helper to get tables for the current selection
 function getTablesForSelection(selectedPath, businessData) {
   if (
     selectedPath.lob &&
@@ -72,7 +112,6 @@ function getTablesForSelection(selectedPath, businessData) {
       selectedPath.database
     ].entities
   ) {
-    // Specific database selected
     return businessData[selectedPath.lob][selectedPath.subject].databases[
       selectedPath.database
     ].entities;
@@ -83,12 +122,10 @@ function getTablesForSelection(selectedPath, businessData) {
     businessData[selectedPath.lob] &&
     businessData[selectedPath.lob][selectedPath.subject]
   ) {
-    // Subject selected, show all tables in all databases under this subject
     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
     return Object.values(dbs).flatMap((db) => db.entities || []);
   }
   if (selectedPath.lob && businessData[selectedPath.lob]) {
-    // LOB selected, show all tables in all subjects and databases under this LOB
     let tables = [];
     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
       const dbs = subjectObj.databases;
@@ -107,17 +144,14 @@ const SidebarComponent = ({
   setCreate,
   businessData: propBusinessData,
 }) => {
-  // Use prop businessData if provided, else fallback to local
   const data = propBusinessData || businessData;
 
-  // Build lineage up to table
   let lineage = [];
   if (selectedPath?.lob) lineage.push(selectedPath.lob);
   if (selectedPath?.subject) lineage.push(selectedPath.subject);
   if (selectedPath?.database) lineage.push(selectedPath.database);
   if (selectedPath?.table) lineage.push(selectedPath.table);
 
-  // Get tables/entities for the current selection
   const tables = getTablesForSelection(selectedPath, data);
   const { entities, relationships } = getEntitiesAndRelationships(
     selectedPath,
@@ -131,18 +165,22 @@ const SidebarComponent = ({
       return <AnnotationsPanel />;
     case "entities":
       return (
-        <div className="h-full flex flex-col space-y-4">
+        <div
+          className="h-full flex flex-col space-y-4"
+          aria-label="Entities Panel"
+        >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Box className="text-blue-600" size={20} />
             Entities
           </h3>
-          {/* Scrollable entities list */}
           <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
             {tables.length > 0 ? (
               tables.map((entity) => (
                 <div
                   key={entity}
                   className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
+                  tabIndex={0}
+                  aria-label={`Entity: ${entity}`}
                 >
                   <Box className="text-blue-500" size={20} />
                   <div>
@@ -163,6 +201,7 @@ const SidebarComponent = ({
             <button
               onClick={() => setCreate("Entity")}
               className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+              aria-label="Add Entity"
             >
               <Plus size={16} />
               Add Entity
@@ -176,7 +215,10 @@ const SidebarComponent = ({
       );
     case "relationships":
       return (
-        <div className="h-full flex flex-col space-y-4">
+        <div
+          className="h-full flex flex-col space-y-4"
+          aria-label="Relationships Panel"
+        >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Network className="text-green-600" size={20} />
             Relationships
@@ -187,6 +229,8 @@ const SidebarComponent = ({
                 <div
                   key={rel}
                   className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3"
+                  tabIndex={0}
+                  aria-label={`Relationship: ${rel}`}
                 >
                   <Network className="text-green-500" size={20} />
                   <div>
@@ -207,6 +251,7 @@ const SidebarComponent = ({
             <button
               onClick={() => setCreate("Relationship")}
               className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
+              aria-label="Add Relationship"
             >
               <Plus size={16} />
               Add Relationship
@@ -220,7 +265,7 @@ const SidebarComponent = ({
       );
     case "settings":
       return (
-        <div className="space-y-4">
+        <div className="space-y-4" aria-label="Settings Panel">
           <h3 className="font-semibold text-gray-800 flex items-center gap-2">
             <Settings className="text-gray-600" size={20} />
             Settings
@@ -230,7 +275,10 @@ const SidebarComponent = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Theme
               </label>
-              <select className="w-full p-2 border border-gray-300 rounded-lg">
+              <select
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                aria-label="Theme Selector"
+              >
                 <option>Light</option>
                 <option>Dark</option>
                 <option>Auto</option>
@@ -240,7 +288,12 @@ const SidebarComponent = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Auto-save
               </label>
-              <input type="checkbox" className="rounded" defaultChecked />
+              <input
+                type="checkbox"
+                className="rounded"
+                defaultChecked
+                aria-label="Enable auto-save"
+              />
               <span className="ml-2 text-sm text-gray-600">
                 Enable auto-save
               </span>
@@ -249,13 +302,15 @@ const SidebarComponent = ({
         </div>
       );
     default:
-      // Overview: show stats for current selection
       if (
         !selectedPath ||
         (!selectedPath.lob && !selectedPath.subject && !selectedPath.database)
       ) {
         return (
-          <div className="flex flex-col items-center justify-center h-full py-16">
+          <div
+            className="flex flex-col items-center justify-center h-full py-16"
+            aria-label="Nothing Selected"
+          >
             <Eye className="text-gray-400 mb-4" size={48} />
             <div className="text-lg font-semibold text-gray-600 mb-2">
               Nothing Selected
@@ -268,7 +323,7 @@ const SidebarComponent = ({
         );
       }
       return (
-        <div className="space-y-4">
+        <div className="space-y-4" aria-label="Overview Panel">
           <h3 className="font-semibold text-gray-800 flex items-center gap-2">
             <Eye className="text-indigo-600" size={20} />
             Overview
@@ -283,17 +338,23 @@ const SidebarComponent = ({
                 <div>
                   <div className="text-gray-600">Entities</div>
                   <div className="font-semibold text-gray-800">
-                    {tables.length}
+                    {entities.length}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-600">Lineage</div>
+                  <div className="text-gray-600">Relationships</div>
                   <div className="font-semibold text-gray-800">
+                    {relationships.length}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-gray-600">Lineage</div>
+                  <div className="font-semibold text-gray-800 truncate">
                     {lineage.join(" > ")}
                   </div>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-gray-500 space-y-1">
                 {selectedPath?.lob && (
                   <div>
                     <span className="font-semibold">LOB:</span>{" "}
@@ -310,6 +371,12 @@ const SidebarComponent = ({
                   <div>
                     <span className="font-semibold">Database:</span>{" "}
                     {selectedPath.database}
+                  </div>
+                )}
+                {selectedPath?.table && (
+                  <div>
+                    <span className="font-semibold">Table:</span>{" "}
+                    {selectedPath.table}
                   </div>
                 )}
               </div>
