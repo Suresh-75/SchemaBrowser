@@ -14,8 +14,10 @@ import ErDiagram from "./ErDiagram";
 import { useNavigate } from "react-router-dom";
 import SidebarComponent from "./Components/SidebarComponent";
 import FilterBar from "./Components/FilterBar";
+import AddEntityComponent from "./Components/AddEntity";
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [create, setCreate] = useState("");
   const navigate = useNavigate();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
@@ -33,41 +35,62 @@ export default function App() {
   ];
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-hidden">
-      <nav className="w-full h-16 bg-white/80 backdrop-blur-md shadow-lg mb-2 flex items-center justify-between px-8">
-        <div className="flex items-center gap-4">
+    <div
+      className={` min-h-screen min-w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-hidden flex flex-col`}
+    >
+      {create == "Entity" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-10 pointer-events-auto"></div>
+          <AddEntityComponent setCreate={setCreate} />
+        </>
+      )}
+      {create == "Relationship" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-10 pointer-events-auto"></div>
+          <AddEntityComponent setCreate={setCreate} />
+        </>
+      )}
+      <nav className="w-full h-20 bg-white/90 backdrop-blur-lg shadow-lg flex items-center justify-between px-10 rounded-b-3xl border-b border-indigo-100 z-10">
+        <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Database className="text-white" size={20} />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Database className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+            <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent tracking-wide drop-shadow">
               DATABEE
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/")}
-            className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-base bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center gap-2 shadow-sm font-semibold"
           >
-            <User size={16} />
+            <User size={18} />
             Logout
           </button>
-          <button className="px-6 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2">
-            <RefreshCcw size={16} />
+          <button className="px-6 py-2 text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
+            <RefreshCcw size={18} />
             Refresh
           </button>
         </div>
       </nav>
-      <div className="mt-5 my-3 ">
+      {/* FilterBar */}
+      <div className="flex-shrink-0 px-6 py-3">
         <FilterBar
           selectedPath={selectedPath}
           setSelectedPath={setSelectedPath}
         />
       </div>
-      <div className="w-full h-[80vh] flex">
-        <div className="w-80 h-full bg-white/90 backdrop-blur-sm shadow-xl  mr-4 ml-2 rounded-3xl flex flex-col ">
-          <div className="border-b border-gray-200 p-4 b">
+
+      <div
+        className={`flex flex-1  px-4 pb-4 gap-4 ${
+          create == "Entity" ? "pointer-events-none" : ""
+        } `}
+      >
+        {/* Sidebar */}
+        <div className=" min-w-[20rem] max-w-xs  bg-white/90 backdrop-blur-sm shadow-xl rounded-3xl flex flex-col border border-indigo-100">
+          <div className="border-b border-gray-200 p-3">
             <div className="grid grid-cols-3 gap-1 bg-gray-100 rounded-lg p-1">
               {sidebarItems.slice(0, 3).map((item) => {
                 const Icon = item.icon;
@@ -75,20 +98,21 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${
                       activeTab === item.id
                         ? "bg-white text-blue-700 shadow-sm"
                         : "text-gray-600 hover:text-gray-800"
                     }`}
+                    style={{ minWidth: 0 }}
                   >
-                    <Icon size={14} />
-                    <span className="hidden sm:inline">{item.label}</span>
+                    <Icon size={16} />
+                    <span className=" max-w-[4.5rem]">{item.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="px-4 py-2 border-b border-gray-200">
+          <div className="px-3 py-2 border-b border-gray-200">
             <div className="space-y-1">
               {sidebarItems.slice(3).map((item) => {
                 const Icon = item.icon;
@@ -96,7 +120,7 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
+                    className={`w-full px-2 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
                       activeTab === item.id
                         ? "bg-blue-50 text-blue-700 border border-blue-200"
                         : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
@@ -109,16 +133,18 @@ export default function App() {
               })}
             </div>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-3 overflow-y-auto min-h-0">
             <SidebarComponent
               activeTab={activeTab}
               selectedPath={selectedPath}
+              create={create}
+              setCreate={setCreate}
             />
           </div>
         </div>
-        <main className="flex-1">
-          <div className="w-full h-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="w-full h-full p-6">
+        <main className="flex-1 flex flex-col">
+          <div className="w-full h-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex-1 flex flex-col">
+            <div className="w-full h-full p-4 flex-1 min-h-0">
               <ErDiagram />
             </div>
           </div>

@@ -373,7 +373,11 @@ const FilterBar = ({ selectedPath, setSelectedPath }) => {
                                     <button
                                       key={table}
                                       onClick={() => {
-                                        if (selectedPath.database === null) {
+                                        if (
+                                          selectedPath.database === null ||
+                                          (selectedPath.subject != subject &&
+                                            selectedPath.lob !== lob)
+                                        ) {
                                           // handleDatabaseSelect(
                                           //   lob,
                                           //   subject,

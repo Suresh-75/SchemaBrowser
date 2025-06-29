@@ -1,6 +1,7 @@
 import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
+import { useState } from "react";
 
 // Example data structure for demonstration (should match your FilterBar's businessData)
 const businessData = {
@@ -93,12 +94,15 @@ function getEntitiesAndRelationships(selectedPath) {
   };
 }
 
-function SidebarComponent({ activeTab = "overview", selectedPath }) {
+function SidebarComponent({
+  activeTab = "overview",
+  selectedPath,
+  create,
+  setCreate,
+}) {
   const { entities, relationships } = getEntitiesAndRelationships(
     selectedPath || {}
   );
-  console.log("Selected Path:", selectedPath);
-  console.log("Entities:", entities);
 
   switch (activeTab) {
     case "versions":
@@ -107,17 +111,17 @@ function SidebarComponent({ activeTab = "overview", selectedPath }) {
       return <AnnotationsPanel />;
     case "entities":
       return (
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-scroll">
           <h3 className="font-semibold text-gray-800 flex items-center gap-2">
             <Box className="text-blue-600" size={20} />
             Entities
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[20rem] overflow-y-auto over">
             {entities.length > 0 ? (
               entities.map((entity) => (
                 <div
                   key={entity}
-                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
+                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md  transition-all cursor-pointer flex items-center gap-3"
                 >
                   <Box className="text-blue-500" size={20} />
                   <div>
@@ -134,10 +138,20 @@ function SidebarComponent({ activeTab = "overview", selectedPath }) {
               </div>
             )}
           </div>
-          <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow">
-            <Plus size={16} />
-            Add Entity
-          </button>
+
+          {selectedPath.database ? (
+            <button
+              onClick={() => setCreate("Entity")}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+            >
+              <Plus size={16} />
+              Add Entity
+            </button>
+          ) : (
+            <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
+              Choose a database to add entities
+            </div>
+          )}
         </div>
       );
     case "relationships":
@@ -152,7 +166,7 @@ function SidebarComponent({ activeTab = "overview", selectedPath }) {
               relationships.map((rel) => (
                 <div
                   key={rel}
-                  className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
+                  className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3"
                 >
                   <Network className="text-green-500" size={20} />
                   <div>
@@ -169,10 +183,20 @@ function SidebarComponent({ activeTab = "overview", selectedPath }) {
               </div>
             )}
           </div>
-          <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow">
-            <Plus size={16} />
-            Add Relationship
-          </button>
+
+          {selectedPath.database ? (
+            <button
+              onClick={() => setCreate("Relationship")}
+              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
+            >
+              <Plus size={16} />
+              Add Relationship
+            </button>
+          ) : (
+            <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
+              Choose a database to add relationships
+            </div>
+          )}
         </div>
       );
     case "settings":
