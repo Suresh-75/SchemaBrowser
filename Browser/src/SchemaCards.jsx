@@ -2,46 +2,25 @@ import React from "react";
 import { Handle, Position } from "@xyflow/react"; // Import Handle and Position for connections
 
 const SimpleTableCard = ({ table }) => {
+  // Make all types blue
   const getTypeColor = (type) => {
-    const lowerType = type.toLowerCase();
-    if (lowerType.includes("int") || lowerType.includes("number")) {
-      return "bg-blue-100 text-blue-800";
-    }
-    if (
-      lowerType.includes("string") ||
-      lowerType.includes("varchar") ||
-      lowerType.includes("text")
-    ) {
-      return "bg-green-100 text-green-800";
-    }
-    if (lowerType.includes("bool")) {
-      return "bg-purple-100 text-purple-800";
-    }
-    if (lowerType.includes("date") || lowerType.includes("time")) {
-      return "bg-orange-100 text-orange-800";
-    }
-    return "bg-gray-100 text-gray-800";
+    return "bg-blue-100 text-blue-800";
   };
 
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-200 overflow-hidden max-w-md">
-      {/*
-        Handles are placed directly inside the main div of the node.
-        Their visual position is controlled by the 'position' prop,
-        not their DOM order relative to other elements,
-        so they won't disrupt your existing UI layout.
-      */}
+      {/* Handles for ReactFlow */}
       <Handle
         type="target"
         position={Position.Left}
         id="left-target"
-        className="w-3 h-3 bg-blue-500 rounded-full" // Optional: Add some styling to make handles visible during development
+        className="w-3 h-3 bg-blue-500 rounded-full"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-source"
-        className="w-3 h-3 bg-green-500 rounded-full" // Optional: Add some styling to make handles visible during development
+        className="w-3 h-3 bg-green-500 rounded-full"
       />
 
       {/* Table Header */}
@@ -83,7 +62,7 @@ const SimpleTableCard = ({ table }) => {
                   </span>
                 </div>
                 {!column.nullable && (
-                  <span className="text-red-500 text-xs font-medium">
+                  <span className="text-blue-600 text-xs font-medium">
                     NOT NULL
                   </span>
                 )}

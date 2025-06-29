@@ -1,0 +1,23 @@
+{
+  "name": "schemabrowser",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Suresh-75/SchemaBrowser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Suresh-75/SchemaBrowser/issues"
+  },
+  "homepage": "https://github.com/Suresh-75/SchemaBrowser#readme",
+  "description": "",
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
