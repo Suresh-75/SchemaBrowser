@@ -56,7 +56,7 @@ const SearchBar = ({ businessData, onSelect }) => {
       : [];
 
   return (
-    <div className="w-full rounded-2xl px-3 py-3 bg-gradient-to-r from-white via-blue-50 to-indigo-50 border border-indigo-100 shadow-md relative z-20">
+    <div className="w-full rounded-2xl px-3 py-3 bg-gradient-to-r from-white via-blue-50 to-indigo-50 border border-indigo-100 shadow-md relative z-10">
       <div className="relative">
         <input
           type="text"
@@ -79,7 +79,7 @@ const SearchBar = ({ businessData, onSelect }) => {
         )}
       </div>
       {focused && filtered.length > 0 && (
-        <div className="absolute left-0 overflow-x-hidden right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-auto z-50 animate-fade-in">
+        <div className="absolute left-0 overflow-x-hidden right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-auto z-10 animate-fade-in">
           {filtered.map((item, idx) => (
             <button
               key={item.type + item.name + idx}
@@ -116,7 +116,7 @@ const SearchBar = ({ businessData, onSelect }) => {
         </div>
       )}
       {focused && query.length > 0 && filtered.length === 0 && (
-        <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 px-5 py-3 text-gray-400 text-center animate-fade-in">
+        <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-10 px-5 py-3 text-gray-400 text-center animate-fade-in">
           No results found.
         </div>
       )}
