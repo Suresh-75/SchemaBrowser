@@ -1,9 +1,7 @@
 import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
-import { useState } from "react";
 
-// Example data structure for demonstration (should match your FilterBar's businessData)
 const businessData = {
   "Branded Cards": {
     Accounts: {
@@ -94,12 +92,7 @@ function getEntitiesAndRelationships(selectedPath) {
   };
 }
 
-function SidebarComponent({
-  activeTab = "overview",
-  selectedPath,
-  create,
-  setCreate,
-}) {
+function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
   const { entities, relationships } = getEntitiesAndRelationships(
     selectedPath || {}
   );
