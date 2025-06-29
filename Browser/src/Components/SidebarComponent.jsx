@@ -1,52 +1,8 @@
-import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
-import VersionControlPanel from "./VersionControlPanel";
-import AnnotationsPanel from "./Annotations";
+import React from "react";
+import { Eye, Zap, Box, Network, Settings, Plus } from "lucide-react";
 
-// Example data structure for demonstration (should match your FilterBar's businessData)
-const businessData = {
-  "Branded Cards": {
-    Accounts: {
-      databases: {
-        card_accounts_db: {
-          entities: ["card_accounts", "card_holders", "card_limits"],
-          relationships: [
-            "card_accounts.customer_id → customers.customer_id",
-            "card_accounts.account_id → card_limits.account_id",
-          ],
-        },
-        card_profile_db: {
-          entities: ["profile", "profile_limits"],
-          relationships: ["profile.profile_id → card_holders.profile_id"],
-        },
-      },
-    },
-    Payments: {
-      databases: {
-        card_payments_db: {
-          entities: ["card_transactions", "payments", "authorizations"],
-          relationships: [
-            "card_transactions.account_id → card_accounts.account_id",
-          ],
-        },
-        transaction_db: {
-          entities: ["transactions", "payments"],
-          relationships: ["transactions.payment_id → payments.payment_id"],
-        },
-      },
-    },
-  },
-  // ... Add other LOBs and subject areas as needed
-};
-
-function getEntitiesAndRelationships(selectedPath) {
-  // Add a null/undefined check for selectedPath
-  if (!selectedPath || !selectedPath.lob) {
-    return {
-      entities: [],
-      relationships: [],
-    };
-  }
-
+// Helper to get tables for the current selection
+function getTablesForSelection(selectedPath, businessData) {
   if (
     selectedPath.lob &&
     selectedPath.subject &&
@@ -54,227 +10,197 @@ function getEntitiesAndRelationships(selectedPath) {
     businessData[selectedPath.lob] &&
     businessData[selectedPath.lob][selectedPath.subject] &&
     businessData[selectedPath.lob][selectedPath.subject].databases &&
-    businessData[selectedPath.lob][selectedPath.subject].databases[
-      selectedPath.database
-    ]
+    Array.isArray(businessData[selectedPath.lob][selectedPath.subject].databases[selectedPath.database])
   ) {
-    const dbData =
-      businessData[selectedPath.lob][selectedPath.subject].databases[
-        selectedPath.database
-      ];
-    return {
-      entities: dbData.entities,
-      relationships: dbData.relationships,
-    };
+    // Specific database selected
+    return businessData[selectedPath.lob][selectedPath.subject].databases[selectedPath.database];
   }
-  // Fallback: show all entities/relationships for the selected LOB/subject if database not selected
   if (
     selectedPath.lob &&
     selectedPath.subject &&
     businessData[selectedPath.lob] &&
     businessData[selectedPath.lob][selectedPath.subject]
   ) {
-    const allEntities = [];
-    const allRelationships = [];
+    // Subject selected, show all tables in all databases under this subject
     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-    Object.values(dbs).forEach((db) => {
-      allEntities.push(...db.entities);
-      allRelationships.push(...db.relationships);
+    return Object.values(dbs).flat();
+  }
+  if (
+    selectedPath.lob &&
+    businessData[selectedPath.lob]
+  ) {
+    // LOB selected, show all tables in all subjects and databases under this LOB
+    let tables = [];
+    Object.values(businessData[selectedPath.lob]).forEach(subjectObj => {
+      const dbs = subjectObj.databases;
+      tables = tables.concat(...Object.values(dbs));
     });
-    return {
-      entities: allEntities,
-      relationships: allRelationships,
-    };
+    return tables;
   }
-  // Fallback: show nothing
-  return {
-    entities: [],
-    relationships: [],
-  };
+  return [];
 }
 
-function SidebarComponent({ activeTab = "overview", selectedPath }) {
-  const { entities, relationships } = getEntitiesAndRelationships(
-    selectedPath || {}
+const SidebarComponent = ({
+  activeTab,
+  selectedPath,
+  create,
+  setCreate,
+  businessData,
+}) => {
+  // Build lineage up to table
+  let lineage = [];
+  if (selectedPath.lob) lineage.push(selectedPath.lob);
+  if (selectedPath.subject) lineage.push(selectedPath.subject);
+  if (selectedPath.database) lineage.push(selectedPath.database);
+  if (selectedPath.table) lineage.push(selectedPath.table);
+
+  // Get tables for the current selection
+  const tables = getTablesForSelection(selectedPath, businessData);
+
+  // Overview panel
+  if (activeTab === "overview") {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Eye className="text-indigo-600" size={20} />
+          Overview
+        </h3>
+        <div className="space-y-3">
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="text-blue-600" size={16} />
+              <span className="font-medium text-blue-800">Quick Stats</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <div className="text-gray-600">Tables</div>
+                <div className="font-semibold text-gray-800">
+                  {tables.length}
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-600">Lineage</div>
+                <div className="font-semibold text-gray-800">
+                  {lineage.join(" > ")}
+                </div>
+              </div>
+            </div>
+            {/* Removed the grey lineage and tables list */}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Entities tab
+  if (activeTab === "entities") {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Box className="text-blue-600" size={20} />
+          Tables
+        </h3>
+        <div className="space-y-3">
+          {tables.length > 0 ? (
+            tables.map((table) => (
+              <div
+                key={table}
+                className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
+              >
+                <Box className="text-blue-500" size={20} />
+                <div>
+                  <div className="font-semibold text-gray-800 capitalize text-base">
+                    {table}
+                  </div>
+                  <div className="text-xs text-gray-500">Table</div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-500 text-sm">
+              No tables found for this selection.
+            </div>
+          )}
+        </div>
+        <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+          onClick={() => setCreate && setCreate("Entity")}
+        >
+          <Plus size={16} />
+          Add Table
+        </button>
+      </div>
+    );
+  }
+
+  // Relationships tab (placeholder)
+  if (activeTab === "relationships") {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Network className="text-green-600" size={20} />
+          Relationships
+        </h3>
+        <div className="space-y-3">
+          <div className="text-gray-500 text-sm">
+            Relationships are not defined in this structure.
+          </div>
+        </div>
+        <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
+          onClick={() => setCreate && setCreate("Relationship")}
+        >
+          <Plus size={16} />
+          Add Relationship
+        </button>
+      </div>
+    );
+  }
+
+  // Settings tab (placeholder)
+  if (activeTab === "settings") {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Settings className="text-gray-600" size={20} />
+          Settings
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Theme
+            </label>
+            <select className="w-full p-2 border border-gray-300 rounded-lg">
+              <option>Light</option>
+              <option>Dark</option>
+              <option>Auto</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Auto-save
+            </label>
+            <input type="checkbox" className="rounded" defaultChecked />
+            <span className="ml-2 text-sm text-gray-600">
+              Enable auto-save
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default fallback
+  return (
+    <div className="flex flex-col items-center justify-center h-full py-16">
+      <Eye className="text-gray-400 mb-4" size={48} />
+      <div className="text-lg font-semibold text-gray-600 mb-2">
+        Nothing Selected
+      </div>
+      <div className="text-gray-400 text-sm text-center">
+        Please select a Line of Business, Subject Area, and Database to
+        view details.
+      </div>
+    </div>
   );
-  console.log("Selected Path:", selectedPath);
-  console.log("Entities:", entities);
-
-  switch (activeTab) {
-    case "versions":
-      return <VersionControlPanel />;
-    case "annotations":
-      return <AnnotationsPanel />;
-    case "entities":
-      return (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Box className="text-blue-600" size={20} />
-            Entities
-          </h3>
-          <div className="space-y-3">
-            {entities.length > 0 ? (
-              entities.map((entity) => (
-                <div
-                  key={entity}
-                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
-                >
-                  <Box className="text-blue-500" size={20} />
-                  <div>
-                    <div className="font-semibold text-gray-800 capitalize text-base">
-                      {entity}
-                    </div>
-                    <div className="text-xs text-gray-500">Click to edit</div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-sm">
-                No entities found for this selection.
-              </div>
-            )}
-          </div>
-          <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow">
-            <Plus size={16} />
-            Add Entity
-          </button>
-        </div>
-      );
-    case "relationships":
-      return (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Network className="text-green-600" size={20} />
-            Relationships
-          </h3>
-          <div className="space-y-3">
-            {relationships.length > 0 ? (
-              relationships.map((rel) => (
-                <div
-                  key={rel}
-                  className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
-                >
-                  <Network className="text-green-500" size={20} />
-                  <div>
-                    <div className="font-semibold text-gray-800 text-base">
-                      {rel}
-                    </div>
-                    <div className="text-xs text-gray-500">Foreign Key</div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-sm">
-                No relationships found for this selection.
-              </div>
-            )}
-          </div>
-          <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow">
-            <Plus size={16} />
-            Add Relationship
-          </button>
-        </div>
-      );
-    case "settings":
-      return (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Settings className="text-gray-600" size={20} />
-            Settings
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Theme
-              </label>
-              <select className="w-full p-2 border border-gray-300 rounded-lg">
-                <option>Light</option>
-                <option>Dark</option>
-                <option>Auto</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Auto-save
-              </label>
-              <input type="checkbox" className="rounded" defaultChecked />
-              <span className="ml-2 text-sm text-gray-600">
-                Enable auto-save
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    default:
-      // Overview: show stats for current selection
-      if (
-        !selectedPath ||
-        (!selectedPath.lob && !selectedPath.subject && !selectedPath.database)
-      ) {
-        return (
-          <div className="flex flex-col items-center justify-center h-full py-16">
-            <Eye className="text-gray-400 mb-4" size={48} />
-            <div className="text-lg font-semibold text-gray-600 mb-2">
-              Nothing Selected
-            </div>
-            <div className="text-gray-400 text-sm text-center">
-              Please select a Line of Business, Subject Area, and Database to
-              view details.
-            </div>
-          </div>
-        );
-      }
-      return (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Eye className="text-indigo-600" size={20} />
-            Overview
-          </h3>
-          <div className="space-y-3">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="text-blue-600" size={16} />
-                <span className="font-medium text-blue-800">Quick Stats</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <div className="text-gray-600">Entities</div>
-                  <div className="font-semibold text-gray-800">
-                    {entities.length}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-600">Relations</div>
-                  <div className="font-semibold text-gray-800">
-                    {relationships.length}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-gray-500">
-                {selectedPath?.lob && (
-                  <div>
-                    <span className="font-semibold">LOB:</span>{" "}
-                    {selectedPath.lob}
-                  </div>
-                )}
-                {selectedPath?.subject && (
-                  <div>
-                    <span className="font-semibold">Subject:</span>{" "}
-                    {selectedPath.subject}
-                  </div>
-                )}
-                {selectedPath?.database && (
-                  <div>
-                    <span className="font-semibold">Database:</span>{" "}
-                    {selectedPath.database}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-  }
-}
+};
 
 export default SidebarComponent;
