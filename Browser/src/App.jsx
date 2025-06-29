@@ -332,7 +332,7 @@ export default function App() {
               })}
             </div>
           </div>
-          <div className="flex-1 p-3 overflow-y-auto min-h-0">
+          <div className="flex-1 p-3  overflow-y-auto min-h-0">
             <SidebarComponent
               activeTab={activeTab}
               selectedPath={selectedPath}

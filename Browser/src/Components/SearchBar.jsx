@@ -3,7 +3,6 @@ import React, { useState } from "react";
 const flattenBusinessData = (businessData) => {
   const results = [];
   for (const lob in businessData) {
-    // LOB level
     results.push({
       type: "LOB",
       name: lob,
@@ -12,7 +11,6 @@ const flattenBusinessData = (businessData) => {
       breadcrumb: lob,
     });
     for (const subject in businessData[lob]) {
-      // Subject Area level
       results.push({
         type: "Subject Area",
         name: subject,
@@ -20,27 +18,27 @@ const flattenBusinessData = (businessData) => {
         granularity: "Subject Area",
         breadcrumb: `${lob} > ${subject}`,
       });
-      const databases = businessData[lob][subject].databases;
-      for (const database in databases) {
-        // Database level
+      const subjectObj = businessData[lob][subject];
+      const databases = subjectObj.databases || [];
+      const tables = subjectObj.tables || [];
+      // Add databases
+      for (const db of databases) {
         results.push({
           type: "Database",
-          name: database,
-          path: { lob, subject, database, table: null },
+          name: db,
+          path: { lob, subject, database: db, table: null },
           granularity: "Database",
-          breadcrumb: `${lob} > ${subject} > ${database}`,
+          breadcrumb: `${lob} > ${subject} > ${db}`,
         });
-        // Only loop if it's an array
-        if (Array.isArray(databases[database])) {
-          for (const table of databases[database]) {
-            results.push({
-              type: "Table",
-              name: table,
-              path: { lob, subject, database, table },
-              granularity: "Table",
-              breadcrumb: `${lob} > ${subject} > ${database} > ${table}`,
-            });
-          }
+        // Add tables under each database
+        for (const table of tables) {
+          results.push({
+            type: "Table",
+            name: table,
+            path: { lob, subject, database: db, table },
+            granularity: "Table",
+            breadcrumb: `${lob} > ${subject} > ${db} > ${table}`,
+          });
         }
       }
     }
@@ -74,15 +72,15 @@ const SearchBar = ({ businessData, onSelect }) => {
   }, {});
 
   const typeOrder = ["LOB", "Subject Area", "Database", "Table"];
-  const typeColors = {
-    LOB: "bg-blue-50 text-blue-700 border-blue-200",
-    "Subject Area": "bg-green-50 text-green-700 border-green-200",
-    Database: "bg-purple-50 text-purple-700 border-purple-200",
-    Table: "bg-orange-50 text-orange-700 border-orange-200",
-  };
+  // const typeColors = {
+  //   LOB: "bg-blue-50 text-blue-700 border-blue-200",
+  //   "Subject Area": "bg-green-50 text-green-700 border-green-200",
+  //   Database: "bg-purple-50 text-purple-700 border-purple-200",
+  //   Table: "bg-orange-50 text-orange-700 border-orange-200",
+  // };
 
   return (
-    <div className="w-full px-6 py-2 bg-white border-b border-gray-100 relative z-10">
+    <div className="w-full px-3 rounded-2xl shadow-2xs py-2 bg-white border-b border-gray-100 relative z-10">
       <input
         type="text"
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
@@ -94,7 +92,7 @@ const SearchBar = ({ businessData, onSelect }) => {
       />
 
       {focused && filtered.length > 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-auto z-50">
+        <div className="absolute left-6 overflow-x-hidden right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-auto z-50">
           {typeOrder.map(
             (type) =>
               groupedResults[type] &&

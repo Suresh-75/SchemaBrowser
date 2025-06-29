@@ -166,14 +166,14 @@ const SidebarComponent = ({
     case "entities":
       return (
         <div
-          className="h-full flex flex-col space-y-4"
+          className=" flex flex-col space-y-4  max-h-[25rem]"
           aria-label="Entities Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Box className="text-blue-600" size={20} />
             Entities
           </h3>
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+          <div className="flex-1 overflow-y-scroll   space-y-2 pr-1">
             {tables.length > 0 ? (
               tables.map((entity) => (
                 <div
@@ -216,14 +216,14 @@ const SidebarComponent = ({
     case "relationships":
       return (
         <div
-          className="h-full flex flex-col space-y-4"
+          className=" h-[25rem]flex flex-col space-y-4"
           aria-label="Relationships Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Network className="text-green-600" size={20} />
             Relationships
           </h3>
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+          <div className="flex-1 min-h-0 overflow-y-scroll space-y-3 pr-1">
             {relationships.length > 0 ? (
               relationships.map((rel) => (
                 <div
@@ -349,7 +349,7 @@ const SidebarComponent = ({
                 </div>
                 <div className="col-span-2">
                   <div className="text-gray-600">Lineage</div>
-                  <div className="font-semibold text-gray-800 truncate">
+                  <div className="font-semibold text-gray-800">
                     {lineage.join(" > ")}
                   </div>
                 </div>
