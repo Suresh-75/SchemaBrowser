@@ -275,7 +275,11 @@ export default function App() {
       </nav>
       {/* FilterBar */}
       <div className="flex-shrink-0 px-6 py-3">
-        <FilterBar selectedPath={selectedPath} onSelect={handleSelection} />
+        <FilterBar
+          selectedPath={selectedPath}
+          onSelect={handleSelection}
+          setSelectedPath={setSelectedPath}
+        />
       </div>
 
       <div
@@ -340,7 +344,7 @@ export default function App() {
         {/* Main Content */}
         <div className="flex-1  flex flex-col items-center p-0 min-h-0">
           {/* SearchBar above ER diagram, same width as ER diagram */}
-          <div className="w-full rounded-2xl max-w-[1600px] mb-2 shrink-0">
+          <div className="w-full  max-w-[1600px] mb-2 shrink-0">
             <SearchBar businessData={businessData} onSelect={handleSelection} />
           </div>
           <div
