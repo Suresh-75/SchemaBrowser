@@ -1,6 +1,9 @@
+import React from "react";
 import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
+
+// businessData should be passed as a prop or imported as needed
 
 const businessData = {
   "Branded Cards": {
@@ -45,7 +48,16 @@ function getEntitiesAndRelationships(selectedPath) {
       relationships: [],
     };
   }
+  // Implement logic as per your businessData structure
+  // Placeholder: return empty arrays
+  return {
+    entities: [],
+    relationships: [],
+  };
+}
 
+// Helper to get tables for the current selection
+function getTablesForSelection(selectedPath, businessData) {
   if (
     selectedPath.lob &&
     selectedPath.subject &&
@@ -55,46 +67,61 @@ function getEntitiesAndRelationships(selectedPath) {
     businessData[selectedPath.lob][selectedPath.subject].databases &&
     businessData[selectedPath.lob][selectedPath.subject].databases[
       selectedPath.database
-    ]
+    ] &&
+    businessData[selectedPath.lob][selectedPath.subject].databases[
+      selectedPath.database
+    ].entities
   ) {
-    const dbData =
-      businessData[selectedPath.lob][selectedPath.subject].databases[
-        selectedPath.database
-      ];
-    return {
-      entities: dbData.entities,
-      relationships: dbData.relationships,
-    };
+    // Specific database selected
+    return businessData[selectedPath.lob][selectedPath.subject].databases[
+      selectedPath.database
+    ].entities;
   }
-  // Fallback: show all entities/relationships for the selected LOB/subject if database not selected
   if (
     selectedPath.lob &&
     selectedPath.subject &&
     businessData[selectedPath.lob] &&
     businessData[selectedPath.lob][selectedPath.subject]
   ) {
-    const allEntities = [];
-    const allRelationships = [];
+    // Subject selected, show all tables in all databases under this subject
     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-    Object.values(dbs).forEach((db) => {
-      allEntities.push(...db.entities);
-      allRelationships.push(...db.relationships);
-    });
-    return {
-      entities: allEntities,
-      relationships: allRelationships,
-    };
+    return Object.values(dbs).flatMap((db) => db.entities || []);
   }
-  // Fallback: show nothing
-  return {
-    entities: [],
-    relationships: [],
-  };
+  if (selectedPath.lob && businessData[selectedPath.lob]) {
+    // LOB selected, show all tables in all subjects and databases under this LOB
+    let tables = [];
+    Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
+      const dbs = subjectObj.databases;
+      tables = tables.concat(
+        ...Object.values(dbs).flatMap((db) => db.entities || [])
+      );
+    });
+    return tables;
+  }
+  return [];
 }
 
-function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
+const SidebarComponent = ({
+  activeTab = "overview",
+  selectedPath,
+  setCreate,
+  businessData: propBusinessData,
+}) => {
+  // Use prop businessData if provided, else fallback to local
+  const data = propBusinessData || businessData;
+
+  // Build lineage up to table
+  let lineage = [];
+  if (selectedPath?.lob) lineage.push(selectedPath.lob);
+  if (selectedPath?.subject) lineage.push(selectedPath.subject);
+  if (selectedPath?.database) lineage.push(selectedPath.database);
+  if (selectedPath?.table) lineage.push(selectedPath.table);
+
+  // Get tables/entities for the current selection
+  const tables = getTablesForSelection(selectedPath, data);
   const { entities, relationships } = getEntitiesAndRelationships(
-    selectedPath || {}
+    selectedPath,
+    data
   );
 
   switch (activeTab) {
@@ -104,17 +131,18 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
       return <AnnotationsPanel />;
     case "entities":
       return (
-        <div className="space-y-4 overflow-y-scroll">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+        <div className="h-full flex flex-col space-y-4">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Box className="text-blue-600" size={20} />
             Entities
           </h3>
-          <div className="space-y-3 max-h-[20rem] overflow-y-auto over">
-            {entities.length > 0 ? (
-              entities.map((entity) => (
+          {/* Scrollable entities list */}
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+            {tables.length > 0 ? (
+              tables.map((entity) => (
                 <div
                   key={entity}
-                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md  transition-all cursor-pointer flex items-center gap-3"
+                  className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
                 >
                   <Box className="text-blue-500" size={20} />
                   <div>
@@ -131,11 +159,10 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
               </div>
             )}
           </div>
-
-          {selectedPath.database ? (
+          {selectedPath?.database ? (
             <button
               onClick={() => setCreate("Entity")}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
             >
               <Plus size={16} />
               Add Entity
@@ -149,12 +176,12 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
       );
     case "relationships":
       return (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+        <div className="h-full flex flex-col space-y-4">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Network className="text-green-600" size={20} />
             Relationships
           </h3>
-          <div className="space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
             {relationships.length > 0 ? (
               relationships.map((rel) => (
                 <div
@@ -176,11 +203,10 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
               </div>
             )}
           </div>
-
-          {selectedPath.database ? (
+          {selectedPath?.database ? (
             <button
               onClick={() => setCreate("Relationship")}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
+              className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
             >
               <Plus size={16} />
               Add Relationship
@@ -257,13 +283,13 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
                 <div>
                   <div className="text-gray-600">Entities</div>
                   <div className="font-semibold text-gray-800">
-                    {entities.length}
+                    {tables.length}
                   </div>
                 </div>
                 <div>
-                  <div className="text-gray-600">Relations</div>
+                  <div className="text-gray-600">Lineage</div>
                   <div className="font-semibold text-gray-800">
-                    {relationships.length}
+                    {lineage.join(" > ")}
                   </div>
                 </div>
               </div>
@@ -292,6 +318,6 @@ function SidebarComponent({ activeTab = "overview", selectedPath, setCreate }) {
         </div>
       );
   }
-}
+};
 
 export default SidebarComponent;
