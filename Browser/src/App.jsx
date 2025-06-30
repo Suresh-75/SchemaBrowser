@@ -342,7 +342,7 @@ export default function App() {
             <User size={18} />
             Logout
           </button>
-          <button className="px-6 py-2 text-base bg-blue-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
+          <button className="px-6 py-2 text-base bg-blue-400 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
             <RefreshCcw size={18} />
             Refresh
           </button>
