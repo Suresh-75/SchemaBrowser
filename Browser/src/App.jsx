@@ -10,6 +10,7 @@ import {
   Eye,
   RefreshCcw,
   User,
+  Table,
 } from "lucide-react";
 import ErDiagram from "./ErDiagram";
 import { useNavigate } from "react-router-dom";
@@ -284,6 +285,26 @@ export default function App() {
     },
   };
 
+  // Dummy database overview data (replace with real data as needed)
+  const databaseOverview = selectedPath.database
+    ? {
+        name: selectedPath.database,
+        owner: "admin_user",
+        location: "us-east-1",
+        description: "This is a sample database for demonstration purposes.",
+        createdDate: "2023-01-15",
+        lastModifiedDate: "2024-05-30",
+        numberOfTables:
+          businessData[selectedPath.lob]?.[selectedPath.subject]?.databases?.[
+            selectedPath.database
+          ]?.length ||
+          businessData[selectedPath.lob]?.[selectedPath.subject]?.tables
+            ?.length ||
+          0,
+        totalSize: "1.2 GB",
+      }
+    : null;
+
   return (
     <div
       className={` min-h-screen min-w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-hidden flex flex-col`}
@@ -395,7 +416,145 @@ export default function App() {
             />
           </div>
         </div>
-        {/* Main Content */}
+
+        <div>
+          {selectedPath.database != null ? (
+            selectedPath.table != null ? (
+              <div className="w-[26rem]    h-full rounded-3xl shadow-2xl p-8 flex flex-col gap-6 border-2 border-blue-100 bg-white animate-fade-in">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="bg-gradient-to-br bg-blue-600 rounded-xl p-2 flex items-center justify-center shadow-lg">
+                    <Table className="text-white" size={36} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-extrabold bg-black bg-clip-text text-transparent tracking-wide drop-shadow">
+                      Table Overview
+                    </h2>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-[15px]">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <span className="font-semibold text-blue-700">Name:</span>
+                    <span className="truncate text-base text-gray-800 font-bold">
+                      {selectedPath.table}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Owner:</span>
+                    <span className="ml-1 text-gray-700">admin_user</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Storage Format:</span>
+                    <span className="ml-1 text-gray-700">Parquet</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Row Count:</span>
+                    <span className="ml-1 text-gray-700">100,000</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Column Count:</span>
+                    <span className="ml-1 text-gray-700">10</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Partitions:</span>
+                    <span className="ml-1 text-gray-700">10</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Last Modified:</span>
+                    <span className="ml-1 text-gray-700">2024-05-30</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Description:</span>
+                    <span className="ml-1 text-gray-700">
+                      Sample table for demonstration.
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Created By:</span>
+                    <span className="ml-1 text-gray-700">admin_user</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Table Type:</span>
+                    <span className="ml-1 text-gray-700">Managed</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Access Type:</span>
+                    <span className="ml-1 text-gray-700">Read/Write</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600  text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
+                    View Columns
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-[24rem]   bg-white h-full rounded-2xl shadow-2xl p-7 flex flex-col gap-5  animate-fade-in">
+                <div className="flex items-center gap-3 mb-2">
+                  <Database
+                    className="text-blue-600 bg-blue-100 rounded-lg p-1"
+                    size={32}
+                  />
+                  <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent tracking-wide drop-shadow">
+                    Database Overview
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-[15px]">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <span className="font-semibold text-blue-700">Name:</span>
+                    <span className="truncate">{databaseOverview.name}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Owner:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.owner}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Location:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.location}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-semibold">Description:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.description}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Created:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.createdDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Last Modified:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.lastModifiedDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">No. of Tables:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.numberOfTables}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Total Size:</span>
+                    <span className="ml-1 text-gray-700">
+                      {databaseOverview.totalSize}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  <button className="w-full py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
+                    View Tables
+                  </button>
+                </div>
+              </div>
+            )
+          ) : null}
+        </div>
         <div className="flex-1  flex flex-col items-center p-0 min-h-0">
           <div className="w-full  max-w-[1600px] mb-2 shrink-0">
             <SearchBar businessData={businessData} onSelect={handleSelection} />

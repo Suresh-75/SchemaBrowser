@@ -177,56 +177,56 @@ function countTables(selectedPath, businessData) {
   return 0;
 }
 
-// Helper to count all relationships for a given selection
-function countRelationships(selectedPath, businessData) {
-  // Database selected
-  if (
-    selectedPath.lob &&
-    selectedPath.subject &&
-    selectedPath.database &&
-    businessData[selectedPath.lob] &&
-    businessData[selectedPath.lob][selectedPath.subject] &&
-    businessData[selectedPath.lob][selectedPath.subject].databases &&
-    businessData[selectedPath.lob][selectedPath.subject].databases[
-      selectedPath.database
-    ]
-  ) {
-    const db =
-      businessData[selectedPath.lob][selectedPath.subject].databases[
-        selectedPath.database
-      ];
-    return (db.relationships && db.relationships.length) || 0;
-  }
-  // Subject selected
-  if (
-    selectedPath.lob &&
-    selectedPath.subject &&
-    businessData[selectedPath.lob] &&
-    businessData[selectedPath.lob][selectedPath.subject]
-  ) {
-    const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-    if (dbs && !Array.isArray(dbs)) {
-      return Object.values(dbs).flatMap((db) =>
-        db.relationships ? db.relationships : []
-      ).length;
-    }
-    return 0;
-  }
-  // LOB selected
-  if (selectedPath.lob && businessData[selectedPath.lob]) {
-    let relationships = [];
-    Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
-      const dbs = subjectObj.databases;
-      if (dbs && !Array.isArray(dbs)) {
-        relationships = relationships.concat(
-          ...Object.values(dbs).flatMap((db) => db.relationships || [])
-        );
-      }
-    });
-    return relationships.length;
-  }
-  return 0;
-}
+// // Helper to count all relationships for a given selection
+// function countRelationships(selectedPath, businessData) {
+//   // Database selected
+//   if (
+//     selectedPath.lob &&
+//     selectedPath.subject &&
+//     selectedPath.database &&
+//     businessData[selectedPath.lob] &&
+//     businessData[selectedPath.lob][selectedPath.subject] &&
+//     businessData[selectedPath.lob][selectedPath.subject].databases &&
+//     businessData[selectedPath.lob][selectedPath.subject].databases[
+//       selectedPath.database
+//     ]
+//   ) {
+//     const db =
+//       businessData[selectedPath.lob][selectedPath.subject].databases[
+//         selectedPath.database
+//       ];
+//     return (db.relationships && db.relationships.length) || 0;
+//   }
+//   // Subject selected
+//   if (
+//     selectedPath.lob &&
+//     selectedPath.subject &&
+//     businessData[selectedPath.lob] &&
+//     businessData[selectedPath.lob][selectedPath.subject]
+//   ) {
+//     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
+//     if (dbs && !Array.isArray(dbs)) {
+//       return Object.values(dbs).flatMap((db) =>
+//         db.relationships ? db.relationships : []
+//       ).length;
+//     }
+//     return 0;
+//   }
+//   // LOB selected
+//   if (selectedPath.lob && businessData[selectedPath.lob]) {
+//     let relationships = [];
+//     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
+//       const dbs = subjectObj.databases;
+//       if (dbs && !Array.isArray(dbs)) {
+//         relationships = relationships.concat(
+//           ...Object.values(dbs).flatMap((db) => db.relationships || [])
+//         );
+//       }
+//     });
+//     return relationships.length;
+//   }
+//   return 0;
+// }
 
 const SidebarComponent = ({
   activeTab = "overview",
@@ -434,7 +434,7 @@ const SidebarComponent = ({
                 <div>
                   <div className="text-gray-600">Relationships</div>
                   <div className="font-semibold text-gray-800">
-                    {countRelationships(selectedPath, data)}
+                    {/* {countRelationships(selectedPath, data)} */}0
                   </div>
                 </div>
                 <div className="col-span-2">
