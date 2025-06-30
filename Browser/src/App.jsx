@@ -11,6 +11,7 @@ import {
   RefreshCcw,
   User,
   Table,
+  ArrowBigLeft,
 } from "lucide-react";
 import ErDiagram from "./ErDiagram";
 import { useNavigate } from "react-router-dom";
@@ -426,10 +427,21 @@ export default function App() {
                   <div className="bg-gradient-to-br bg-blue-600 rounded-xl p-2 flex items-center justify-center shadow-lg">
                     <Table className="text-white" size={36} />
                   </div>
-                  <div>
+                  <div className="flex items-center justify-between w-full">
                     <h2 className="text-2xl  font-extrabold bg-blue-600 bg-clip-text text-transparent tracking-wide drop-shadow">
                       Table Overview
                     </h2>
+                    <div className=" hover:text-blue-700 cursor-pointer transition-all">
+                      <ArrowBigLeft
+                        size={32}
+                        onClick={() =>
+                          setSelectedPath({
+                            ...selectedPath,
+                            table: null,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-[15px]">
@@ -483,8 +495,11 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
-                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600  text-white font-semibold shadow cursor-pointer transition-all">
+                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600 hover:bg-blue-400  text-white font-semibold shadow cursor-pointer transition-all">
                     View Columns
+                  </button>
+                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600 hover:bg-blue-400 text-white font-semibold shadow cursor-pointer transition-all">
+                    View Partitions
                   </button>
                 </div>
               </div>
@@ -549,9 +564,9 @@ export default function App() {
                 <div className="mt-4 flex flex-col gap-2">
                   <button
                     onClick={() => setShowTables((val) => !val)}
-                    className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all"
+                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-400 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all"
                   >
-                    View Tables
+                    {showTables ? "Hide Tables" : "Show Tables"}
                   </button>
                 </div>
                 {showTables ? (
@@ -559,19 +574,28 @@ export default function App() {
                     <h3 className="text-lg font-semibold text-gray-800 mb-2">
                       Tables in {databaseOverview.name}:
                     </h3>
-                    <ul className="list-disc list-inside space-y-1">
+                    <ul className="list-disc list-inside space-y-2">
                       {businessData[selectedPath.lob]?.[
                         selectedPath.subject
                       ]?.databases?.[selectedPath.database]?.map((table) => (
-                        <div
+                        <li
                           key={table}
-                          className="text-gray-700 px-4 py-2 rounded-xl bg-blue-100 hover:cursor-pointer hover:bg-blue-200 transition-all"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 transition-all shadow cursor-pointer group"
                           onClick={() => {
                             setSelectedPath({ ...selectedPath, table });
                           }}
                         >
-                          {table}
-                        </div>
+                          <Table
+                            className="text-blue-600 group-hover:text-indigo-700"
+                            size={20}
+                          />
+                          <span className="font-semibold text-gray-800 group-hover:text-indigo-900">
+                            {table}
+                          </span>
+                          <span className="ml-auto text-xs text-gray-500 group-hover:text-indigo-700">
+                            View
+                          </span>
+                        </li>
                       ))}
                     </ul>
                   </div>
