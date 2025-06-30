@@ -310,7 +310,7 @@ const SidebarComponent = ({
           aria-label="Relationships Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
-            <Network className="text-green-600" size={20} />
+            <Network className="text-blue-600" size={20} />
             Relationships
           </h3>
           <div className="flex-1 min-h-0 overflow-y-scroll space-y-3 pr-1">
@@ -340,7 +340,7 @@ const SidebarComponent = ({
           {selectedPath?.database ? (
             <button
               onClick={() => setCreate("Relationship")}
-              className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow"
+              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
               aria-label="Add Relationship"
             >
               <Plus size={16} />
@@ -438,7 +438,7 @@ const SidebarComponent = ({
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <div className="text-gray-600">Lineage</div>
+                  <div className="text-gray-600">Source Lineage</div>
                   <div className="font-semibold text-gray-800">
                     {lineage.join(" > ")}
                   </div>

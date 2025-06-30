@@ -20,6 +20,39 @@ const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   );
 });
 
+const Legend = () => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "10px",
+        left: "10px",
+        backgroundColor: "white",
+        border: "1px solid #ccc",
+        padding: "10px",
+        borderRadius: "5px",
+        fontSize: "12px",
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}>
+       <div
+                      className="w-2 h-2 bg-yellow-400 rounded-full mr-4"
+                      title="Primary Key"
+                    ></div>
+        <span className = "font-semibold">Primary Key</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center" }}>
+         <div
+                      className="w-2 h-2 bg-blue-400 rounded-full mr-4"
+                      title="Foreign Key"
+                    ></div>
+        <span className = "font-semibold">Foreign Key</span>
+      </div>
+    </div>
+  );
+};
+
 function ErDiagram() {
   const customerTable = useMemo(
     () => ({
@@ -263,7 +296,7 @@ function ErDiagram() {
   // --------------------------
 
   return (
-    <div className="w-full h-full min-h-0 min-w-0 flex-1">
+    <div style={{ position: "relative", height: "100%" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -287,6 +320,7 @@ function ErDiagram() {
         <MiniMap nodeColor={"gray"} nodeStrokeWidth={3} zoomable pannable />
         <Controls />
       </ReactFlow>
+      <Legend />
     </div>
   );
 }
