@@ -24,6 +24,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
   const [create, setCreate] = useState("");
+  const [showTables, setShowTables] = useState(false);
   const navigate = useNavigate();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
@@ -219,70 +220,70 @@ export default function App() {
         },
       },
     },
-    Channel: {
-      Channels: {
-        databases: ["channel_db", "interaction_db"],
-        tables: [
-          "channel_interactions",
-          "channel_preferences",
-          "usage_patterns",
-        ],
-      },
-      Operations: {
-        databases: ["channel_ops_db", "performance_db"],
-        tables: [
-          "channel_performance",
-          "operational_metrics",
-          "efficiency_reports",
-        ],
-      },
-      "Customer Communication": {
-        databases: ["channel_comm_db", "message_db"],
-        tables: ["channel_messages", "communication_logs", "response_tracking"],
-      },
-    },
-    Others: {
-      Reference: {
-        databases: ["reference_db", "lookup_db"],
-        tables: ["reference_data", "lookup_tables", "master_data"],
-      },
-      Compliance: {
-        databases: ["general_compliance_db", "audit_db"],
-        tables: ["compliance_records", "audit_trails", "regulatory_reports"],
-      },
-      Operations: {
-        databases: ["operations_db", "workflow_db"],
-        tables: ["operational_data", "workflow_instances", "process_metrics"],
-      },
-      Disputes: {
-        databases: ["disputes_db", "resolution_db"],
-        tables: ["dispute_cases", "resolution_actions", "dispute_outcomes"],
-      },
-      Complaints: {
-        databases: ["complaints_db", "feedback_db"],
-        tables: [
-          "customer_complaints",
-          "complaint_resolutions",
-          "feedback_analysis",
-        ],
-      },
-      Merchant: {
-        databases: ["merchant_db", "transaction_processing_db"],
-        tables: [
-          "merchant_accounts",
-          "merchant_transactions",
-          "settlement_data",
-        ],
-      },
-      "Account Promotions": {
-        databases: ["promotions_db", "offers_db"],
-        tables: [
-          "promotional_offers",
-          "account_promotions",
-          "promotion_results",
-        ],
-      },
-    },
+    // Channel: {
+    //   Channels: {
+    //     databases: ["channel_db", "interaction_db"],
+    //     tables: [
+    //       "channel_interactions",
+    //       "channel_preferences",
+    //       "usage_patterns",
+    //     ],
+    //   },
+    //   Operations: {
+    //     databases: ["channel_ops_db", "performance_db"],
+    //     tables: [
+    //       "channel_performance",
+    //       "operational_metrics",
+    //       "efficiency_reports",
+    //     ],
+    //   },
+    //   "Customer Communication": {
+    //     databases: ["channel_comm_db", "message_db"],
+    //     tables: ["channel_messages", "communication_logs", "response_tracking"],
+    //   },
+    // },
+    // Others: {
+    //   Reference: {
+    //     databases: ["reference_db", "lookup_db"],
+    //     tables: ["reference_data", "lookup_tables", "master_data"],
+    //   },
+    //   Compliance: {
+    //     databases: ["general_compliance_db", "audit_db"],
+    //     tables: ["compliance_records", "audit_trails", "regulatory_reports"],
+    //   },
+    //   Operations: {
+    //     databases: ["operations_db", "workflow_db"],
+    //     tables: ["operational_data", "workflow_instances", "process_metrics"],
+    //   },
+    //   Disputes: {
+    //     databases: ["disputes_db", "resolution_db"],
+    //     tables: ["dispute_cases", "resolution_actions", "dispute_outcomes"],
+    //   },
+    //   Complaints: {
+    //     databases: ["complaints_db", "feedback_db"],
+    //     tables: [
+    //       "customer_complaints",
+    //       "complaint_resolutions",
+    //       "feedback_analysis",
+    //     ],
+    //   },
+    //   Merchant: {
+    //     databases: ["merchant_db", "transaction_processing_db"],
+    //     tables: [
+    //       "merchant_accounts",
+    //       "merchant_transactions",
+    //       "settlement_data",
+    //     ],
+    //   },
+    //   "Account Promotions": {
+    //     databases: ["promotions_db", "offers_db"],
+    //     tables: [
+    //       "promotional_offers",
+    //       "account_promotions",
+    //       "promotion_results",
+    //     ],
+    //   },
+    // },
   };
 
   // Dummy database overview data (replace with real data as needed)
@@ -482,7 +483,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
-                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600  text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
+                  <button className="w-full py-2 rounded-lg bg-gradient-to-r bg-blue-600  text-white font-semibold shadow cursor-pointer transition-all">
                     View Columns
                   </button>
                 </div>
@@ -546,10 +547,35 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
-                  <button className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
+                  <button
+                    onClick={() => setShowTables((val) => !val)}
+                    className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all"
+                  >
                     View Tables
                   </button>
                 </div>
+                {showTables ? (
+                  <div className="mt-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Tables in {databaseOverview.name}:
+                    </h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {businessData[selectedPath.lob]?.[
+                        selectedPath.subject
+                      ]?.databases?.[selectedPath.database]?.map((table) => (
+                        <div
+                          key={table}
+                          className="text-gray-700 px-4 py-2 rounded-xl bg-blue-100 hover:cursor-pointer hover:bg-blue-200 transition-all"
+                          onClick={() => {
+                            setSelectedPath({ ...selectedPath, table });
+                          }}
+                        >
+                          {table}
+                        </div>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             )
           ) : null}
