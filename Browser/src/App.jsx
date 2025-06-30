@@ -420,13 +420,13 @@ export default function App() {
         <div>
           {selectedPath.database != null ? (
             selectedPath.table != null ? (
-              <div className="w-[26rem]    h-full rounded-3xl shadow-2xl p-8 flex flex-col gap-6 border-2 border-blue-100 bg-white animate-fade-in">
+              <div className="w-[24rem]   bg-white h-full rounded-2xl shadow-2xl p-7 flex flex-col gap-5  animate-fade-in">
                 <div className="flex items-center gap-4 mb-3">
                   <div className="bg-gradient-to-br bg-blue-600 rounded-xl p-2 flex items-center justify-center shadow-lg">
                     <Table className="text-white" size={36} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-extrabold bg-black bg-clip-text text-transparent tracking-wide drop-shadow">
+                    <h2 className="text-2xl  font-extrabold bg-blue-600 bg-clip-text text-transparent tracking-wide drop-shadow">
                       Table Overview
                     </h2>
                   </div>
@@ -490,11 +490,10 @@ export default function App() {
             ) : (
               <div className="w-[24rem]   bg-white h-full rounded-2xl shadow-2xl p-7 flex flex-col gap-5  animate-fade-in">
                 <div className="flex items-center gap-3 mb-2">
-                  <Database
-                    className="text-blue-600 bg-blue-100 rounded-lg p-1"
-                    size={32}
-                  />
-                  <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent tracking-wide drop-shadow">
+                  <div className="bg-gradient-to-br bg-blue-600 rounded-xl p-2 flex items-center justify-center shadow-lg">
+                    <Database className="text-white " size={36} />
+                  </div>
+                  <h2 className="text-2xl font-extrabold  bg-blue-700  bg-clip-text text-transparent tracking-wide drop-shadow">
                     Database Overview
                   </h2>
                 </div>
@@ -547,7 +546,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col gap-2">
-                  <button className="w-full py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
+                  <button className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:from-blue-700 hover:to-purple-700 transition-all">
                     View Tables
                   </button>
                 </div>
