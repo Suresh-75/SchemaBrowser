@@ -41,8 +41,8 @@ export default function App() {
     { id: "overview", label: "Overview", icon: Eye },
     { id: "entities", label: "Entities", icon: Box },
     { id: "relationships", label: "Relationships", icon: Network },
-    { id: "versions", label: "Version Control", icon: GitBranch },
-    { id: "annotations", label: "Annotations", icon: MessageSquare },
+    // { id: "versions", label: "Version Control", icon: GitBranch },
+    // { id: "annotations", label: "Annotations", icon: MessageSquare },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
