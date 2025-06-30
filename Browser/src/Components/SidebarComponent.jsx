@@ -3,43 +3,6 @@ import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
 
-// businessData should be passed as a prop or imported as needed
-
-const businessData = {
-  "Branded Cards": {
-    Accounts: {
-      databases: {
-        card_accounts_db: {
-          entities: ["card_accounts", "card_holders", "card_limits"],
-          relationships: [
-            "card_accounts.customer_id → customers.customer_id",
-            "card_accounts.account_id → card_limits.account_id",
-          ],
-        },
-        card_profile_db: {
-          entities: ["profile", "profile_limits"],
-          relationships: ["profile.profile_id → card_holders.profile_id"],
-        },
-      },
-    },
-    Payments: {
-      databases: {
-        card_payments_db: {
-          entities: ["card_transactions", "payments", "authorizations"],
-          relationships: [
-            "card_transactions.account_id → card_accounts.account_id",
-          ],
-        },
-        transaction_db: {
-          entities: ["transactions", "payments"],
-          relationships: ["transactions.payment_id → payments.payment_id"],
-        },
-      },
-    },
-  },
-  // ... Add other LOBs and subject areas as needed
-};
-
 // Enhanced: Returns entities and relationships for the current selection
 function getEntitiesAndRelationships(selectedPath, businessData) {
   if (!selectedPath || !selectedPath.lob) {
@@ -97,7 +60,126 @@ function getEntitiesAndRelationships(selectedPath, businessData) {
   return { entities: [], relationships: [] };
 }
 
+// Enhanced: Returns entities (tables) for the current selection, supporting both database-object and array structures
 function getTablesForSelection(selectedPath, businessData) {
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    selectedPath.database &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject]
+  ) {
+    const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
+    // If databases is an object (db: [tables...])
+    if (
+      subjectObj.databases &&
+      !Array.isArray(subjectObj.databases) &&
+      subjectObj.databases[selectedPath.database]
+    ) {
+      return subjectObj.databases[selectedPath.database];
+    }
+    // If databases is an array and tables is an array
+    if (
+      Array.isArray(subjectObj.databases) &&
+      Array.isArray(subjectObj.tables)
+    ) {
+      return subjectObj.tables;
+    }
+  }
+  // Subject selected: aggregate all tables in all databases or tables array
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject]
+  ) {
+    const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
+    let tables = [];
+    if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
+      tables = Object.values(subjectObj.databases).flat();
+    }
+    if (Array.isArray(subjectObj.tables)) {
+      tables = tables.concat(subjectObj.tables);
+    }
+    return tables;
+  }
+  // LOB selected: aggregate all tables in all subjects
+  if (selectedPath.lob && businessData[selectedPath.lob]) {
+    let tables = [];
+    Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
+      if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
+        tables = tables.concat(...Object.values(subjectObj.databases).flat());
+      }
+      if (Array.isArray(subjectObj.tables)) {
+        tables = tables.concat(subjectObj.tables);
+      }
+    });
+    return tables;
+  }
+  return [];
+}
+
+// Helper to count all tables for a given selection (LOB, Subject, or Database)
+function countTables(selectedPath, businessData) {
+  // Database selected
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    selectedPath.database &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject]
+  ) {
+    const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
+    if (
+      subjectObj.databases &&
+      !Array.isArray(subjectObj.databases) &&
+      subjectObj.databases[selectedPath.database]
+    ) {
+      return subjectObj.databases[selectedPath.database].length;
+    }
+    if (
+      Array.isArray(subjectObj.databases) &&
+      Array.isArray(subjectObj.tables)
+    ) {
+      return subjectObj.tables.length;
+    }
+  }
+  // Subject selected
+  if (
+    selectedPath.lob &&
+    selectedPath.subject &&
+    businessData[selectedPath.lob] &&
+    businessData[selectedPath.lob][selectedPath.subject]
+  ) {
+    const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
+    let tables = [];
+    if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
+      tables = Object.values(subjectObj.databases).flat();
+    }
+    if (Array.isArray(subjectObj.tables)) {
+      tables = tables.concat(subjectObj.tables);
+    }
+    return tables.length;
+  }
+  // LOB selected
+  if (selectedPath.lob && businessData[selectedPath.lob]) {
+    let tables = [];
+    Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
+      if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
+        tables = tables.concat(...Object.values(subjectObj.databases).flat());
+      }
+      if (Array.isArray(subjectObj.tables)) {
+        tables = tables.concat(subjectObj.tables);
+      }
+    });
+    return tables.length;
+  }
+  return 0;
+}
+
+// Helper to count all relationships for a given selection
+function countRelationships(selectedPath, businessData) {
+  // Database selected
   if (
     selectedPath.lob &&
     selectedPath.subject &&
@@ -107,15 +189,15 @@ function getTablesForSelection(selectedPath, businessData) {
     businessData[selectedPath.lob][selectedPath.subject].databases &&
     businessData[selectedPath.lob][selectedPath.subject].databases[
       selectedPath.database
-    ] &&
-    businessData[selectedPath.lob][selectedPath.subject].databases[
-      selectedPath.database
-    ].entities
+    ]
   ) {
-    return businessData[selectedPath.lob][selectedPath.subject].databases[
-      selectedPath.database
-    ].entities;
+    const db =
+      businessData[selectedPath.lob][selectedPath.subject].databases[
+        selectedPath.database
+      ];
+    return (db.relationships && db.relationships.length) || 0;
   }
+  // Subject selected
   if (
     selectedPath.lob &&
     selectedPath.subject &&
@@ -123,28 +205,36 @@ function getTablesForSelection(selectedPath, businessData) {
     businessData[selectedPath.lob][selectedPath.subject]
   ) {
     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-    return Object.values(dbs).flatMap((db) => db.entities || []);
+    if (dbs && !Array.isArray(dbs)) {
+      return Object.values(dbs).flatMap((db) =>
+        db.relationships ? db.relationships : []
+      ).length;
+    }
+    return 0;
   }
+  // LOB selected
   if (selectedPath.lob && businessData[selectedPath.lob]) {
-    let tables = [];
+    let relationships = [];
     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
       const dbs = subjectObj.databases;
-      tables = tables.concat(
-        ...Object.values(dbs).flatMap((db) => db.entities || [])
-      );
+      if (dbs && !Array.isArray(dbs)) {
+        relationships = relationships.concat(
+          ...Object.values(dbs).flatMap((db) => db.relationships || [])
+        );
+      }
     });
-    return tables;
+    return relationships.length;
   }
-  return [];
+  return 0;
 }
 
 const SidebarComponent = ({
   activeTab = "overview",
   selectedPath,
   setCreate,
-  businessData: propBusinessData,
+  businessData,
 }) => {
-  const data = propBusinessData || businessData;
+  const data = businessData;
 
   let lineage = [];
   if (selectedPath?.lob) lineage.push(selectedPath.lob);
@@ -338,13 +428,13 @@ const SidebarComponent = ({
                 <div>
                   <div className="text-gray-600">Entities</div>
                   <div className="font-semibold text-gray-800">
-                    {entities.length}
+                    {countTables(selectedPath, data)}
                   </div>
                 </div>
                 <div>
                   <div className="text-gray-600">Relationships</div>
                   <div className="font-semibold text-gray-800">
-                    {relationships.length}
+                    {countRelationships(selectedPath, data)}
                   </div>
                 </div>
                 <div className="col-span-2">

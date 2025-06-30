@@ -50,120 +50,172 @@ export default function App() {
   const businessData = {
     "Branded Cards": {
       Accounts: {
-        databases: ["card_accounts_db", "card_profile_db"],
-        tables: ["card_accounts", "card_holders", "card_limits"],
+        databases: {
+          card_accounts_db: ["card_accounts"],
+          card_profile_db: ["card_holders", "card_limits"],
+        },
       },
       Payments: {
-        databases: ["card_payments_db", "transaction_db"],
-        tables: ["card_transactions", "payments", "authorizations"],
+        databases: {
+          card_payments_db: ["card_transactions"],
+          transaction_db: ["payments", "authorizations"],
+        },
       },
       Fraud: {
-        databases: ["fraud_detection_db", "security_db"],
-        tables: ["fraud_alerts", "suspicious_transactions", "blocked_cards"],
+        databases: {
+          fraud_detection_db: ["fraud_alerts"],
+          security_db: ["suspicious_transactions", "blocked_cards"],
+        },
       },
       Collections: {
-        databases: ["collections_db", "delinquency_db"],
-        tables: ["collection_cases", "payment_plans", "recovery_actions"],
+        databases: {
+          collections_db: ["collection_cases"],
+          delinquency_db: ["payment_plans", "recovery_actions"],
+        },
       },
     },
     CRS: {
       Customer: {
-        databases: ["crs_customer_db", "profile_db"],
-        tables: ["customer_profiles", "contact_info", "preferences"],
+        databases: {
+          crs_customer_db: ["customer_profiles"],
+          profile_db: ["contact_info", "preferences"],
+        },
       },
       Compliance: {
-        databases: ["crs_compliance_db", "regulatory_db"],
-        tables: ["compliance_reports", "tax_reporting", "regulatory_filings"],
+        databases: {
+          crs_compliance_db: ["compliance_reports", "tax_reporting"],
+          regulatory_db: ["regulatory_filings"],
+        },
       },
       Risk: {
-        databases: ["crs_risk_db", "assessment_db"],
-        tables: ["risk_assessments", "credit_scores", "risk_factors"],
+        databases: {
+          crs_risk_db: ["risk_assessments"],
+          assessment_db: ["credit_scores", "risk_factors"],
+        },
       },
     },
     Deposits: {
       Accounts: {
-        databases: ["deposit_accounts_db", "savings_db"],
-        tables: ["savings_accounts", "checking_accounts", "account_balances"],
+        databases: {
+          deposit_accounts_db: ["savings_accounts"],
+          savings_db: ["checking_accounts", "account_balances"],
+        },
       },
       "Money Movement": {
-        databases: ["transfer_db", "wire_db"],
-        tables: ["transfers", "wire_transfers", "ach_transactions"],
+        databases: {
+          transfer_db: ["transfers"],
+          wire_db: ["wire_transfers", "ach_transactions"],
+        },
       },
       Rate: {
-        databases: ["interest_rates_db", "pricing_db"],
-        tables: ["interest_rates", "rate_tiers", "promotional_rates"],
+        databases: {
+          interest_rates_db: ["interest_rates"],
+          pricing_db: ["rate_tiers", "promotional_rates"],
+        },
       },
       Fees: {
-        databases: ["fee_structure_db", "charges_db"],
-        tables: ["fee_schedule", "account_fees", "fee_waivers"],
+        databases: {
+          fee_structure_db: ["fee_schedule"],
+          charges_db: ["account_fees", "fee_waivers"],
+        },
       },
     },
     Investments: {
       Accounts: {
-        databases: ["investment_accounts_db", "portfolio_db"],
-        tables: ["investment_accounts", "portfolios", "holdings"],
+        databases: {
+          investment_accounts_db: ["investment_accounts"],
+          portfolio_db: ["portfolios", "holdings"],
+        },
       },
       Risk: {
-        databases: ["investment_risk_db", "market_risk_db"],
-        tables: ["risk_profiles", "market_risks", "portfolio_risks"],
+        databases: {
+          investment_risk_db: ["risk_profiles"],
+          market_risk_db: ["market_risks", "portfolio_risks"],
+        },
       },
       Finance: {
-        databases: ["investment_finance_db", "valuation_db"],
-        tables: ["portfolio_valuations", "performance_metrics", "returns"],
+        databases: {
+          investment_finance_db: ["portfolio_valuations"],
+          valuation_db: ["performance_metrics", "returns"],
+        },
       },
     },
     "Personal Loan": {
       Accounts: {
-        databases: ["loan_accounts_db", "borrower_db"],
-        tables: ["loan_accounts", "borrower_profiles", "loan_terms"],
+        databases: {
+          loan_accounts_db: ["loan_accounts"],
+          borrower_db: ["borrower_profiles", "loan_terms"],
+        },
       },
       Risk: {
-        databases: ["loan_risk_db", "credit_db"],
-        tables: ["credit_assessments", "default_risks", "loan_grades"],
+        databases: {
+          loan_risk_db: ["credit_assessments"],
+          credit_db: ["default_risks", "loan_grades"],
+        },
       },
       Collections: {
-        databases: ["loan_collections_db", "recovery_db"],
-        tables: ["delinquent_loans", "collection_efforts", "recovery_plans"],
+        databases: {
+          loan_collections_db: ["delinquent_loans"],
+          recovery_db: ["collection_efforts", "recovery_plans"],
+        },
       },
       Servicing: {
-        databases: ["loan_servicing_db", "payment_db"],
-        tables: ["loan_payments", "payment_schedules", "servicing_records"],
+        databases: {
+          loan_servicing_db: ["loan_payments"],
+          payment_db: ["payment_schedules", "servicing_records"],
+        },
       },
     },
     Mortgage: {
       Accounts: {
-        databases: ["mortgage_accounts_db", "property_db"],
-        tables: ["mortgage_accounts", "property_details", "loan_documents"],
+        databases: {
+          mortgage_accounts_db: ["mortgage_accounts"],
+          property_db: ["property_details", "loan_documents"],
+        },
       },
       Collateral: {
-        databases: ["collateral_db", "appraisal_db"],
-        tables: ["property_collateral", "appraisals", "collateral_valuations"],
+        databases: {
+          collateral_db: ["property_collateral"],
+          appraisal_db: ["appraisals", "collateral_valuations"],
+        },
       },
       Servicing: {
-        databases: ["mortgage_servicing_db", "escrow_db"],
-        tables: ["mortgage_payments", "escrow_accounts", "servicing_transfers"],
+        databases: {
+          mortgage_servicing_db: ["mortgage_payments"],
+          escrow_db: ["escrow_accounts", "servicing_transfers"],
+        },
       },
       Risk: {
-        databases: ["mortgage_risk_db", "ltv_db"],
-        tables: ["loan_to_value", "mortgage_risks", "default_probabilities"],
+        databases: {
+          mortgage_risk_db: ["loan_to_value"],
+          ltv_db: ["mortgage_risks", "default_probabilities"],
+        },
       },
     },
     Customer: {
       Customer: {
-        databases: ["customer_master_db", "demographics_db"],
-        tables: ["customer_master", "demographics", "customer_segments"],
+        databases: {
+          customer_master_db: ["customer_master"],
+          demographics_db: ["demographics", "customer_segments"],
+        },
       },
       "Customer Communication": {
-        databases: ["communication_db", "notification_db"],
-        tables: ["communications", "notifications", "preferences"],
+        databases: {
+          communication_db: ["communications"],
+          notification_db: ["notifications", "preferences"],
+        },
       },
       Acquisitions: {
-        databases: ["acquisition_db", "prospect_db"],
-        tables: ["prospects", "acquisition_campaigns", "conversion_metrics"],
+        databases: {
+          acquisition_db: ["prospects"],
+          prospect_db: ["acquisition_campaigns", "conversion_metrics"],
+        },
       },
       Marketing: {
-        databases: ["marketing_db", "campaign_db"],
-        tables: ["campaigns", "customer_responses", "marketing_metrics"],
+        databases: {
+          marketing_db: ["campaigns"],
+          campaign_db: ["customer_responses", "marketing_metrics"],
+        },
       },
     },
     Channel: {
@@ -279,6 +331,7 @@ export default function App() {
           selectedPath={selectedPath}
           onSelect={handleSelection}
           setSelectedPath={setSelectedPath}
+          businessData={businessData}
         />
       </div>
 
@@ -338,6 +391,7 @@ export default function App() {
               selectedPath={selectedPath}
               create={create}
               setCreate={setCreate}
+              businessData={businessData}
             />
           </div>
         </div>

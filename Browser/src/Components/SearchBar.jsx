@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 
+// Updated flattenBusinessData to handle {databases: {db: [tables...]}} structure
 const flattenBusinessData = (businessData) => {
   const results = [];
   for (const lob in businessData) {
@@ -19,26 +20,28 @@ const flattenBusinessData = (businessData) => {
         breadcrumb: `${lob} > ${subject}`,
       });
       const subjectObj = businessData[lob][subject];
-      const databases = subjectObj.databases || [];
-      const tables = subjectObj.tables || [];
-      // Add databases
-      for (const db of databases) {
-        results.push({
-          type: "Database",
-          name: db,
-          path: { lob, subject, database: db, table: null },
-          granularity: "Database",
-          breadcrumb: `${lob} > ${subject} > ${db}`,
-        });
-        // Add tables under each database
-        for (const table of tables) {
+
+      // Handle { databases: { db: [tables...] } }
+      if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
+        const databasesObj = subjectObj.databases;
+        for (const db in databasesObj) {
           results.push({
-            type: "Table",
-            name: table,
-            path: { lob, subject, database: db, table },
-            granularity: "Table",
-            breadcrumb: `${lob} > ${subject} > ${db} > ${table}`,
+            type: "Database",
+            name: db,
+            path: { lob, subject, database: db, table: null },
+            granularity: "Database",
+            breadcrumb: `${lob} > ${subject} > ${db}`,
           });
+          const tables = databasesObj[db] || [];
+          for (const table of tables) {
+            results.push({
+              type: "Table",
+              name: table,
+              path: { lob, subject, database: db, table },
+              granularity: "Table",
+              breadcrumb: `${lob} > ${subject} > ${db} > ${table}`,
+            });
+          }
         }
       }
     }
@@ -72,12 +75,6 @@ const SearchBar = ({ businessData, onSelect }) => {
   }, {});
 
   const typeOrder = ["LOB", "Subject Area", "Database", "Table"];
-  // const typeColors = {
-  //   LOB: "bg-blue-50 text-blue-700 border-blue-200",
-  //   "Subject Area": "bg-green-50 text-green-700 border-green-200",
-  //   Database: "bg-purple-50 text-purple-700 border-purple-200",
-  //   Table: "bg-orange-50 text-orange-700 border-orange-200",
-  // };
 
   return (
     <div className="w-full px-3 rounded-2xl shadow-2xs py-2 bg-white border-b border-gray-100 relative z-10">
