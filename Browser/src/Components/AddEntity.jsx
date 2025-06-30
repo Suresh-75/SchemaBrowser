@@ -1,3 +1,8 @@
+// This component provides a UI to create a new database table (entity) by specifying its name and fields.
+// It allows users to define column names, data types, and properties like primary key, required, and auto-increment.
+// On submission, it generates a SQL "CREATE TABLE" query and shows it to the user.
+
+
 import React, { useState } from "react";
 import { Plus, Save, X, Database } from "lucide-react";
 
@@ -14,7 +19,7 @@ const AddEntityComponent = ({ setCreate }) => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
-
+//List of supported Hive/SQL data types
   const dataTypes = [
     "STRING",
     "INT",
