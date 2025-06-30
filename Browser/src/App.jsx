@@ -324,10 +324,10 @@ export default function App() {
       <nav className="w-full h-20 bg-white/90 backdrop-blur-lg shadow-lg flex items-center justify-between px-10 rounded-b-3xl border-b border-indigo-100 z-10">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-blue-400 rounded-xl flex items-center justify-center shadow-lg">
               <Database className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent tracking-wide drop-shadow">
+            <h1 className="text-2xl md:text-3xl font-extrabold bg-blue-400 bg-clip-text text-transparent tracking-wide drop-shadow">
               DATABEE
             </h1>
           </div>
@@ -340,7 +340,7 @@ export default function App() {
             <User size={18} />
             Logout
           </button>
-          <button className="px-6 py-2 text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
+          <button className="px-6 py-2 text-base bg-blue-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
             <RefreshCcw size={18} />
             Refresh
           </button>

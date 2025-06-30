@@ -180,7 +180,7 @@ const FilterBar = ({
                                     }
                                     className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
                                       selectedPath.database === database
-                                        ? "bg-purple-600 text-white shadow-md"
+                                        ? "bg-blue-50 text-blue-700 shadow-md"
                                         : hoveredDatabase === database
                                         ? "bg-gray-50 text-gray-900"
                                         : "text-gray-700 hover:bg-gray-50"
@@ -223,7 +223,7 @@ const FilterBar = ({
                                             }
                                             className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
                                               selectedPath.table === table
-                                                ? "bg-purple-50 text-purple-700"
+                                                ? "bg-blue-50 text-blue-700"
                                                 : "text-gray-600 hover:bg-gray-50"
                                             }`}
                                           >
