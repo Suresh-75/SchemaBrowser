@@ -37,7 +37,7 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
         });
 
         setBusinessData(transformedData);
-        console.log("businessData:", transformedData); // Debugging output
+        // console.log("businessData:", transformedData); // Debugging output
       } catch (error) {
         console.error("Failed to fetch hierarchy:", error);
       }

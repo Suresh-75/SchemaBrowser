@@ -13,13 +13,13 @@ import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
 import axios from "axios";
 
-// const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
-//   return (
-//     <div style={{ display: "inline-block" }}>
-//       <SchemaCards table={data.table} />
-//     </div>
-//   );
-// });
+const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
+  return (
+    <div style={{ display: "inline-block" }}>
+      <SchemaCards table={data.table} />
+    </div>
+  );
+});
 
 const Legend = () => {
   return (
@@ -79,7 +79,7 @@ function ErDiagram() {
   async function fetchRelationships() {
     try {
       const response = await axios.get(
-        "http://localhost:5000/er_relationships"
+        "http://localhost:5000/api/er_relationships"
       );
       return response.data;
     } catch (error) {
@@ -88,27 +88,56 @@ function ErDiagram() {
     }
   }
 
-  // Function to create nodes and edges from relationships data
-  const createNodesAndEdges = useCallback((relationships) => {
-    // Get unique table IDs
-    const tableIds = new Set();
-    relationships.forEach((rel) => {
-      tableIds.add(rel.from_table_id);
-      tableIds.add(rel.to_table_id);
-    });
+  // Fetch table info by ID
+  async function fetchTableInfo(tableId) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tables/${tableId}`
+      );
+      console.log("response: " + response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching table info for table ${tableId}:`, error);
+      return null;
+    }
+  }
 
-    // Create nodes for each unique table
-    const newNodes = Array.from(tableIds).map((tableId, index) => ({
+  // Function to create nodes and edges from relationships data
+  const createNodesAndEdges = useCallback(async (relationships) => {
+    // Get unique table IDs
+    const tableIds = Array.from(
+      new Set(
+        relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
+      )
+    );
+
+    // Fetch all table info in parallel
+    const tablesData = [];
+    for (let i = 0; i < tableIds.length; i++) {
+      tablesData[i] = await fetchTableInfo(tableIds[i]);
+      console.log(
+        `Fetched table info for table ${tableIds[i]}:`,
+        tablesData[i]
+      );
+    }
+    // Map tableId to table data
+    const tableMap = {};
+    tableIds.forEach((id, idx) => {
+      tableMap[id] = tablesData[idx];
+    });
+    console.log("Table Map:", tableMap);
+    const newNodes = tableIds.map((tableId, index) => ({
       id: tableId.toString(),
-      // type: "schemaCard",
+      type: "schemaCard",
       data: {
-        label: `Table ${tableId}`,
-        table: `table_${tableId}`, // You might want to fetch actual table names
+        label: tableMap[tableId]?.name || `Table ${tableId}`,
+        table: tableMap[tableId], // Pass the whole table object
       },
       position: {
-        x: (index % 3) * 350, // Arrange in rows of 3
+        x: (index % 3) * 350,
         y: Math.floor(index / 3) * 300,
       },
+      type: "schemaCard",
     }));
 
     // Create edges from relationships
@@ -135,18 +164,17 @@ function ErDiagram() {
         const relationships = await fetchRelationships();
         console.log("Fetched relationships:", relationships);
 
-        const { nodes: newNodes, edges: newEdges } =
-          createNodesAndEdges(relationships);
+        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+          relationships
+        );
 
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
         console.error("Failed to load relationships:", error);
-        // Keep initial nodes with error message
         setNodes([
           {
             id: "error",
-            // type: "schemaCard",
             data: { label: "Error loading data" },
             position: { x: 0, y: 0 },
           },
@@ -159,12 +187,12 @@ function ErDiagram() {
     loadData();
   }, [createNodesAndEdges]);
 
-  // const nodeTypes = useMemo(
-  //   () => ({
-  //     schemaCard: SchemaCardNode,
-  //   }),
-  //   []
-  // );
+  const nodeTypes = useMemo(
+    () => ({
+      schemaCard: SchemaCardNode,
+    }),
+    []
+  );
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -229,7 +257,7 @@ function ErDiagram() {
         onConnect={onConnect}
         fitView
         fitViewOptions={{ padding: 0.2 }}
-        // nodeTypes={nodeTypes}
+        nodeTypes={nodeTypes}
         panOnDrag
         nodesDraggable
         proOptions={{ hideAttribution: true }}

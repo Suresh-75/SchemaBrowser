@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2 import Error, sql
 from flask_cors import CORS
-
+import os
 app = Flask(__name__)
 CORS(app)
 # --- Database Configuration ---
@@ -13,6 +13,35 @@ DB_USER = os.environ.get('DB_USER', 'postgres')
 DB_PASSWORD = os.environ.get('DB_PASSWORD', '12345')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
+
+# --- Database Connection ---
+try:
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        port=DB_PORT
+    )
+    cursor = conn.cursor()
+except Exception as e:
+    print(f"Database connection failed: {e}")
+    conn = None
+    cursor = None
+
+def execute_query(query, params=None, fetch_one=False, fetch_all=False):
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                if fetch_one:
+                    return cur.fetchone()
+                if fetch_all:
+                    return cur.fetchall()
+                return None
+    except Exception as e:
+        conn.rollback()
+        return {'error': str(e), 'status': 400}
 
 # ------------------- 2. Create Subject Area -------------------
 @app.route("/api/subject-areas", methods=["POST"])
@@ -49,6 +78,41 @@ def create_logical_db():
 
 
 # ------------------- 4. Create Table -------------------
+@app.route("/api/tables", methods=["GET"])
+def get_tables():
+    try:
+        cursor.execute("""
+            SELECT t.id, t.name, t.schema_name, d.name AS database_name
+            FROM tables_metadata t
+            JOIN logical_databases d ON t.database_id = d.id
+            ORDER BY t.id;
+        """)
+        rows = cursor.fetchall()
+        tables = [{"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]} for row in rows]
+        return jsonify(tables)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/api/tables/<int:table_id>", methods=["GET"])
+def get_table_by_id(table_id):  
+    try:
+        cursor.execute("""
+            SELECT t.id, t.name, t.schema_name, d.name AS database_name
+            FROM tables_metadata t
+            JOIN logical_databases d ON t.database_id = d.id
+            WHERE t.id = %s;
+        """, (table_id,))
+        row = cursor.fetchone()
+        if row:
+            table = {"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]}
+            print("Fetched table:", table) 
+            return jsonify(table)
+        else:
+            return jsonify({"error": "Table not found asdads"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  
+
 @app.route("/api/tables", methods=["POST"])
 def create_table():
     data = request.json
@@ -103,7 +167,7 @@ def get_hierarchy():
                    t.id AS table_id, t.name AS table_name
             FROM lobs l
             LEFT JOIN subject_areas sa ON sa.lob_id = l.id
-            LEFT JOIN databases db ON db.subject_area_id = sa.id
+            LEFT JOIN logical_databases db ON db.subject_area_id = sa.id
             LEFT JOIN tables_metadata t ON t.database_id = db.id
             ORDER BY l.id, sa.id, db.id, t.id;
         """)
@@ -131,6 +195,138 @@ def get_hierarchy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ER Relationships
+@app.route('/api/er_relationships', methods=['POST'])
+def add_er_relationship():
+    """Adds a new ER Relationship."""
+    data = request.get_json()
+    from_table_id = data.get('from_table_id')
+    from_column = data.get('from_column')
+    to_table_id = data.get('to_table_id')
+    to_column = data.get('to_column')
+    cardinality = data.get('cardinality')
+    relationship_type = data.get('relationship_type', 'foreign_key') # Default to 'foreign_key'
+
+    required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality]
+    if not all(required_fields):
+        return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality) are required'}), 400
+
+    if cardinality not in ['one-to-one', 'one-to-many', 'many-to-one']:
+        return jsonify({'error': 'Invalid cardinality. Must be one of: one-to-one, one-to-many, many-to-one'}), 400
+
+    query = """
+    INSERT INTO er_relationships (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
+    VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
+    """
+    params = (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
+    result = execute_query(query, params, fetch_one=True)
+
+    if isinstance(result, tuple) and len(result) == 1:
+        return jsonify({'message': 'ER Relationship added successfully', 'id': result[0]}), 201
+    return jsonify(result), result.get('status', 400)
+
+@app.route('/api/er_relationships', methods=['GET'])
+def get_all_er_relationships():
+    """Retrieves all ER Relationships."""
+    query = "SELECT id, from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, created_at FROM er_relationships ORDER BY id;"
+    results = execute_query(query, fetch_all=True)
+    if isinstance(results, list):
+        relationships = []
+        for row in results:
+            relationships.append({
+                'id': row[0],
+                'from_table_id': row[1],
+                'from_column': row[2],
+                'to_table_id': row[3],
+                'to_column': row[4],
+                'cardinality': row[5],
+                'relationship_type': row[6],
+                'created_at': row[7].isoformat() if row[7] else None # Convert datetime to ISO format string
+            })
+        return jsonify(relationships), 200
+    return jsonify(results), results.get('status', 400)
+
+@app.route('/api/er_relationships/<int:rel_id>', methods=['GET'])
+def get_er_relationship_by_id(rel_id):
+    """Retrieves an ER Relationship by ID."""
+    query = "SELECT id, from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, created_at FROM er_relationships WHERE id = %s;"
+    result = execute_query(query, (rel_id,), fetch_one=True)
+
+    if isinstance(result, tuple) and len(result) == 8:
+        return jsonify({
+            'id': result[0],
+            'from_table_id': result[1],
+            'from_column': result[2],
+            'to_table_id': result[3],
+            'to_column': result[4],
+            'cardinality': result[5],
+            'relationship_type': result[6],
+            'created_at': result[7].isoformat() if result[7] else None
+        }), 200
+    elif isinstance(result, dict) and 'error' in result:
+        return jsonify(result), result.get('status', 400)
+    return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
+
+@app.route('/api/er_relationships/<int:rel_id>', methods=['PUT'])
+def update_er_relationship(rel_id):
+    """Updates an existing ER Relationship."""
+    data = request.get_json()
+    from_table_id = data.get('from_table_id')
+    from_column = data.get('from_column')
+    to_table_id = data.get('to_table_id')
+    to_column = data.get('to_column')
+    cardinality = data.get('cardinality')
+    relationship_type = data.get('relationship_type')
+
+    updates = []
+    params = []
+
+    if from_table_id is not None:
+        updates.append("from_table_id = %s")
+        params.append(from_table_id)
+    if from_column is not None:
+        updates.append("from_column = %s")
+        params.append(from_column)
+    if to_table_id is not None:
+        updates.append("to_table_id = %s")
+        params.append(to_table_id)
+    if to_column is not None:
+        updates.append("to_column = %s")
+        params.append(to_column)
+    if cardinality is not None:
+        if cardinality not in ['one-to-one', 'one-to-many', 'many-to-one']:
+            return jsonify({'error': 'Invalid cardinality. Must be one of: one-to-one, one-to-many, many-to-one'}), 400
+        updates.append("cardinality = %s")
+        params.append(cardinality)
+    if relationship_type is not None:
+        updates.append("relationship_type = %s")
+        params.append(relationship_type)
+
+    if not updates:
+        return jsonify({'error': 'No fields provided for update'}), 400
+
+    query = f"UPDATE er_relationships SET {', '.join(updates)} WHERE id = %s RETURNING id;"
+    params.append(rel_id)
+    result = execute_query(query, tuple(params), fetch_one=True)
+
+    if result is not None and not isinstance(result, dict):
+        return jsonify({'message': f'ER Relationship with ID {rel_id} updated successfully'}), 200
+    elif isinstance(result, dict) and 'error' in result:
+        return jsonify(result), result.get('status', 400)
+    return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be updated'}), 404
+
+@app.route('/api/er_relationships/<int:rel_id>', methods=['DELETE'])
+def delete_er_relationship(rel_id):
+    """Deletes an ER Relationship by ID."""
+    query = "DELETE FROM er_relationships WHERE id = %s RETURNING id;"
+    result = execute_query(query, (rel_id,), fetch_one=True)
+
+    if result is not None and not isinstance(result, dict):
+        return jsonify({'message': f'ER Relationship with ID {rel_id} deleted successfully'}), 200
+    elif isinstance(result, dict) and 'error' in result:
+        return jsonify(result), result.get('status', 400)
+    return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be deleted'}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
