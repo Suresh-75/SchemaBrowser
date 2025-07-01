@@ -49,7 +49,6 @@ export default function App() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  // businessData for SearchBar and FilterBar
   const businessData = {
     "Branded Cards": {
       Accounts: {
@@ -287,7 +286,6 @@ export default function App() {
     // },
   };
 
-  // Dummy database overview data (replace with real data as needed)
   const databaseOverview = selectedPath.database
     ? {
         name: selectedPath.database,
