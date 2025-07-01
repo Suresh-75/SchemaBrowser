@@ -2,9 +2,10 @@ import os
 from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2 import Error, sql
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+CORS(app)
 # --- Database Configuration ---
 # IMPORTANT: Replace these with your actual PostgreSQL database credentials
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
