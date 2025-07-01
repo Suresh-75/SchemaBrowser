@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios"; // Import axios directly
 import {
   ChevronDown,
   ChevronRight,
@@ -8,15 +9,42 @@ import {
   Target,
 } from "lucide-react";
 
-const FilterBar = ({
-  selectedPath,
-  onSelect,
-  setSelectedPath,
-  businessData,
-}) => {
+const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
+  const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
   const [hoveredDatabase, setHoveredDatabase] = useState(null);
+
+  useEffect(() => {
+    const fetchHierarchy = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/hierarchy");
+        const hierarchy = response.data;
+
+        const transformedData = {};
+        Object.values(hierarchy).forEach((lob) => {
+          transformedData[lob.name] = {};
+          Object.values(lob.subject_areas).forEach((subjectArea) => {
+            transformedData[lob.name][subjectArea.name] = {
+              databases: {},
+            };
+            Object.values(subjectArea.databases).forEach((database) => {
+              transformedData[lob.name][subjectArea.name].databases[
+                database.name
+              ] = Object.values(database.tables);
+            });
+          });
+        });
+
+        setBusinessData(transformedData);
+        console.log("businessData:", transformedData); // Debugging output
+      } catch (error) {
+        console.error("Failed to fetch hierarchy:", error);
+      }
+    };
+
+    fetchHierarchy();
+  }, []);
 
   const handleLobSelect = (lob) => {
     onSelect({ lob, subject: null, database: null, table: null });
