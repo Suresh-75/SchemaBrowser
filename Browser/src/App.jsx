@@ -610,7 +610,7 @@ export default function App() {
           </div>
           {selectedPath.database != null ? (
             <div
-              className="w-full max-w-[1600px] flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-auto flex flex-col"
+              className="w-full  flex-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-auto flex flex-col"
               style={{ minHeight: 0, minWidth: 0 }}
             >
               <ReactFlowProvider>
