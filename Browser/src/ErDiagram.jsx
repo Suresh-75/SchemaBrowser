@@ -56,20 +56,16 @@ const Legend = () => {
   );
 };
 
-function ErDiagram() {
-  const initialNodes = [];
-
-  const initialEdges = useMemo(() => [], []);
-
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+function ErDiagram({ selectedPath }) {
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Function to fetch relationships from API
-  async function fetchRelationships() {
+  async function fetchRelationships(databaseName) {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/er_relationships"
+        `http://localhost:5000/api/er_relationships/${databaseName}`
       );
       return response.data;
     } catch (error) {
@@ -84,7 +80,6 @@ function ErDiagram() {
       const response = await axios.get(
         `http://localhost:5000/api/tables/${tableId}`
       );
-      console.log("response: " + response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching table info for table ${tableId}:`, error);
@@ -102,12 +97,17 @@ function ErDiagram() {
     );
 
     // Fetch all table info in parallel
-    const tableMap = [];
-    for (let i = 0; i < tableIds.length; i++) {
-      tableMap[tableIds[i]] = await fetchTableInfo(tableIds[i]);
-      setTimeout(async () => {}, 500);
-    }
-    console.log("Table Map:", tableMap);
+    const tableInfoPromises = tableIds.map((tableId) =>
+      fetchTableInfo(tableId)
+    );
+    const tableInfos = await Promise.all(tableInfoPromises);
+
+    const tableMap = {};
+    tableIds.forEach((tableId, index) => {
+      tableMap[tableId] = tableInfos[index];
+    });
+    console.log(tableIds);
+    console.log(tableInfos);
     const newNodes = tableIds.map((tableId, index) => ({
       id: tableId.toString(),
       type: "schemaCard",
@@ -119,7 +119,6 @@ function ErDiagram() {
         x: (index % 3) * 350,
         y: Math.floor(index / 3) * 300,
       },
-      type: "schemaCard",
     }));
 
     // Create edges from relationships
@@ -136,14 +135,21 @@ function ErDiagram() {
     }));
 
     return { nodes: newNodes, edges: newEdges };
-  }, []);
+  }, []); // createNodesAndEdges does not depend on anything outside itself now
 
-  // Fetch data on component mount
+  // Fetch data on component mount or when selectedPath.database changes
   useEffect(() => {
     const loadData = async () => {
+      if (!selectedPath?.database) {
+        setNodes([]);
+        setEdges([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const relationships = await fetchRelationships();
+        const relationships = await fetchRelationships(selectedPath.database);
         console.log("Fetched relationships:", relationships);
 
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
@@ -167,7 +173,7 @@ function ErDiagram() {
     };
 
     loadData();
-  }, [createNodesAndEdges]);
+  }, [createNodesAndEdges, selectedPath.database]); // Depend on selectedPath.database
 
   const nodeTypes = useMemo(
     () => ({

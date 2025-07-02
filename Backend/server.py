@@ -247,6 +247,37 @@ def get_all_er_relationships():
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 
+
+@app.route('/api/er_relationships/<string:database_name>', methods=['GET'])
+def get_all_er_relationships_inDB(database_name):
+    print("database name :"+database_name)
+    """Retrieves all ER Relationships for a specific database."""
+    query = """
+    SELECT id, from_table_id, from_column, to_table_id, to_column, 
+           cardinality, relationship_type, created_at, database_name 
+    FROM er_relationships 
+    WHERE database_name = %s 
+    ORDER BY id;
+    """
+    results = execute_query(query, (database_name,), fetch_all=True)
+    if isinstance(results, list):
+        relationships = []
+        for row in results:
+            relationships.append({
+                'id': row[0],
+                'from_table_id': row[1],
+                'from_column': row[2],
+                'to_table_id': row[3],
+                'to_column': row[4],
+                'cardinality': row[5],
+                'relationship_type': row[6],
+                'created_at': row[7].isoformat() if row[7] else None, # Convert datetime to ISO format string
+                'database_name': row[8]
+            })
+        print(relationships)
+        return jsonify(relationships), 200
+    return jsonify(results), results.get('status', 400)
+
 @app.route('/api/er_relationships/<int:rel_id>', methods=['GET'])
 def get_er_relationship_by_id(rel_id):
     """Retrieves an ER Relationship by ID."""
