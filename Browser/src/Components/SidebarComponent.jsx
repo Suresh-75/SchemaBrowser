@@ -345,19 +345,23 @@ const SidebarComponent = ({
               </div>
             )}
           </div>
-          {selectedPath?.database ? (
-            <button
-              onClick={() => setCreate("Relationship")}
-              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
-              aria-label="Add Relationship"
-            >
-              <Plus size={16} />
-              Add Relationship
-            </button>
+          {user == "admin" ? (
+            selectedPath?.database ? (
+              <button
+                onClick={() => setCreate("Relationship")}
+                className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+                aria-label="Add Relationship"
+              >
+                <Plus size={16} />
+                Add Relationship
+              </button>
+            ) : (
+              <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
+                Choose a database to add relationships
+              </div>
+            )
           ) : (
-            <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
-              Choose a database to add relationships
-            </div>
+            <></>
           )}
         </div>
       );
