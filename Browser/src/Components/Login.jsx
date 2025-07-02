@@ -28,7 +28,7 @@ const Login = ({ setUser }) => {
 
     const mockUser = mockUsers[role];
     if (username === mockUser.username && password === mockUser.password) {
-      navigate("/dashboard");
+      navigate("/dashboard", { state: { user: role } });
     } else {
       alert("Invalid credentials");
     }

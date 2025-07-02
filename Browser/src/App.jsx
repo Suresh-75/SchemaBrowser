@@ -12,6 +12,9 @@ import {
   User,
   Table,
   ArrowBigLeft,
+  AlignVerticalJustifyStart,
+  LogOut,
+  LogOutIcon,
 } from "lucide-react";
 import ErDiagram from "./ErDiagram";
 import { useNavigate } from "react-router-dom";
@@ -19,10 +22,12 @@ import SidebarComponent from "./Components/SidebarComponent";
 import SearchBar from "./Components/SearchBar";
 import FilterBar from "./Components/FilterBar";
 import AddEntityComponent from "./Components/AddEntity";
-
+import { useLocation } from "react-router-dom";
 import { ReactFlowProvider } from "@xyflow/react";
 
 export default function App() {
+  const location = useLocation();
+  const { user } = location.state || {};
   const [activeTab, setActiveTab] = useState("overview");
   const [create, setCreate] = useState("");
   const [showTables, setShowTables] = useState(false);
@@ -333,16 +338,15 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/")}
-            className="px-4 py-2 text-base bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center gap-2 shadow-sm font-semibold"
-          >
+          <button className="px-4 py-2 text-base bg-white border border-gray-300 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center gap-2 shadow-sm font-semibold">
             <User size={18} />
-            Logout
+            {user == "admin" ? "Modeler" : "Analyst"}
           </button>
-          <button className="px-6 py-2 text-base bg-blue-400 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2 font-semibold">
-            <RefreshCcw size={18} />
-            Refresh
+          <button
+            className="transition-all cursor-pointer hover:text-red-600 text-blue-600 "
+            onClick={() => navigate("/")}
+          >
+            <LogOutIcon />
           </button>
         </div>
       </nav>
@@ -408,6 +412,7 @@ export default function App() {
           </div>
           <div className="flex-1 p-3  overflow-y-auto min-h-0">
             <SidebarComponent
+              user={user}
               activeTab={activeTab}
               selectedPath={selectedPath}
               create={create}

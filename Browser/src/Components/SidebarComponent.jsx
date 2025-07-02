@@ -229,6 +229,7 @@ function countTables(selectedPath, businessData) {
 // }
 
 const SidebarComponent = ({
+  user,
   activeTab = "overview",
   selectedPath,
   setCreate,
@@ -256,7 +257,9 @@ const SidebarComponent = ({
     case "entities":
       return (
         <div
-          className=" flex flex-col space-y-4  max-h-[25rem]"
+          className={`flex flex-col space-y-4 ${
+            user == "admin" ? "max-h-[25rem]" : "max-h-[30rem]"
+          }  `}
           aria-label="Entities Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
@@ -287,20 +290,25 @@ const SidebarComponent = ({
               </div>
             )}
           </div>
-          {selectedPath?.database ? (
-            <button
-              onClick={() => setCreate("Entity")}
-              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
-              aria-label="Add Entity"
-            >
-              <Plus size={16} />
-              Add Entity
-            </button>
+          {user == "admin" ? (
+            selectedPath?.database ? (
+              <button
+                onClick={() => setCreate("Entity")}
+                className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow"
+                aria-label="Add Entity"
+              >
+                <Plus size={16} />
+                Add Entity
+              </button>
+            ) : (
+              <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
+                Choose a database to add entities
+              </div>
+            )
           ) : (
-            <div className="text-center w-full text-blue-700 bg-blue-50 rounded-lg py-2 mt-2 text-sm font-medium border border-blue-100">
-              Choose a database to add entities
-            </div>
+            <></>
           )}
+          {/* {} */}
         </div>
       );
     case "relationships":

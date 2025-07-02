@@ -57,17 +57,7 @@ const Legend = () => {
 };
 
 function ErDiagram() {
-  const initialNodes = useMemo(
-    () => [
-      {
-        id: "1",
-        // type: "schemaCard",
-        data: { label: "Loading..." },
-        position: { x: -100, y: -200 },
-      },
-    ],
-    []
-  );
+  const initialNodes = [];
 
   const initialEdges = useMemo(() => [], []);
 
@@ -112,19 +102,11 @@ function ErDiagram() {
     );
 
     // Fetch all table info in parallel
-    const tablesData = [];
+    const tableMap = [];
     for (let i = 0; i < tableIds.length; i++) {
-      tablesData[i] = await fetchTableInfo(tableIds[i]);
-      console.log(
-        `Fetched table info for table ${tableIds[i]}:`,
-        tablesData[i]
-      );
+      tableMap[tableIds[i]] = await fetchTableInfo(tableIds[i]);
+      setTimeout(async () => {}, 500);
     }
-    // Map tableId to table data
-    const tableMap = {};
-    tableIds.forEach((id, idx) => {
-      tableMap[id] = tablesData[idx];
-    });
     console.log("Table Map:", tableMap);
     const newNodes = tableIds.map((tableId, index) => ({
       id: tableId.toString(),
