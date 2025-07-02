@@ -414,7 +414,7 @@ export default function App() {
               selectedPath={selectedPath}
               create={create}
               setCreate={setCreate}
-              businessData={businessData}
+              // businessData={businessData}
             />
           </div>
         </div>

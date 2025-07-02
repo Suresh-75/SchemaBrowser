@@ -93,6 +93,21 @@ def get_tables():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+@app.route("/api/tables/<string:database_name>", methods=["GET"])
+def get_tables_inDB(database_name):
+    try:
+        cursor.execute("""
+            SELECT t.id, t.name, t.schema_name, d.name AS database_name
+            FROM tables_metadata t
+            JOIN logical_databases d ON t.database_id = d.id
+            WHERE d.name = %s
+            ORDER BY t.id;
+        """, (database_name,))
+        rows = cursor.fetchall()
+        tables = [{"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]} for row in rows]
+        return jsonify(tables)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/tables/<int:table_id>", methods=["GET"])
 def get_table_by_id(table_id):  
