@@ -1,85 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-const flattenBusinessData = (businessData) => {
-  const results = [];
-  for (const lob in businessData) {
-    // LOB level
-    results.push({
-      type: "LOB",
-      name: lob,
-      path: { lob, subject: null, database: null, table: null },
-      granularity: "Line of Business",
-      breadcrumb: lob,
-    });
-    for (const subject in businessData[lob]) {
-      // Subject Area level
-      results.push({
-        type: "Subject Area",
-        name: subject,
-        path: { lob, subject, database: null, table: null },
-        granularity: "Subject Area",
-        breadcrumb: `${lob} > ${subject}`,
-      });
-      const databases = businessData[lob][subject].databases;
-      for (const database in databases) {
-        // Database level
-        results.push({
-          type: "Database",
-          name: database,
-          path: { lob, subject, database, table: null },
-          granularity: "Database",
-          breadcrumb: `${lob} > ${subject} > ${database}`,
-        });
-        // Only loop if it's an array
-        if (Array.isArray(databases[database])) {
-          for (const table of databases[database]) {
-            results.push({
-              type: "Table",
-              name: table,
-              path: { lob, subject, database, table },
-              granularity: "Table",
-              breadcrumb: `${lob} > ${subject} > ${database} > ${table}`,
-            });
-          }
-        }
-      }
-    }
-  }
-  return results;
-};
+const typeOrder = ["LOB", "Subject Area", "Database", "Table"];
 
-const SearchBar = ({ businessData, onSelect }) => {
+const SearchBar = ({ onSelect }) => {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const allItems = flattenBusinessData(businessData);
-
-  const filtered =
-    query.length > 0
-      ? allItems.filter(
-          (item) =>
-            item.name.toLowerCase().includes(query.toLowerCase()) ||
-            item.breadcrumb.toLowerCase().includes(query.toLowerCase())
-        )
-      : [];
+  useEffect(() => {
+    if (query.length === 0) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(query)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setResults(data);
+        setLoading(false);
+      })
+      .catch(() => setResults([]));
+  }, [query]);
 
   // Group results by type for better organization
-  const groupedResults = filtered.reduce((acc, item) => {
-    if (!acc[item.type]) {
-      acc[item.type] = [];
-    }
+  const groupedResults = results.reduce((acc, item) => {
+    if (!acc[item.type]) acc[item.type] = [];
     acc[item.type].push(item);
     return acc;
   }, {});
-
-  const typeOrder = ["LOB", "Subject Area", "Database", "Table"];
-  const typeColors = {
-    "LOB": "bg-blue-50 text-blue-700 border-blue-200",
-    "Subject Area": "bg-green-50 text-green-700 border-green-200",
-    "Database": "bg-purple-50 text-purple-700 border-purple-200",
-    "Table": "bg-orange-50 text-orange-700 border-orange-200"
-  };
 
   return (
     <div className="w-full px-6 py-2 bg-white border-b border-gray-100 relative z-10">
@@ -93,7 +43,13 @@ const SearchBar = ({ businessData, onSelect }) => {
         onBlur={() => setTimeout(() => setFocused(false), 200)}
       />
 
-      {focused && filtered.length > 0 && (
+      {focused && loading && (
+        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
+          <div className="text-center text-gray-400">Searching...</div>
+        </div>
+      )}
+
+      {focused && !loading && results.length > 0 && (
         <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-auto z-50">
           {typeOrder.map(
             (type) =>
@@ -111,7 +67,7 @@ const SearchBar = ({ businessData, onSelect }) => {
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => {
-                    onSelect(item.path);
+                    onSelect && onSelect(item); // Pass the whole item or just item.id
                     setQuery("");
                   }}
                 >
@@ -122,16 +78,14 @@ const SearchBar = ({ businessData, onSelect }) => {
                         ({item.type})
                       </span>
                     </span>
-                    <span className="text-xs text-gray-400">{item.granularity}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">{item.breadcrumb}</div>
                 </button>
               ))
           )}
         </div>
       )}
 
-      {focused && query.length > 0 && filtered.length === 0 && (
+      {focused && !loading && query.length > 0 && results.length === 0 && (
         <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
           <div className="text-center text-gray-500">
             <div className="text-sm font-medium">No results found</div>
