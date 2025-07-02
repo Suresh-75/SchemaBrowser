@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 # --- Database Configuration ---
-# IMPORTANT: Replace these with your actual PostgreSQL database credentials
+
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_NAME = os.environ.get('DB_NAME', 'schemabrowser')
 DB_USER = os.environ.get('DB_USER', 'postgres')
