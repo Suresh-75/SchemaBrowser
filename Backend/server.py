@@ -375,5 +375,30 @@ def delete_er_relationship(rel_id):
         return jsonify(result), result.get('status', 400)
     return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be deleted'}), 404
 
+
+@app.route("/api/search", methods=["GET"])
+def search():
+    query = request.args.get("q", "")
+    results = []
+
+    if not query:
+        return jsonify(results)
+
+    try:
+        cursor.execute("""
+            SELECT 'LOB' AS type, id, name FROM lobs WHERE name ILIKE %s
+            UNION
+            SELECT 'Subject Area', id, name FROM subject_areas WHERE name ILIKE %s
+            UNION
+            SELECT 'Database', id, name FROM logical_databases WHERE name ILIKE %s
+            UNION
+            SELECT 'Table', id, name FROM tables_metadata WHERE name ILIKE %s
+        """, (f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"))
+        rows = cursor.fetchall()
+        for row in rows:
+            results.append({"type": row[0], "id": row[1], "name": row[2]})
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
     app.run(debug=True)

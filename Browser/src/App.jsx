@@ -166,7 +166,7 @@ export default function App() {
 
         <div className="flex-1  flex flex-col items-center p-0 min-h-0">
           <div className="w-full  max-w-[1600px] mb-2 shrink-0">
-            {/* <SearchBar businessData={businessData} onSelect={handleSelection} /> */}
+            <SearchBar onSelect={handleSelection} />
           </div>
           {selectedPath.database != null ? (
             <div
