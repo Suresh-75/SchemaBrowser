@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useMemo, useEffect } from "react";
+import React, {
+  useCallback,
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   Background,
   Controls,
@@ -12,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
 import axios from "axios";
+import { toJpeg } from "html-to-image";
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
@@ -34,11 +41,10 @@ const Legend = () => {
         borderRadius: "5px",
         fontSize: "12px",
         boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+        zIndex: 1000,
       }}
     >
-      <div
-        style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}
-      >
+      <div style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}>
         <div
           className="w-2 h-2 bg-yellow-400 rounded-full mr-4"
           title="Primary Key"
@@ -61,7 +67,27 @@ function ErDiagram({ selectedPath }) {
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch relationships from API
+  const exportRef = useRef(null);
+  const reactFlowInstance = useReactFlow();
+
+  const handleExport = useCallback(() => {
+    if (exportRef.current) {
+      toJpeg(exportRef.current, {
+        quality: 0.95,
+        backgroundColor: "#ffffff",
+      })
+        .then((dataUrl) => {
+          const link = document.createElement("a");
+          link.download = "er-diagram.jpg";
+          link.href = dataUrl;
+          link.click();
+        })
+        .catch((err) => {
+          console.error("Export failed", err);
+        });
+    }
+  }, []);
+
   async function fetchRelationships(databaseName) {
     try {
       const response = await axios.get(
@@ -74,7 +100,6 @@ function ErDiagram({ selectedPath }) {
     }
   }
 
-  // Fetch table info by ID
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
@@ -87,16 +112,13 @@ function ErDiagram({ selectedPath }) {
     }
   }
 
-  // Function to create nodes and edges from relationships data
   const createNodesAndEdges = useCallback(async (relationships) => {
-    // Get unique table IDs
     const tableIds = Array.from(
       new Set(
         relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
       )
     );
 
-    // Fetch all table info in parallel
     const tableInfoPromises = tableIds.map((tableId) =>
       fetchTableInfo(tableId)
     );
@@ -106,37 +128,35 @@ function ErDiagram({ selectedPath }) {
     tableIds.forEach((tableId, index) => {
       tableMap[tableId] = tableInfos[index];
     });
+
     const newNodes = tableIds.map((tableId, index) => ({
       id: tableId.toString(),
       type: "schemaCard",
       data: {
         label: tableMap[tableId]?.name || `Table ${tableId}`,
-        table: tableMap[tableId], // Pass the whole table object
+        table: tableMap[tableId],
       },
       position: {
         x: (index % 3) * 350,
         y: Math.floor(index / 3) * 300,
       },
     }));
-    // Create edges from relationships
-    const newEdges = relationships.map((rel) => {
-      console.log(rel);
-      return {
-        id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
-        source: rel.from_table_id.toString(),
-        target: rel.to_table_id.toString(),
-        label: `${rel.from_column} → ${rel.to_column}`,
-        animated: true,
-        data: {
-          cardinality: rel.cardinality,
-          relationshipType: rel.relationship_type,
-        },
-      };
-    });
+
+    const newEdges = relationships.map((rel) => ({
+      id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
+      source: rel.from_table_id.toString(),
+      target: rel.to_table_id.toString(),
+      label: `${rel.from_column} → ${rel.to_column}`,
+      animated: true,
+      data: {
+        cardinality: rel.cardinality,
+        relationshipType: rel.relationship_type,
+      },
+    }));
+
     return { nodes: newNodes, edges: newEdges };
   }, []);
 
-  // Fetch data on component mount or when selectedPath.database changes
   useEffect(() => {
     const loadData = async () => {
       if (!selectedPath?.database) {
@@ -149,8 +169,6 @@ function ErDiagram({ selectedPath }) {
       try {
         setLoading(true);
         const relationships = await fetchRelationships(selectedPath.database);
-        // console.log("Fetched relationships:", relationships);
-
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
         );
@@ -172,7 +190,7 @@ function ErDiagram({ selectedPath }) {
     };
 
     loadData();
-  }, [selectedPath.database]); // Depend on selectedPath.database
+  }, [selectedPath.database]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -194,8 +212,6 @@ function ErDiagram({ selectedPath }) {
     []
   );
 
-  // --- Auto-fit on Resize ---
-  const reactFlowInstance = useReactFlow();
   useEffect(() => {
     if (!loading && nodes.length > 0) {
       const timeout = setTimeout(() => {
@@ -215,10 +231,9 @@ function ErDiagram({ selectedPath }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [reactFlowInstance, loading]);
-  // --------------------------
 
   return (
-    <div style={{ position: "relative", height: "100%" }}>
+    <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
       {loading && (
         <div
           style={{
@@ -260,6 +275,24 @@ function ErDiagram({ selectedPath }) {
         <Controls />
       </ReactFlow>
       <Legend />
+      <button
+        onClick={handleExport}
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          right: "20px",
+          zIndex: 1000,
+          padding: "8px 12px",
+          backgroundColor: "#007bff",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        Export as JPG
+      </button>
     </div>
   );
 }
