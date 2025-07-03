@@ -133,7 +133,7 @@ const SidebarComponent = ({
                   tabIndex={0}
                   aria-label={`Relationship: ${relItem.display}`}
                 >
-                  <Network className="text-green-500" size={20} />
+                  <Network className="text-blue-600" size={20} />
                   <div>
                     <div className="font-semibold text-gray-800 text-base">
                       {relItem.display} {/* Display the processed string */}

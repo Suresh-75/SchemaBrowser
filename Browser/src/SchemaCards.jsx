@@ -4,10 +4,10 @@ import { Handle, Position } from "@xyflow/react";
 const SimpleTableCard = ({ table }) => {
   if (!table) {
     return (
-      <></>
-      // <div className="bg-white rounded-xl shadow-lg p-6 text-red-600">
-      //   {/* Table info not found. */}
-      // </div>
+      // <></>
+      <div className="bg-white rounded-xl shadow-lg p-6 text-red-600">
+        Table info not found.
+      </div>
     );
   }
 
@@ -33,7 +33,7 @@ const SimpleTableCard = ({ table }) => {
       />
 
       {/* Table Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-blue-800 px-6 py-5">
+      <div className="bg-gradient-to-r bg-blue-400  px-6 py-5">
         <div className="flex items-center justify-between">
           <h3 className="text-2xl font-bold text-white tracking-wide drop-shadow">
             {table.name}
@@ -44,12 +44,12 @@ const SimpleTableCard = ({ table }) => {
             </span>
           )}
         </div>
-        <div className="mt-2 flex flex-wrap gap-4">
-          <span className="text-xs text-blue-200 bg-slate-700 px-2 py-1 rounded">
+        <div className="mt-2 flex  flex-wrap gap-4">
+          <span className="text-xs bg-white px-2 py-1 rounded">
             <strong>DB:</strong> {table.database_name}
           </span>
-          <span className="text-xs text-blue-200 bg-slate-700 px-2 py-1 rounded">
-            <strong>ID:</strong> {table.id}
+          <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded">
+            <strong>Table ID : </strong> {table.id}
           </span>
         </div>
       </div>

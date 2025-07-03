@@ -42,7 +42,7 @@ const SearchBar = ({ onSelect }) => {
   }, {});
 
   return (
-    <div className="w-full px-6 py-2 bg-white border-b border-gray-100 relative z-10">
+    <div className="w-full rounded-xl px-3 py-2 bg-white border-b border-gray-100 relative z-10">
       {/* Filter Bar */}
       <div className="flex gap-4 mb-2">
         {typeOptions.map((opt) => (
@@ -97,7 +97,7 @@ const SearchBar = ({ onSelect }) => {
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => {
-                    console.log(item)
+                    console.log(item);
                     onSelect && onSelect(item);
                     setQuery("");
                   }}
@@ -116,14 +116,19 @@ const SearchBar = ({ onSelect }) => {
         </div>
       )}
 
-      {focused && !loading && query.length > 0 && filteredResults.length === 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
-          <div className="text-center text-gray-500">
-            <div className="text-sm font-medium">No results found</div>
-            <div className="text-xs mt-1">Try searching for a different term</div>
+      {focused &&
+        !loading &&
+        query.length > 0 &&
+        filteredResults.length === 0 && (
+          <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
+            <div className="text-center text-gray-500">
+              <div className="text-sm font-medium">No results found</div>
+              <div className="text-xs mt-1">
+                Try searching for a different term
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {focused && query.length === 0 && (
         <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">

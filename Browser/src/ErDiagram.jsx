@@ -64,6 +64,8 @@ function ErDiagram({ selectedPath }) {
   // Function to fetch relationships from API
   async function fetchRelationships(databaseName) {
     try {
+      setEdges([]);
+      setNodes([]);
       const response = await axios.get(
         `http://localhost:5000/api/er_relationships/${databaseName}`
       );
@@ -97,11 +99,11 @@ function ErDiagram({ selectedPath }) {
     );
 
     // Fetch all table info in parallel
-    const tableInfoPromises = tableIds.map((tableId) =>
-      fetchTableInfo(tableId)
-    );
-    const tableInfos = await Promise.all(tableInfoPromises);
-
+    const tableInfos = [];
+    for (const tableId of tableIds) {
+      const info = await fetchTableInfo(tableId);
+      tableInfos.push(info);
+    }
     const tableMap = {};
     tableIds.forEach((tableId, index) => {
       tableMap[tableId] = tableInfos[index];
@@ -114,8 +116,8 @@ function ErDiagram({ selectedPath }) {
         table: tableMap[tableId], // Pass the whole table object
       },
       position: {
-        x: (index % 3) * 350,
-        y: Math.floor(index / 3) * 300,
+        x: (index % 3) * 600,
+        y: Math.floor(index / 3) * 100,
       },
     }));
     // Create edges from relationships
@@ -154,7 +156,6 @@ function ErDiagram({ selectedPath }) {
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
         );
-
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
@@ -219,7 +220,8 @@ function ErDiagram({ selectedPath }) {
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
-      {loading && (
+      {/* {loading?} */}
+      {loading ? (
         <div
           style={{
             position: "absolute",
@@ -235,6 +237,24 @@ function ErDiagram({ selectedPath }) {
         >
           Loading relationships...
         </div>
+      ) : nodes.length == 0 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1000,
+            background: "white",
+            padding: "20px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          No relationships
+        </div>
+      ) : (
+        <></>
       )}
       <ReactFlow
         nodes={nodes}
