@@ -10,23 +10,40 @@ const SidebarComponent = ({
   selectedPath,
   setCreate,
 }) => {
-  const [data, setData] = useState({});
+  // Initialize 'data' as an empty array since it will hold a list of tables
+  const [data, setData] = useState([]);
+  // 'rels' will hold the processed relationship strings with their original IDs
+  const [rels, setRels] = useState([]);
 
   useEffect(() => {
-    const fetchTables = async () => {
+    // Define an async function to fetch all necessary data
+    const fetchAllData = async () => {
+      if (!selectedPath || !selectedPath.database) {
+        return;
+      }
+
       try {
-        const response = await axios.get(
+        const tablesResponse = await axios.get(
           `http://localhost:5000/api/tables/${selectedPath.database}`
         );
-        console.log(response.data);
-        setData(response.data);
+        setData(tablesResponse.data);
+        const relationshipsResponse = await axios.get(
+          `http://localhost:5000/api/er_relationships/${selectedPath.database}`
+        );
+        const relsData = relationshipsResponse.data;
+        const processedRels = relsData.map((rel) => ({
+          id: rel.id,
+          display: `${rel.from_column} --> ${rel.to_column}`,
+        }));
+        setRels(processedRels);
       } catch (error) {
-        console.error("Error fetching tables:", error);
+        console.error(
+          `Error fetching data for database ${selectedPath.database}:`,
+          error
+        );
       }
     };
-    if (selectedPath && selectedPath.database) {
-      fetchTables();
-    }
+    fetchAllData();
   }, [selectedPath]);
 
   let lineage = [];
@@ -35,6 +52,7 @@ const SidebarComponent = ({
   if (selectedPath?.database) lineage.push(selectedPath.database);
   if (selectedPath?.table) lineage.push(selectedPath.table);
 
+  // Render content based on the activeTab prop
   switch (activeTab) {
     case "versions":
       return <VersionControlPanel />;
@@ -44,22 +62,23 @@ const SidebarComponent = ({
       return (
         <div
           className={`flex flex-col space-y-4 ${
-            user == "admin" ? "max-h-[25rem]" : "max-h-[30rem]"
-          }  `}
+            user === "admin" ? "max-h-[25rem]" : "max-h-[30rem]"
+          } `}
           aria-label="Entities Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
             <Box className="text-blue-600" size={20} />
             Entities
           </h3>
-          <div className="flex-1 overflow-y-scroll   space-y-2 pr-1">
+          <div className="flex-1 overflow-y-scroll space-y-2 pr-1">
             {data.length > 0 ? (
               data.map((entity) => (
                 <div
-                  key={entity}
+                  // Use entity.id as the key for stable list rendering
+                  key={entity.id}
                   className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3"
                   tabIndex={0}
-                  aria-label={`Entity: ${entity}`}
+                  aria-label={`Entity: ${entity.name}`}
                 >
                   <Box className="text-blue-500" size={20} />
                   <div>
@@ -76,7 +95,7 @@ const SidebarComponent = ({
               </div>
             )}
           </div>
-          {user == "admin" ? (
+          {user === "admin" ? (
             selectedPath?.database ? (
               <button
                 onClick={() => setCreate("Entity")}
@@ -99,7 +118,7 @@ const SidebarComponent = ({
     case "relationships":
       return (
         <div
-          className=" h-[25rem]flex flex-col space-y-4"
+          className=" flex flex-col space-y-4"
           aria-label="Relationships Panel"
         >
           <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
@@ -107,18 +126,18 @@ const SidebarComponent = ({
             Relationships
           </h3>
           <div className="flex-1 min-h-0 overflow-y-scroll space-y-3 pr-1">
-            {relationships.length > 0 ? (
-              relationships.map((rel) => (
+            {rels.length > 0 ? (
+              rels.map((relItem) => (
                 <div
-                  key={rel}
+                  key={relItem.id}
                   className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-100 shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3"
                   tabIndex={0}
-                  aria-label={`Relationship: ${rel}`}
+                  aria-label={`Relationship: ${relItem.display}`}
                 >
                   <Network className="text-green-500" size={20} />
                   <div>
                     <div className="font-semibold text-gray-800 text-base">
-                      {rel}
+                      {relItem.display} {/* Display the processed string */}
                     </div>
                     <div className="text-xs text-gray-500">Foreign Key</div>
                   </div>
@@ -130,7 +149,7 @@ const SidebarComponent = ({
               </div>
             )}
           </div>
-          {user == "admin" ? (
+          {user === "admin" ? (
             selectedPath?.database ? (
               <button
                 onClick={() => setCreate("Relationship")}
@@ -229,7 +248,8 @@ const SidebarComponent = ({
                 <div>
                   <div className="text-gray-600">Relationships</div>
                   <div className="font-semibold text-gray-800">
-                    {/* {countRelationships(selectedPath, data)} */}0
+                    {rels.length}{" "}
+                    {/* Display relationships count using rels.length */}
                   </div>
                 </div>
                 <div className="col-span-2">
