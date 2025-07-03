@@ -66,7 +66,6 @@ const SidebarComponent = ({
                     <div className="font-semibold text-gray-800 capitalize text-base">
                       {entity.name}
                     </div>
-                    <div className="text-xs text-gray-500">Click to edit</div>
                   </div>
                 </div>
               ))
