@@ -4,9 +4,10 @@ import { Handle, Position } from "@xyflow/react";
 const SimpleTableCard = ({ table }) => {
   if (!table) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 text-red-600">
-        Table info not found.
-      </div>
+      <></>
+      // <div className="bg-white rounded-xl shadow-lg p-6 text-red-600">
+      //   {/* Table info not found. */}
+      // </div>
     );
   }
 

@@ -106,8 +106,6 @@ function ErDiagram({ selectedPath }) {
     tableIds.forEach((tableId, index) => {
       tableMap[tableId] = tableInfos[index];
     });
-    console.log(tableIds);
-    console.log(tableInfos);
     const newNodes = tableIds.map((tableId, index) => ({
       id: tableId.toString(),
       type: "schemaCard",
@@ -120,22 +118,23 @@ function ErDiagram({ selectedPath }) {
         y: Math.floor(index / 3) * 300,
       },
     }));
-
     // Create edges from relationships
-    const newEdges = relationships.map((rel) => ({
-      id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
-      source: rel.from_table_id.toString(),
-      target: rel.to_table_id.toString(),
-      label: `${rel.from_column} → ${rel.to_column}`,
-      animated: true,
-      data: {
-        cardinality: rel.cardinality,
-        relationshipType: rel.relationship_type,
-      },
-    }));
-
+    const newEdges = relationships.map((rel) => {
+      console.log(rel);
+      return {
+        id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
+        source: rel.from_table_id.toString(),
+        target: rel.to_table_id.toString(),
+        label: `${rel.from_column} → ${rel.to_column}`,
+        animated: true,
+        data: {
+          cardinality: rel.cardinality,
+          relationshipType: rel.relationship_type,
+        },
+      };
+    });
     return { nodes: newNodes, edges: newEdges };
-  }, []); // createNodesAndEdges does not depend on anything outside itself now
+  }, []);
 
   // Fetch data on component mount or when selectedPath.database changes
   useEffect(() => {
@@ -150,7 +149,7 @@ function ErDiagram({ selectedPath }) {
       try {
         setLoading(true);
         const relationships = await fetchRelationships(selectedPath.database);
-        console.log("Fetched relationships:", relationships);
+        // console.log("Fetched relationships:", relationships);
 
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
@@ -173,7 +172,7 @@ function ErDiagram({ selectedPath }) {
     };
 
     loadData();
-  }, [createNodesAndEdges, selectedPath.database]); // Depend on selectedPath.database
+  }, [selectedPath.database]); // Depend on selectedPath.database
 
   const nodeTypes = useMemo(
     () => ({

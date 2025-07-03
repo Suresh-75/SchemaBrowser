@@ -3,237 +3,12 @@ import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
 import axios from "axios";
-// Enhanced: Returns entities and relationships for the current selection
-// function getEntitiesAndRelationships(selectedPath, businessData) {
-//   if (!selectedPath || !selectedPath.lob) {
-//     return { entities: [], relationships: [] };
-//   }
-//   // Database selected
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     selectedPath.database &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject] &&
-//     businessData[selectedPath.lob][selectedPath.subject].databases &&
-//     businessData[selectedPath.lob][selectedPath.subject].databases[
-//       selectedPath.database
-//     ]
-//   ) {
-//     const db =
-//       businessData[selectedPath.lob][selectedPath.subject].databases[
-//         selectedPath.database
-//       ];
-//     return {
-//       entities: db.entities || [],
-//       relationships: db.relationships || [],
-//     };
-//   }
-//   // Subject selected: aggregate all entities/relationships in all databases
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-//     return {
-//       entities: Object.values(dbs).flatMap((db) => db.entities || []),
-//       relationships: Object.values(dbs).flatMap((db) => db.relationships || []),
-//     };
-//   }
-//   // LOB selected: aggregate all entities/relationships in all subjects/databases
-//   if (selectedPath.lob && businessData[selectedPath.lob]) {
-//     let entities = [];
-//     let relationships = [];
-//     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
-//       const dbs = subjectObj.databases;
-//       entities = entities.concat(
-//         ...Object.values(dbs).flatMap((db) => db.entities || [])
-//       );
-//       relationships = relationships.concat(
-//         ...Object.values(dbs).flatMap((db) => db.relationships || [])
-//       );
-//     });
-//     return { entities, relationships };
-//   }
-//   return { entities: [], relationships: [] };
-// }
-
-// // Enhanced: Returns entities (tables) for the current selection, supporting both database-object and array structures
-// function getTablesForSelection(selectedPath, businessData) {
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     selectedPath.database &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
-//     // If databases is an object (db: [tables...])
-//     if (
-//       subjectObj.databases &&
-//       !Array.isArray(subjectObj.databases) &&
-//       subjectObj.databases[selectedPath.database]
-//     ) {
-//       return subjectObj.databases[selectedPath.database];
-//     }
-//     // If databases is an array and tables is an array
-//     if (
-//       Array.isArray(subjectObj.databases) &&
-//       Array.isArray(subjectObj.tables)
-//     ) {
-//       return subjectObj.tables;
-//     }
-//   }
-//   // Subject selected: aggregate all tables in all databases or tables array
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
-//     let tables = [];
-//     if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
-//       tables = Object.values(subjectObj.databases).flat();
-//     }
-//     if (Array.isArray(subjectObj.tables)) {
-//       tables = tables.concat(subjectObj.tables);
-//     }
-//     return tables;
-//   }
-//   // LOB selected: aggregate all tables in all subjects
-//   if (selectedPath.lob && businessData[selectedPath.lob]) {
-//     let tables = [];
-//     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
-//       if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
-//         tables = tables.concat(...Object.values(subjectObj.databases).flat());
-//       }
-//       if (Array.isArray(subjectObj.tables)) {
-//         tables = tables.concat(subjectObj.tables);
-//       }
-//     });
-//     return tables;
-//   }
-//   return [];
-// }
-
-// // Helper to count all tables for a given selection (LOB, Subject, or Database)
-// function countTables(selectedPath, businessData) {
-//   // Database selected
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     selectedPath.database &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
-//     if (
-//       subjectObj.databases &&
-//       !Array.isArray(subjectObj.databases) &&
-//       subjectObj.databases[selectedPath.database]
-//     ) {
-//       return subjectObj.databases[selectedPath.database].length;
-//     }
-//     if (
-//       Array.isArray(subjectObj.databases) &&
-//       Array.isArray(subjectObj.tables)
-//     ) {
-//       return subjectObj.tables.length;
-//     }
-//   }
-//   // Subject selected
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const subjectObj = businessData[selectedPath.lob][selectedPath.subject];
-//     let tables = [];
-//     if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
-//       tables = Object.values(subjectObj.databases).flat();
-//     }
-//     if (Array.isArray(subjectObj.tables)) {
-//       tables = tables.concat(subjectObj.tables);
-//     }
-//     return tables.length;
-//   }
-//   // LOB selected
-//   if (selectedPath.lob && businessData[selectedPath.lob]) {
-//     let tables = [];
-//     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
-//       if (subjectObj.databases && !Array.isArray(subjectObj.databases)) {
-//         tables = tables.concat(...Object.values(subjectObj.databases).flat());
-//       }
-//       if (Array.isArray(subjectObj.tables)) {
-//         tables = tables.concat(subjectObj.tables);
-//       }
-//     });
-//     return tables.length;
-//   }
-//   return 0;
-// }
-
-// // Helper to count all relationships for a given selection
-// function countRelationships(selectedPath, businessData) {
-//   // Database selected
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     selectedPath.database &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject] &&
-//     businessData[selectedPath.lob][selectedPath.subject].databases &&
-//     businessData[selectedPath.lob][selectedPath.subject].databases[
-//       selectedPath.database
-//     ]
-//   ) {
-//     const db =
-//       businessData[selectedPath.lob][selectedPath.subject].databases[
-//         selectedPath.database
-//       ];
-//     return (db.relationships && db.relationships.length) || 0;
-//   }
-//   // Subject selected
-//   if (
-//     selectedPath.lob &&
-//     selectedPath.subject &&
-//     businessData[selectedPath.lob] &&
-//     businessData[selectedPath.lob][selectedPath.subject]
-//   ) {
-//     const dbs = businessData[selectedPath.lob][selectedPath.subject].databases;
-//     if (dbs && !Array.isArray(dbs)) {
-//       return Object.values(dbs).flatMap((db) =>
-//         db.relationships ? db.relationships : []
-//       ).length;
-//     }
-//     return 0;
-//   }
-//   // LOB selected
-//   if (selectedPath.lob && businessData[selectedPath.lob]) {
-//     let relationships = [];
-//     Object.values(businessData[selectedPath.lob]).forEach((subjectObj) => {
-//       const dbs = subjectObj.databases;
-//       if (dbs && !Array.isArray(dbs)) {
-//         relationships = relationships.concat(
-//           ...Object.values(dbs).flatMap((db) => db.relationships || [])
-//         );
-//       }
-//     });
-//     return relationships.length;
-//   }
-//   return 0;
-// }
 
 const SidebarComponent = ({
   user,
   activeTab = "overview",
   selectedPath,
   setCreate,
-  // businessData,
 }) => {
   const [data, setData] = useState({});
 
@@ -250,7 +25,6 @@ const SidebarComponent = ({
       }
     };
     if (selectedPath && selectedPath.database) {
-      // Add a check to ensure selectedPath.database exists before making the request
       fetchTables();
     }
   }, [selectedPath]);
@@ -260,12 +34,6 @@ const SidebarComponent = ({
   if (selectedPath?.subject) lineage.push(selectedPath.subject);
   if (selectedPath?.database) lineage.push(selectedPath.database);
   if (selectedPath?.table) lineage.push(selectedPath.table);
-
-  // const tables = getTablesForSelection(selectedPath, data);
-  // const { entities, relationships } = getEntitiesAndRelationships(
-  //   selectedPath,
-  //   data
-  // );
 
   switch (activeTab) {
     case "versions":
@@ -326,7 +94,6 @@ const SidebarComponent = ({
           ) : (
             <></>
           )}
-          {/* {} */}
         </div>
       );
     case "relationships":
@@ -457,9 +224,7 @@ const SidebarComponent = ({
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <div className="text-gray-600">Entities</div>
-                  {/* <div className="font-semibold text-gray-800">
-                    {countTables(selectedPath, data)}
-                  </div> */}
+                  {data.length}
                 </div>
                 <div>
                   <div className="text-gray-600">Relationships</div>
