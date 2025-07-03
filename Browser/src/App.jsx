@@ -60,7 +60,7 @@ export default function App() {
       {create == "Entity" && (
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
-          <AddEntityComponent selectedPath = {selectedPath}/>
+          <AddEntityComponent selectedPath = {selectedPath} setCreate = {setCreate}/>
         </>
       )}
       {create == "Relationship" && (

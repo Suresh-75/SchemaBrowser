@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Plus, Save, X, Database } from "lucide-react";
+import { Plus, Save, X, Database} from "lucide-react";
 
-const AddEntityComponent = ({selectedPath}) => {
-  const [isOpen, setIsOpen] = useState(false);
+const AddEntityComponent = ({ selectedPath, setCreate }) => {
+  const [isOpen, setIsOpen] = useState(true);
   const [entityName, setEntityName] = useState("");
-  const [schemaName, setSchemaName] = useState(selectedPath.database);
+  const [schemaName, setSchemaName] = useState(selectedPath?.database || "public");
   const [databaseId, setDatabaseId] = useState(""); // Will need to be set based on selectedPath
   const [fields, setFields] = useState([
     {
@@ -123,10 +123,14 @@ const AddEntityComponent = ({selectedPath}) => {
 
       if (response.ok) {
         setSuccess(result.message || `Table "${entityName}" created successfully!`);
-        // Reset form after successful creation
+        // Minimize the component after successful creation
         setTimeout(() => {
-          resetForm();
-        }, 2000);
+          setIsOpen(false)
+          // Reset form after minimizing
+          setTimeout(() => {
+            resetForm();
+          }, 500);
+        }, 1500);
       } else {
         setError(result.message || 'Failed to create table');
       }
@@ -152,8 +156,21 @@ const AddEntityComponent = ({selectedPath}) => {
     ]);
     setError("");
     setSuccess("");
-    setIsOpen(false);
   };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    
+    if (onClose) {
+      onClose();
+    }
+  };
+
+
+  if (!isOpen) {
+    setCreate("")
+  }
+
 
   return (
     <div className="max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50">
@@ -164,12 +181,15 @@ const AddEntityComponent = ({selectedPath}) => {
               <Database size={24} />
               <h2 className="text-xl font-bold">Create New Entity</h2>
             </div>
-            <button
-              onClick={resetForm}
-              className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleClose}
+                className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded transition-colors"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -345,7 +365,7 @@ const AddEntityComponent = ({selectedPath}) => {
           <div className="flex gap-3 justify-end">
             <button
               type="button"
-              onClick={resetForm}
+              onClick={handleClose}
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               disabled={isLoading}
             >
