@@ -9,8 +9,8 @@ CORS(app)
 
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_NAME = os.environ.get('DB_NAME', 'schemabrowser')
-DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', '12345')
+DB_USER = os.environ.get('DB_USER', 'kattan')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'podicatiman')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
 
@@ -222,19 +222,20 @@ def add_er_relationship():
     to_column = data.get('to_column')
     cardinality = data.get('cardinality')
     relationship_type = data.get('relationship_type', 'foreign_key') # Default to 'foreign_key'
+    database_name = data.get('database_name')
 
-    required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality]
+    required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality, database_name]
     if not all(required_fields):
-        return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality) are required'}), 400
+        return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality, database_name) are required'}), 400
 
     if cardinality not in ['one-to-one', 'one-to-many', 'many-to-one']:
         return jsonify({'error': 'Invalid cardinality. Must be one of: one-to-one, one-to-many, many-to-one'}), 400
 
     query = """
-    INSERT INTO er_relationships (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
-    VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
+    INSERT INTO er_relationships (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, database_name)
+    VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
     """
-    params = (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
+    params = (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, database_name)
     result = execute_query(query, params, fetch_one=True)
 
     if isinstance(result, tuple) and len(result) == 1:
@@ -374,5 +375,30 @@ def delete_er_relationship(rel_id):
         return jsonify(result), result.get('status', 400)
     return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be deleted'}), 404
 
+
+@app.route("/api/search", methods=["GET"])
+def search():
+    query = request.args.get("q", "")
+    results = []
+
+    if not query:
+        return jsonify(results)
+
+    try:
+        cursor.execute("""
+            SELECT 'LOB' AS type, id, name FROM lobs WHERE name ILIKE %s
+            UNION
+            SELECT 'Subject Area', id, name FROM subject_areas WHERE name ILIKE %s
+            UNION
+            SELECT 'Database', id, name FROM logical_databases WHERE name ILIKE %s
+            UNION
+            SELECT 'Table', id, name FROM tables_metadata WHERE name ILIKE %s
+        """, (f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"))
+        rows = cursor.fetchall()
+        for row in rows:
+            results.append({"type": row[0], "id": row[1], "name": row[2]})
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
     app.run(debug=True)

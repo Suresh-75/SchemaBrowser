@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Plus, Save, X, Database } from "lucide-react";
 
-const AddEntityComponent = ({ setCreate }) => {
+const AddEntityComponent = ({selectedPath}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [entityName, setEntityName] = useState("");
+  const [schemaName, setSchemaName] = useState(selectedPath.database);
+  const [databaseId, setDatabaseId] = useState(""); // Will need to be set based on selectedPath
   const [fields, setFields] = useState([
     {
       name: "id",
@@ -14,10 +16,12 @@ const AddEntityComponent = ({ setCreate }) => {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const dataTypes = [
     "STRING",
-    "INT",
+    "INTEGER",
     "BIGINT",
     "FLOAT",
     "DOUBLE",
@@ -26,9 +30,8 @@ const AddEntityComponent = ({ setCreate }) => {
     "TIMESTAMP",
     "DECIMAL(10,2)",
     "BINARY",
-    "ARRAY<type>",
-    "MAP<key_type,value_type>",
-    "STRUCT<col:type,...>",
+    "VARCHAR(255)",
+    "TEXT",
   ];
 
   const addField = () => {
@@ -56,47 +59,88 @@ const AddEntityComponent = ({ setCreate }) => {
     }
   };
 
-  const generateSQL = () => {
-    const fieldDefinitions = fields
-      .map((field) => {
-        let definition = `${field.name} ${field.type}`;
-        if (field.isRequired) definition += " NOT NULL";
-        return definition;
-      })
-      .join(",\n  ");
+  const mapFieldToBackend = (field) => {
+    let type = field.type;
+    
+    // Handle auto increment
+    if (field.autoIncrement && (field.type === "INTEGER" || field.type === "BIGINT")) {
+      type = field.type === "INTEGER" ? "SERIAL" : "BIGSERIAL";
+    }
+    
+    // Handle required fields
+    if (field.isRequired && !field.isPrimary) {
+      type += " NOT NULL";
+    }
 
-    // Hive does not support AUTO_INCREMENT or PRIMARY KEY in the same way as RDBMS
-    // We'll just show NOT NULL and the field types
-    return `CREATE TABLE ${entityName} (\n  ${fieldDefinitions}\n);`;
+    return {
+      name: field.name,
+      type: type,
+      primary: field.isPrimary,
+      required: field.isRequired,
+      auto_increment: field.autoIncrement
+    };
   };
 
   const handleSubmit = async () => {
-    if (!entityName.trim()) return;
+    if (!entityName.trim()) {
+      setError("Entity name is required");
+      return;
+    }
+
+    if (!databaseId.trim()) {
+      setError("Database ID is required");
+      return;
+    }
+
+    // Validate that all fields have names
+    const hasEmptyFields = fields.some(field => !field.name.trim());
+    if (hasEmptyFields) {
+      setError("All fields must have names");
+      return;
+    }
 
     setIsLoading(true);
+    setError("");
+    setSuccess("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const payload = {
+        table_name: entityName,
+        schema_name: schemaName,
+        database_id: databaseId,
+        columns: fields.map(mapFieldToBackend)
+      };
 
-    const sqlQuery = generateSQL();
-    console.log("Generated SQL:", sqlQuery);
+      const response = await fetch('http://localhost:5000/api/tables', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
 
-    // Here you would typically make an API call to your backend
-    // const response = await fetch('/api/create-table', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ sql: sqlQuery, entityName })
-    // });
+      const result = await response.json();
 
-    setIsLoading(false);
-    alert(
-      `Table "${entityName}" would be created successfully!\n\nSQL Query:\n${sqlQuery}`
-    );
-    resetForm();
+      if (response.ok) {
+        setSuccess(result.message || `Table "${entityName}" created successfully!`);
+        // Reset form after successful creation
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+      } else {
+        setError(result.message || 'Failed to create table');
+      }
+    } catch (err) {
+      setError(`Network error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
     setEntityName("");
+    setSchemaName("public");
+    setDatabaseId("");
     setFields([
       {
         name: "id",
@@ -106,7 +150,8 @@ const AddEntityComponent = ({ setCreate }) => {
         autoIncrement: true,
       },
     ]);
-    setCreate("");
+    setError("");
+    setSuccess("");
     setIsOpen(false);
   };
 
@@ -129,6 +174,48 @@ const AddEntityComponent = ({ setCreate }) => {
         </div>
 
         <div className="p-6">
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              {success}
+            </div>
+          )}
+
+          {/* Database Configuration */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Database ID
+              </label>
+              <input
+                type="text"
+                value={databaseId}
+                onChange={(e) => setDatabaseId(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., database_001"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Schema Name
+              </label>
+              <input
+                type="text"
+                value={schemaName}
+                onChange={(e) => setSchemaName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., public"
+                required
+              />
+            </div>
+          </div>
+
           {/* Entity Name */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -254,30 +341,19 @@ const AddEntityComponent = ({ setCreate }) => {
             </div>
           </div>
 
-          {/* SQL Preview */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Generated SQL
-            </label>
-            <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
-              {entityName
-                ? generateSQL()
-                : "Enter entity name and fields to see SQL preview"}
-            </pre>
-          </div>
-
           {/* Submit Buttons */}
           <div className="flex gap-3 justify-end">
             <button
               type="button"
               onClick={resetForm}
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={isLoading}
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !entityName.trim()}
+              disabled={isLoading || !entityName.trim() || !databaseId.trim()}
               className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
             >
               {isLoading ? (
