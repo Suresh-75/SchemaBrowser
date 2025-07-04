@@ -383,29 +383,66 @@ def delete_er_relationship(rel_id):
     return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be deleted'}), 404
 
 
-@app.route("/api/search", methods=["GET"])
+@app.route('/api/search')
 def search():
-    query = request.args.get("q", "")
+    query = request.args.get('q', '').strip()
     results = []
 
+    # Return empty list if query is blank
     if not query:
         return jsonify(results)
 
     try:
+        # 🔍 Search all entities and attach lineage
         cursor.execute("""
-            SELECT 'LOB' AS type, id, name FROM lobs WHERE name ILIKE %s
+            SELECT 'LOB' AS type, l.id, l.name,
+                   NULL AS lob, NULL AS subject, NULL AS database
+            FROM lobs l
+            WHERE l.name ILIKE %s
+
             UNION
-            SELECT 'Subject Area', id, name FROM subject_areas WHERE name ILIKE %s
+
+            SELECT 'Subject Area', s.id, s.name,
+                   l.name AS lob, NULL AS subject, NULL AS database
+            FROM subject_areas s
+            JOIN lobs l ON s.lob_id = l.id
+            WHERE s.name ILIKE %s
+
             UNION
-            SELECT 'Database', id, name FROM logical_databases WHERE name ILIKE %s
+
+            SELECT 'Database', d.id, d.name,
+                   l.name AS lob, s.name AS subject, NULL AS database
+            FROM logical_databases d
+            JOIN subject_areas s ON d.subject_area_id = s.id
+            JOIN lobs l ON s.lob_id = l.id
+            WHERE d.name ILIKE %s
+
             UNION
-            SELECT 'Table', id, name FROM tables_metadata WHERE name ILIKE %s
+
+            SELECT 'Table', t.id, t.name,
+                   l.name AS lob, s.name AS subject, d.name AS database
+            FROM tables_metadata t
+            JOIN logical_databases d ON t.database_id = d.id
+            JOIN subject_areas s ON d.subject_area_id = s.id
+            JOIN lobs l ON s.lob_id = l.id
+            WHERE t.name ILIKE %s
         """, (f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"))
+
         rows = cursor.fetchall()
         for row in rows:
-            results.append({"type": row[0], "id": row[1], "name": row[2]})
+            results.append({
+                "type": row[0],      # "LOB", "Subject Area", etc.
+                "id": row[1],
+                "name": row[2],
+                "lob": row[3],       # nullable
+                "subject": row[4],   # nullable
+                "database": row[5],  # nullable
+            })
+
         return jsonify(results)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
