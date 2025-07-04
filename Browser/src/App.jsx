@@ -51,8 +51,6 @@ export default function App() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
- 
-
   return (
     <div
       className={` min-h-screen min-w-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans overflow-hidden flex flex-col`}
@@ -60,7 +58,7 @@ export default function App() {
       {create == "Entity" && (
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
-          <AddEntityComponent selectedPath = {selectedPath} setCreate = {setCreate}/>
+          <AddEntityComponent selectedPath={selectedPath} setCreate={setCreate} />
         </>
       )}
       {create == "Relationship" && (
@@ -159,7 +157,6 @@ export default function App() {
               selectedPath={selectedPath}
               create={create}
               setCreate={setCreate}
-              // businessData={businessData}
             />
           </div>
         </div>

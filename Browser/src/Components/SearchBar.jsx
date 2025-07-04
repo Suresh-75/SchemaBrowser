@@ -41,6 +41,34 @@ const SearchBar = ({ onSelect }) => {
     return acc;
   }, {});
 
+  // Helper to map search result to selectedPath
+  const mapResultToSelectedPath = (item) => {
+    // Assume backend returns: item.type, item.name, item.lob, item.subject, item.database, item.table
+    // Fallbacks for compatibility
+    switch (item.type) {
+      case "LOB":
+        return { lob: item.name, subject: null, database: null, table: null };
+      case "Subject Area":
+        return { lob: item.lob, subject: item.name, database: null, table: null };
+      case "Database":
+        return {
+          lob: item.lob,
+          subject: item.subject,
+          database: item.name,
+          table: null,
+        };
+      case "Table":
+        return {
+          lob: item.lob,
+          subject: item.subject,
+          database: item.database,
+          table: item.name,
+        };
+      default:
+        return { lob: null, subject: null, database: null, table: null };
+    }
+  };
+
   return (
     <div className="w-full rounded-xl px-3 py-2 bg-white border-b border-gray-100 relative z-10">
       {/* Filter Bar */}
@@ -97,8 +125,9 @@ const SearchBar = ({ onSelect }) => {
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => {
-                    console.log(item);
-                    onSelect && onSelect(item);
+                    if (onSelect) {
+                      onSelect(mapResultToSelectedPath(item));
+                    }
                     setQuery("");
                   }}
                 >

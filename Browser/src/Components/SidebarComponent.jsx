@@ -10,15 +10,14 @@ const SidebarComponent = ({
   selectedPath,
   setCreate,
 }) => {
-  // Initialize 'data' as an empty array since it will hold a list of tables
   const [data, setData] = useState([]);
-  // 'rels' will hold the processed relationship strings with their original IDs
   const [rels, setRels] = useState([]);
 
   useEffect(() => {
-    // Define an async function to fetch all necessary data
     const fetchAllData = async () => {
       if (!selectedPath || !selectedPath.database) {
+        setData([]);
+        setRels([]);
         return;
       }
 
@@ -37,6 +36,8 @@ const SidebarComponent = ({
         }));
         setRels(processedRels);
       } catch (error) {
+        setData([]);
+        setRels([]);
         console.error(
           `Error fetching data for database ${selectedPath.database}:`,
           error
