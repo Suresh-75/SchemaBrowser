@@ -8,7 +8,7 @@ const typeOptions = [
   { label: "Table", value: "Table" },
 ];
 
-const SearchBar = ({ onSelect }) => {
+const SearchBar = ({ onSelect, darkmode }) => {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState(null);
@@ -49,7 +49,12 @@ const SearchBar = ({ onSelect }) => {
       case "LOB":
         return { lob: item.name, subject: null, database: null, table: null };
       case "Subject Area":
-        return { lob: item.lob, subject: item.name, database: null, table: null };
+        return {
+          lob: item.lob,
+          subject: item.name,
+          database: null,
+          table: null,
+        };
       case "Database":
         return {
           lob: item.lob,
@@ -70,11 +75,20 @@ const SearchBar = ({ onSelect }) => {
   };
 
   return (
-    <div className="w-full rounded-xl px-3 py-2 bg-white border-b border-gray-100 relative z-10">
+    <div
+      className={`w-full rounded-xl px-3 py-2 relative z-10 ${
+        darkmode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100"
+      }`}
+    >
       {/* Filter Bar */}
       <div className="flex gap-4 mb-2">
         {typeOptions.map((opt) => (
-          <label key={opt.value} className="flex items-center gap-1 text-xs">
+          <label
+            key={opt.value}
+            className={`flex items-center gap-1 text-xs ${
+              darkmode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
             <input
               type="checkbox"
               checked={filters.includes(opt.value)}
@@ -85,6 +99,11 @@ const SearchBar = ({ onSelect }) => {
                     : [...filters, opt.value]
                 );
               }}
+              className={`${
+                darkmode
+                  ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
+                  : "form-checkbox text-blue-600"
+              }`}
             />
             {opt.label}
           </label>
@@ -93,7 +112,11 @@ const SearchBar = ({ onSelect }) => {
 
       <input
         type="text"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 ${
+          darkmode
+            ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+        }`}
         placeholder="Search LOB, Subject Area, Database, or Table..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -102,26 +125,44 @@ const SearchBar = ({ onSelect }) => {
       />
 
       {focused && loading && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
+        <div
+          className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
+            darkmode
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          }`}
+        >
           <div className="text-center text-gray-400">Searching...</div>
         </div>
       )}
 
       {focused && !loading && filteredResults.length > 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-auto z-50">
+        <div
+          className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-xl max-h-80 overflow-auto z-50 ${
+            darkmode
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          }`}
+        >
           {typeOrder.map(
             (type) =>
               groupedResults[type] &&
               groupedResults[type].map((item, idx) => (
                 <button
                   key={`${item.type}-${item.name}-${idx}`}
-                  className={`w-full text-left px-4 py-2 transition-all duration-150
-                    ${
-                      hoveredIdx === `${type}-${idx}`
-                        ? "bg-blue-100 scale-[1.01] shadow"
-                        : "hover:bg-blue-50"
-                    }
-                    rounded-md`}
+                  className={`w-full text-left px-4 py-2 transition-all duration-150 ${
+                    darkmode
+                      ? `text-gray-100 ${
+                          hoveredIdx === `${type}-${idx}`
+                            ? "bg-blue-800 scale-[1.01] shadow"
+                            : "hover:bg-blue-700"
+                        }`
+                      : `text-gray-900 ${
+                          hoveredIdx === `${type}-${idx}`
+                            ? "bg-blue-100 scale-[1.01] shadow"
+                            : "hover:bg-blue-50"
+                        }`
+                  } rounded-md`}
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => {
@@ -134,7 +175,11 @@ const SearchBar = ({ onSelect }) => {
                   <div className="flex justify-between items-center">
                     <span>
                       {item.name}
-                      <span className="ml-2 text-xs text-gray-500">
+                      <span
+                        className={`ml-2 text-xs ${
+                          darkmode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
                         ({item.type})
                       </span>
                     </span>
@@ -149,9 +194,25 @@ const SearchBar = ({ onSelect }) => {
         !loading &&
         query.length > 0 &&
         filteredResults.length === 0 && (
-          <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
-            <div className="text-center text-gray-500">
-              <div className="text-sm font-medium">No results found</div>
+          <div
+            className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
+              darkmode
+                ? "bg-gray-700 border-gray-600"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <div
+              className={`text-center ${
+                darkmode ? "text-gray-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`text-sm font-medium ${
+                  darkmode ? "text-gray-300" : "text-gray-900"
+                }`}
+              >
+                No results found
+              </div>
               <div className="text-xs mt-1">
                 Try searching for a different term
               </div>
@@ -160,9 +221,21 @@ const SearchBar = ({ onSelect }) => {
         )}
 
       {focused && query.length === 0 && (
-        <div className="absolute left-6 right-6 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-4 py-3">
+        <div
+          className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
+            darkmode
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          }`}
+        >
           <div className="text-center text-gray-400">
-            <div className="text-sm">Start typing to search...</div>
+            <div
+              className={`text-sm ${
+                darkmode ? "text-gray-300" : "text-gray-900"
+              }`}
+            >
+              Start typing to search...
+            </div>
             <div className="text-xs mt-1">
               Search across LOBs, Subject Areas, Databases, and Tables
             </div>

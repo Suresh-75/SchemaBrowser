@@ -9,7 +9,8 @@ import {
   Target,
 } from "lucide-react";
 
-const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
+// Add darkmode prop
+const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
   const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
@@ -37,7 +38,6 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
         });
 
         setBusinessData(transformedData);
-        // console.log("businessData:", transformedData); // Debugging output
       } catch (error) {
         console.error("Failed to fetch hierarchy:", error);
       }
@@ -74,11 +74,27 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
   };
 
   return (
-    <div className="w-full bg-gray-50 border-b border-gray-200">
+    <div
+      className={`w-full border-b ${
+        darkmode
+          ? "bg-slate-900 border-gray-800"
+          : "bg-gray-50 border-gray-200"
+      }`}
+    >
       {/* Breadcrumb showing current selection */}
       {selectedPath.lob && (
-        <div className="px-6 py-2 bg-blue-50 border-b border-blue-100">
-          <div className="flex items-center text-sm text-blue-700">
+        <div
+          className={`px-6 py-2 border-b ${
+            darkmode
+              ? "bg-blue-950 border-blue-900"
+              : "bg-blue-50 border-blue-100"
+          }`}
+        >
+          <div
+            className={`flex items-center text-sm ${
+              darkmode ? "text-blue-200" : "text-blue-700"
+            }`}
+          >
             <Building2 className="w-4 h-4 mr-2" />
             <span className="font-medium">{selectedPath.lob}</span>
             {selectedPath.subject && (
@@ -124,9 +140,15 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                 onClick={() => handleLobSelect(lob)}
                 className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   selectedPath.lob === lob
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? darkmode
+                      ? "bg-blue-900 text-white shadow-md"
+                      : "bg-blue-600 text-white shadow-md"
                     : hoveredLob === lob
-                    ? "bg-blue-100 text-blue-700"
+                    ? darkmode
+                      ? "bg-blue-950 text-blue-200"
+                      : "bg-blue-100 text-blue-700"
+                    : darkmode
+                    ? "text-gray-300 hover:text-white hover:bg-slate-800"
                     : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                 }`}
               >
@@ -138,7 +160,11 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
               {/* Subject Area Dropdown */}
               {hoveredLob === lob && (
                 <div
-                  className="absolute top-full left-0 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                  className={`absolute top-full left-0 w-64 rounded-lg shadow-xl border z-50 ${
+                    darkmode
+                      ? "bg-slate-900 border-gray-800"
+                      : "bg-white border-gray-200"
+                  }`}
                   onMouseEnter={() => setHoveredLob(lob)}
                   onMouseLeave={() => {
                     setHoveredLob(null);
@@ -147,7 +173,11 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                   }}
                 >
                   <div className="py-2">
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <div
+                      className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                        darkmode ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
                       Subject Areas
                     </div>
                     {Object.keys(businessData[lob]).map((subject) => (
@@ -161,23 +191,41 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                           className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
                             selectedPath.lob === lob &&
                             selectedPath.subject === subject
-                              ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                              ? darkmode
+                                ? "bg-blue-950 text-blue-200 border-r-2 border-blue-900"
+                                : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
                               : hoveredSubject === subject
-                              ? "bg-gray-50 text-gray-900"
+                              ? darkmode
+                                ? "bg-slate-800 text-gray-100"
+                                : "bg-gray-50 text-gray-900"
+                              : darkmode
+                              ? "text-gray-300 hover:bg-slate-800 hover:text-white"
                               : "text-gray-700 hover:bg-gray-50"
                           }`}
                         >
                           <div className="flex items-center">
-                            <Target className="w-4 h-4 mr-3 text-gray-400" />
+                            <Target
+                              className={`w-4 h-4 mr-3 ${
+                                darkmode ? "text-gray-500" : "text-gray-400"
+                              }`}
+                            />
                             {subject}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                          <ChevronRight
+                            className={`w-4 h-4 ${
+                              darkmode ? "text-gray-500" : "text-gray-400"
+                            }`}
+                          />
                         </button>
 
                         {/* Database Dropdown */}
                         {hoveredSubject === subject && (
                           <div
-                            className="absolute left-full -top-10 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                            className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
+                              darkmode
+                                ? "bg-slate-900 border-gray-800"
+                                : "bg-white border-gray-200"
+                            }`}
                             onMouseEnter={() => setHoveredSubject(subject)}
                             onMouseLeave={() => {
                               setHoveredSubject(null);
@@ -185,7 +233,13 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                             }}
                           >
                             <div className="py-2">
-                              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              <div
+                                className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                                  darkmode
+                                    ? "text-gray-400"
+                                    : "text-gray-500"
+                                }`}
+                              >
                                 Databases
                               </div>
                               {Object.keys(
@@ -208,23 +262,45 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                                     }
                                     className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
                                       selectedPath.database === database
-                                        ? "bg-blue-50 text-blue-700 shadow-md"
+                                        ? darkmode
+                                          ? "bg-blue-950 text-blue-200 shadow-md"
+                                          : "bg-blue-50 text-blue-700 shadow-md"
                                         : hoveredDatabase === database
-                                        ? "bg-gray-50 text-gray-900"
+                                        ? darkmode
+                                          ? "bg-slate-800 text-gray-100"
+                                          : "bg-gray-50 text-gray-900"
+                                        : darkmode
+                                        ? "text-gray-300 hover:bg-slate-800 hover:text-white"
                                         : "text-gray-700 hover:bg-gray-50"
                                     }`}
                                   >
                                     <div className="flex items-center">
-                                      <Database className="w-4 h-4 mr-3 text-gray-400" />
+                                      <Database
+                                        className={`w-4 h-4 mr-3 ${
+                                          darkmode
+                                            ? "text-gray-500"
+                                            : "text-gray-400"
+                                        }`}
+                                      />
                                       {database}
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                                    <ChevronRight
+                                      className={`w-4 h-4 ${
+                                        darkmode
+                                          ? "text-gray-500"
+                                          : "text-gray-400"
+                                      }`}
+                                    />
                                   </button>
 
                                   {/* Tables Dropdown */}
                                   {hoveredDatabase === database && (
                                     <div
-                                      className="absolute left-full -top-10 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+                                      className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
+                                        darkmode
+                                          ? "bg-slate-900 border-gray-800"
+                                          : "bg-white border-gray-200"
+                                      }`}
                                       onMouseEnter={() =>
                                         setHoveredDatabase(database)
                                       }
@@ -233,7 +309,13 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                                       }
                                     >
                                       <div className="py-2">
-                                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                        <div
+                                          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                                            darkmode
+                                              ? "text-gray-400"
+                                              : "text-gray-500"
+                                          }`}
+                                        >
                                           Tables
                                         </div>
                                         {businessData[lob][subject].databases[
@@ -251,11 +333,21 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
                                             }
                                             className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
                                               selectedPath.table === table
-                                                ? "bg-blue-50 text-blue-700"
+                                                ? darkmode
+                                                  ? "bg-blue-950 text-blue-200"
+                                                  : "bg-blue-50 text-blue-700"
+                                                : darkmode
+                                                ? "text-gray-300 hover:bg-slate-800 hover:text-white"
                                                 : "text-gray-600 hover:bg-gray-50"
                                             }`}
                                           >
-                                            <Table className="w-4 h-4 mr-3 text-gray-400" />
+                                            <Table
+                                              className={`w-4 h-4 mr-3 ${
+                                                darkmode
+                                                  ? "text-gray-500"
+                                                  : "text-gray-400"
+                                              }`}
+                                            />
                                             {table}
                                           </button>
                                         ))}

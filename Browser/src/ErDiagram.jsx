@@ -21,28 +21,29 @@ import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
 
-const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
+const SchemaCardNode = React.memo(function SchemaCardNode({ data, darkmode }) {
   return (
     <div style={{ display: "inline-block" }}>
-      <SchemaCards table={data.table} />
+      <SchemaCards table={data.table} darkmode={data.darkmode} />
     </div>
   );
 });
 
-const Legend = () => {
+const Legend = ({ darkmode }) => {
   return (
     <div
       style={{
         position: "absolute",
         top: "10px",
         left: "10px",
-        backgroundColor: "white",
-        border: "1px solid #ccc",
+        backgroundColor: darkmode ? "#374151" : "white",
+        border: darkmode ? "1px solid #4B5563" : "1px solid #ccc",
         padding: "10px",
         borderRadius: "5px",
         fontSize: "12px",
-        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
         zIndex: 1000,
+        color: darkmode ? "#D1D5DB" : "#374151",
       }}
     >
       <div
@@ -65,7 +66,8 @@ const Legend = () => {
   );
 };
 
-function ErDiagram({ selectedPath }) {
+// Accept darkmode prop here
+function ErDiagram({ selectedPath, darkmode }) {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ function ErDiagram({ selectedPath }) {
     if (exportRef.current) {
       toJpeg(exportRef.current, {
         quality: 0.95,
-        backgroundColor: "#ffffff",
+        backgroundColor: darkmode ? "#1F2937" : "#ffffff",
       })
         .then((dataUrl) => {
           const link = document.createElement("a");
@@ -117,51 +119,55 @@ function ErDiagram({ selectedPath }) {
     }
   }
 
-  const createNodesAndEdges = useCallback(async (relationships) => {
-    const tableIds = Array.from(
-      new Set(
-        relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
-      )
-    );
+  const createNodesAndEdges = useCallback(
+    async (relationships) => {
+      const tableIds = Array.from(
+        new Set(
+          relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
+        )
+      );
 
-    // Fetch all table info in parallel
-    const tableInfos = [];
-    for (const tableId of tableIds) {
-      const info = await fetchTableInfo(tableId);
-      tableInfos.push(info);
-    }
-    const tableMap = {};
-    tableIds.forEach((tableId, index) => {
-      tableMap[tableId] = tableInfos[index];
-    });
+      // Fetch all table info in parallel
+      const tableInfos = [];
+      for (const tableId of tableIds) {
+        const info = await fetchTableInfo(tableId);
+        tableInfos.push(info);
+      }
+      const tableMap = {};
+      tableIds.forEach((tableId, index) => {
+        tableMap[tableId] = tableInfos[index];
+      });
 
-    const newNodes = tableIds.map((tableId, index) => ({
-      id: tableId.toString(),
-      type: "schemaCard",
-      data: {
-        label: tableMap[tableId]?.name || `Table ${tableId}`,
-        table: tableMap[tableId],
-      },
-      position: {
-        x: (index % 3) * 600,
-        y: Math.floor(index / 3) * 100,
-      },
-    }));
+      const newNodes = tableIds.map((tableId, index) => ({
+        id: tableId.toString(),
+        type: "schemaCard",
+        data: {
+          label: tableMap[tableId]?.name || `Table ${tableId}`,
+          table: tableMap[tableId],
+          darkmode: darkmode,
+        },
+        position: {
+          x: (index % 3) * 600,
+          y: Math.floor(index / 3) * 100,
+        },
+      }));
 
-    const newEdges = relationships.map((rel) => ({
-      id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
-      source: rel.from_table_id.toString(),
-      target: rel.to_table_id.toString(),
-      label: `${rel.from_column} → ${rel.to_column}`,
-      animated: true,
-      data: {
-        cardinality: rel.cardinality,
-        relationshipType: rel.relationship_type,
-      },
-    }));
+      const newEdges = relationships.map((rel) => ({
+        id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
+        source: rel.from_table_id.toString(),
+        target: rel.to_table_id.toString(),
+        label: `${rel.from_column} → ${rel.to_column}`,
+        animated: true,
+        data: {
+          cardinality: rel.cardinality,
+          relationshipType: rel.relationship_type,
+        },
+      }));
 
-    return { nodes: newNodes, edges: newEdges };
-  }, []);
+      return { nodes: newNodes, edges: newEdges };
+    },
+    [darkmode]
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -195,7 +201,7 @@ function ErDiagram({ selectedPath }) {
     };
 
     loadData();
-  }, [selectedPath.database]);
+  }, [selectedPath.database, createNodesAndEdges]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -240,23 +246,8 @@ function ErDiagram({ selectedPath }) {
   return (
     <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
       {loading ? (
-        // <div
-        //   style={{
-        //     position: "absolute",
-        //     top: "50%",
-        //     left: "50%",
-        //     transform: "translate(-50%, -50%)",
-        //     zIndex: 1000,
-        //     background: "white",
-        //     padding: "20px",
-        //     borderRadius: "8px",
-        //     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        //   }}
-        // >
-        //   Loading relationships...
-        // </div>
         <CircleLoader size={48} strokeWidth={5} />
-      ) : nodes.length == 0 ? (
+      ) : nodes.length === 0 ? (
         <div
           style={{
             position: "absolute",
@@ -264,11 +255,12 @@ function ErDiagram({ selectedPath }) {
             left: "50%",
             transform: "translate(-50%, -50%)",
             zIndex: 1000,
-            background: "white",
+            background: darkmode ? "#374151" : "white", // Dark mode background
             padding: "20px",
             borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            border: darkmode ? "1px solid #4B5563" : "1px solid #ccc", // Dark mode border
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.2)",
+            color: darkmode ? "#D1D5DB" : "#374151", // Dark mode text color
           }}
         >
           No relationships
@@ -290,16 +282,25 @@ function ErDiagram({ selectedPath }) {
         proOptions={{ hideAttribution: true }}
         style={{
           willChange: "transform",
-          background: "#f8f9fa",
+          background: darkmode ? "#1F2937" : "#f8f9fa", // Dark mode background
           width: "100%",
           height: "100%",
         }}
       >
-        <Background color="#ccc" gap={10} variant="dots" />
-        <MiniMap nodeColor={"gray"} nodeStrokeWidth={3} zoomable pannable />
-        <Controls />
+        <Background
+          color={darkmode ? "#4B5563" : "#ccc"}
+          gap={10}
+          variant="dots"
+        />{" "}
+        {/* <MiniMap
+          nodeColor={darkmode ? "#9CA3AF" : "gray"}
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+        /> */}
+        <Controls className="text-black" />
       </ReactFlow>
-      <Legend />
+      <Legend darkmode={darkmode} />
       <button
         onClick={handleExport}
         style={{
@@ -308,7 +309,7 @@ function ErDiagram({ selectedPath }) {
           right: "20px",
           zIndex: 1000,
           padding: "8px 12px",
-          backgroundColor: "#007bff",
+          backgroundColor: darkmode ? "#2563EB" : "#007bff",
           color: "white",
           border: "none",
           borderRadius: "5px",

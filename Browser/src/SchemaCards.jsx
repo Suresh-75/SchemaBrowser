@@ -1,67 +1,108 @@
 import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
-const SimpleTableCard = ({ table }) => {
+const SchemaCards = ({ table, darkmode }) => {
+  // Accept darkmode prop
+  console.log(darkmode);
   if (!table) {
     return (
-      // <></>
-      <div className="bg-white rounded-xl shadow-lg p-6 text-red-600">
+      <div
+        className={`rounded-xl shadow-lg p-6 text-red-600 ${
+          darkmode ? "bg-gray-800 text-red-400" : "bg-white"
+        }`}
+      >
         Table info not found.
       </div>
     );
   }
 
-  // Make all types blue
+  // Make all types blue (or a dark-mode friendly blue)
   const getTypeColor = (type) => {
-    return "bg-blue-100 text-blue-800";
+    return darkmode ? "bg-blue-800 text-blue-100" : "bg-blue-100 text-blue-800";
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:-translate-y-1 border border-slate-200 overflow-hidden max-w-md ring-1 ring-slate-100">
+    <div
+      className={`rounded-2xl shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden max-w-md ring-1 ${
+        darkmode
+          ? "bg-gray-800 hover:shadow-3xl-dark border-gray-700 ring-gray-700"
+          : "bg-white hover:shadow-3xl border-slate-200 ring-slate-100"
+      }`}
+    >
       {/* Handles for ReactFlow */}
       <Handle
         type="target"
         position={Position.Left}
         id="left-target"
-        className="w-3 h-3 bg-blue-500 rounded-full"
+        className={`w-3 h-3 rounded-full ${
+          darkmode ? "bg-blue-600" : "bg-blue-500"
+        }`}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-source"
-        className="w-3 h-3 bg-green-500 rounded-full"
+        className={`w-3 h-3 rounded-full ${
+          darkmode ? "bg-green-600" : "bg-green-500"
+        }`}
       />
 
       {/* Table Header */}
-      <div className="bg-gradient-to-r bg-blue-400  px-6 py-5">
+      <div className={`px-6 py-5 ${darkmode ? "bg-blue-700" : "bg-blue-400"}`}>
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-white tracking-wide drop-shadow">
+          <h3
+            className={`text-2xl font-bold tracking-wide drop-shadow ${
+              darkmode ? "text-white" : "text-white"
+            }`}
+          >
             {table.name}
           </h3>
           {table.rowCount && (
-            <span className="bg-slate-700 text-white px-3 py-1 rounded-full text-xs font-semibold shadow">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold shadow ${
+                darkmode ? "bg-gray-600 text-white" : "bg-slate-700 text-white"
+              }`}
+            >
               {table.rowCount} rows
             </span>
           )}
         </div>
-        <div className="mt-2 flex  flex-wrap gap-4">
-          <span className="text-xs bg-white px-2 py-1 rounded">
+        <div className="mt-2 flex flex-wrap gap-4">
+          <span
+            className={`text-xs px-2 py-1 rounded ${
+              darkmode ? "bg-gray-200 text-gray-800" : "bg-white text-black"
+            }`}
+          >
             <strong>DB:</strong> {table.database_name}
           </span>
-          <span className="text-xs text-white bg-slate-800 px-2 py-1 rounded">
+          <span
+            className={`text-xs px-2 py-1 rounded ${
+              darkmode ? "bg-black text-white" : "bg-slate-800 text-white"
+            }`}
+          >
             <strong>Table ID : </strong> {table.id}
           </span>
         </div>
       </div>
 
       {/* Columns */}
-      <div className="p-6 bg-gradient-to-b from-slate-50 to-white">
+      <div
+        className={`p-6 ${
+          darkmode
+            ? "bg-gradient-to-b from-gray-700 to-gray-800"
+            : "bg-gradient-to-b from-slate-50 to-white"
+        }`}
+      >
         <div className="space-y-3">
           {Array.isArray(table.columns) && table.columns.length > 0 ? (
             table.columns.map((column, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-100 hover:bg-blue-50 transition-colors duration-200 shadow-sm"
+                className={`flex items-center justify-between p-3 rounded-lg border shadow-sm transition-colors duration-200 ${
+                  darkmode
+                    ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
+                    : "bg-white border-slate-100 hover:bg-blue-50"
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2">
@@ -77,21 +118,31 @@ const SimpleTableCard = ({ table }) => {
                         title="Foreign Key"
                       ></div>
                     )}
-                    <span className="font-semibold text-slate-800 tracking-wide">
+                    <span
+                      className={`font-semibold tracking-wide ${
+                        darkmode ? "text-gray-100" : "text-slate-800"
+                      }`}
+                    >
                       {column.name}
                     </span>
                   </div>
                   {!column.nullable && (
-                    <span className="text-blue-700 text-xs font-bold bg-blue-100 px-2 py-0.5 rounded">
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded ${
+                        darkmode
+                          ? "text-blue-200 bg-blue-700"
+                          : "text-blue-700 bg-blue-100"
+                      }`}
+                    >
                       NOT NULL
                     </span>
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <span
-                    className={`px-2 py-1 rounded-md text-xs font-semibold border border-blue-200 shadow-sm ${getTypeColor(
+                    className={`px-2 py-1 rounded-md text-xs font-semibold border shadow-sm ${getTypeColor(
                       column.type
-                    )}`}
+                    )} ${darkmode ? "border-blue-600" : "border-blue-200"}`}
                   >
                     {column.type}
                   </span>
@@ -99,17 +150,33 @@ const SimpleTableCard = ({ table }) => {
               </div>
             ))
           ) : (
-            <div className="text-slate-400 text-sm">No columns found.</div>
+            <div
+              className={`text-sm ${
+                darkmode ? "text-gray-400" : "text-slate-400"
+              }`}
+            >
+              No columns found.
+            </div>
           )}
         </div>
 
         {/* Foreign Key References */}
         {Array.isArray(table.columns) &&
           table.columns.some((col) => col.foreignKey) && (
-            <div className="mt-6 pt-4 border-t border-slate-200">
-              <h4 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+            <div
+              className={`mt-6 pt-4 border-t ${
+                darkmode ? "border-gray-600" : "border-slate-200"
+              }`}
+            >
+              <h4
+                className={`text-sm font-semibold mb-2 flex items-center gap-2 ${
+                  darkmode ? "text-blue-400" : "text-blue-700"
+                }`}
+              >
                 <svg
-                  className="w-4 h-4 text-blue-400"
+                  className={`w-4 h-4 ${
+                    darkmode ? "text-blue-500" : "text-blue-400"
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -138,16 +205,45 @@ const SimpleTableCard = ({ table }) => {
                 {table.columns
                   .filter((col) => col.foreignKey)
                   .map((col, index) => (
-                    <div key={index} className="text-xs text-slate-600 pl-2">
-                      <span className="font-semibold text-blue-700">
+                    <div
+                      key={index}
+                      className={`text-xs pl-2 ${
+                        darkmode ? "text-gray-300" : "text-slate-600"
+                      }`}
+                    >
+                      <span
+                        className={`font-semibold ${
+                          darkmode ? "text-blue-400" : "text-blue-700"
+                        }`}
+                      >
                         {col.name}
                       </span>
-                      <span className="mx-1 text-slate-400">→</span>
-                      <span className="font-mono text-slate-700">
+                      <span
+                        className={`mx-1 ${
+                          darkmode ? "text-gray-500" : "text-slate-400"
+                        }`}
+                      >
+                        →
+                      </span>
+                      <span
+                        className={`font-mono ${
+                          darkmode ? "text-gray-200" : "text-slate-700"
+                        }`}
+                      >
                         {col.foreignKey.table}
                       </span>
-                      <span className="text-slate-400">.</span>
-                      <span className="font-mono text-slate-700">
+                      <span
+                        className={`${
+                          darkmode ? "text-gray-500" : "text-slate-400"
+                        }`}
+                      >
+                        .
+                      </span>
+                      <span
+                        className={`font-mono ${
+                          darkmode ? "text-gray-200" : "text-slate-700"
+                        }`}
+                      >
                         {col.foreignKey.column}
                       </span>
                     </div>
@@ -160,4 +256,4 @@ const SimpleTableCard = ({ table }) => {
   );
 };
 
-export default SimpleTableCard;
+export default SchemaCards;
