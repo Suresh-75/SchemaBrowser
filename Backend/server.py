@@ -1,17 +1,22 @@
+import os
 from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2 import Error, sql
 from flask_cors import CORS
-import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 app = Flask(__name__)
 CORS(app)
-# --- Database Configuration ---
 
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_NAME = os.environ.get('DB_NAME', 'schemabrowser')
-DB_USER = os.environ.get('DB_USER', 'kattan')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'podicatiman')
-DB_PORT = os.environ.get('DB_PORT', '5432')
+# --- Database Configuration ---
+DB_HOST = os.environ.get('DB_HOST')
+DB_NAME = os.environ.get('DB_NAME')
+DB_USER = os.environ.get('DB_USER')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_PORT = os.environ.get('DB_PORT', 5432) 
 
 
 # --- Database Connection ---
@@ -111,6 +116,7 @@ def get_tables_inDB(database_name):
 
 @app.route("/api/tables/<int:table_id>", methods=["GET"])
 def get_table_by_id(table_id):  
+    print(table_id)
     try:
         cursor.execute("""
             SELECT t.id, t.name, t.schema_name, d.name AS database_name
@@ -119,6 +125,7 @@ def get_table_by_id(table_id):
             WHERE t.id = %s;
         """, (table_id,))
         row = cursor.fetchone()
+        print(row);
         if row:
             table = {"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]}
             print("Fetched table:", table) 
@@ -290,7 +297,7 @@ def get_all_er_relationships_inDB(database_name):
                 'created_at': row[7].isoformat() if row[7] else None, # Convert datetime to ISO format string
                 'database_name': row[8]
             })
-        print(relationships)
+        # print("rels ",relationships)
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 

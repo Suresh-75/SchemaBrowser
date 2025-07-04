@@ -19,6 +19,7 @@ import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
 import axios from "axios";
 import { toJpeg } from "html-to-image";
+import CircleLoader from "./Components/CircleLoader";
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
@@ -239,21 +240,22 @@ function ErDiagram({ selectedPath }) {
   return (
     <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
       {loading ? (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1000,
-            background: "white",
-            padding: "20px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          Loading relationships...
-        </div>
+        // <div
+        //   style={{
+        //     position: "absolute",
+        //     top: "50%",
+        //     left: "50%",
+        //     transform: "translate(-50%, -50%)",
+        //     zIndex: 1000,
+        //     background: "white",
+        //     padding: "20px",
+        //     borderRadius: "8px",
+        //     boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        //   }}
+        // >
+        //   Loading relationships...
+        // </div>
+        <CircleLoader size={48} strokeWidth={5} />
       ) : nodes.length == 0 ? (
         <div
           style={{
@@ -265,6 +267,7 @@ function ErDiagram({ selectedPath }) {
             background: "white",
             padding: "20px",
             borderRadius: "8px",
+            border: "1px solid #ccc",
             boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           }}
         >
