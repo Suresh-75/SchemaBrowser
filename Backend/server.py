@@ -128,12 +128,12 @@ def get_table_by_id(table_id):
         print(row);
         if row:
             table = {"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]}
-            print("Fetched table:", table)
+            print("Fetched table:", table) 
             return jsonify(table)
         else:
             return jsonify({"error": "Table not found asdads"}), 404
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 500  
 
 @app.route("/api/tables", methods=["POST"])
 def create_table():
@@ -142,9 +142,11 @@ def create_table():
     schema_name = data['schema_name']
     database_id = data['database_id']
     columns = data['columns']
+
     try:
         col_defs = []
         pk_col = None
+
         for col in columns:
             line = f"{col['name']} {col['type']}"
             if col.get("default"):
@@ -194,7 +196,7 @@ def get_hierarchy():
 
         rows = cursor.fetchall()
         hierarchy = {}
-        print("Rows fetched:", rows)    
+
         for row in rows:
             lob_id, lob_name, sa_id, sa_name, db_id, db_name, table_id, table_name = row
 
@@ -250,21 +252,20 @@ def add_er_relationship():
 @app.route('/api/er_relationships', methods=['GET'])
 def get_all_er_relationships():
     """Retrieves all ER Relationships."""
-    query = "SELECT * FROM er_relationships"
+    query = "SELECT id, from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, created_at FROM er_relationships ORDER BY id;"
     results = execute_query(query, fetch_all=True)
     if isinstance(results, list):
         relationships = []
         for row in results:
             relationships.append({
                 'id': row[0],
-                'database_id': row[1],
-                'from_table_id': row[2],
-                'from_column': row[3],
-                'to_table_id': row[4],
-                'to_column': row[5],
-                'cardinality': row[6],
-                'relationship_type': row[7],
-                'created_at': row[8].isoformat() if row[8] else None, 
+                'from_table_id': row[1],
+                'from_column': row[2],
+                'to_table_id': row[3],
+                'to_column': row[4],
+                'cardinality': row[5],
+                'relationship_type': row[6],
+                'created_at': row[7].isoformat() if row[7] else None # Convert datetime to ISO format string
             })
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
@@ -275,25 +276,11 @@ def get_all_er_relationships_inDB(database_name):
     print("database name :"+database_name)
     """Retrieves all ER Relationships for a specific database."""
     query = """
-    SELECT 
-        er.id, 
-        er.database_id,
-        er.from_table_id, 
-        er.from_column, 
-        er.to_table_id, 
-        er.to_column, 
-        er.cardinality, 
-        er.relationship_type, 
-        er.created_at,
-        ld.name as database_name,
-        ft.name as from_table_name,
-        tt.name as to_table_name
-    FROM er_relationships er
-    JOIN logical_databases ld ON er.database_id = ld.id
-    JOIN tables_metadata ft ON er.from_table_id = ft.id
-    JOIN tables_metadata tt ON er.to_table_id = tt.id
-    WHERE ld.name = %s
-    ORDER BY er.id;
+    SELECT id, from_table_id, from_column, to_table_id, to_column, 
+           cardinality, relationship_type, created_at, database_name 
+    FROM er_relationships 
+    WHERE database_name = %s 
+    ORDER BY id;
     """
     results = execute_query(query, (database_name,), fetch_all=True)
     if isinstance(results, list):
@@ -301,44 +288,39 @@ def get_all_er_relationships_inDB(database_name):
         for row in results:
             relationships.append({
                 'id': row[0],
-                'database_id': row[1],
-                'from_table_id': row[2],
-                'from_column': row[3],
-                'to_table_id': row[4],
-                'to_column': row[5],
-                'cardinality': row[6],
-                'relationship_type': row[7],
-                'created_at': row[8].isoformat() if row[8] else None,
-                'database_name': row[9],
-                'from_table_name': row[10],
-                'to_table_name': row[11]
+                'from_table_id': row[1],
+                'from_column': row[2],
+                'to_table_id': row[3],
+                'to_column': row[4],
+                'cardinality': row[5],
+                'relationship_type': row[6],
+                'created_at': row[7].isoformat() if row[7] else None, # Convert datetime to ISO format string
+                'database_name': row[8]
             })
-        print("rels ",relationships)
+        # print("rels ",relationships)
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 
-# @app.route('/api/er_relationships/<int:rel_id>', methods=['GET'])
-# def get_er_relationship_by_id(rel_id):
-#     """Retrieves an ER Relationship by ID."""
-#     query = "SELECT id, from_table_id, from_column, to_table_id," \
-#     " to_column, cardinality, relationship_type, created_at FROM " \
-#     "er_relationships WHERE id = %s;"
-#     result = execute_query(query, (rel_id,), fetch_one=True)
+@app.route('/api/er_relationships/<int:rel_id>', methods=['GET'])
+def get_er_relationship_by_id(rel_id):
+    """Retrieves an ER Relationship by ID."""
+    query = "SELECT id, from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, created_at FROM er_relationships WHERE id = %s;"
+    result = execute_query(query, (rel_id,), fetch_one=True)
 
-#     if isinstance(result, tuple) and len(result) == 8:
-#         return jsonify({
-#             'id': result[0],
-#             'from_table_id': result[1],
-#             'from_column': result[2],
-#             'to_table_id': result[3],
-#             'to_column': result[4],
-#             'cardinality': result[5],
-#             'relationship_type': result[6],
-#             'created_at': result[7].isoformat() if result[7] else None
-#         }), 200
-#     elif isinstance(result, dict) and 'error' in result:
-#         return jsonify(result), result.get('status', 400)
-#     return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
+    if isinstance(result, tuple) and len(result) == 8:
+        return jsonify({
+            'id': result[0],
+            'from_table_id': result[1],
+            'from_column': result[2],
+            'to_table_id': result[3],
+            'to_column': result[4],
+            'cardinality': result[5],
+            'relationship_type': result[6],
+            'created_at': result[7].isoformat() if result[7] else None
+        }), 200
+    elif isinstance(result, dict) and 'error' in result:
+        return jsonify(result), result.get('status', 400)
+    return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
 
 @app.route('/api/er_relationships/<int:rel_id>', methods=['PUT'])
 def update_er_relationship(rel_id):
