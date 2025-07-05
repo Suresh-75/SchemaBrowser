@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Plus, Save, X, Database } from "lucide-react";
 
 const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
@@ -20,13 +20,6 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // Effect to update databaseId if selectedPath changes
-  useEffect(() => {
-    if (selectedPath?.databaseId) {
-      setDatabaseId(selectedPath.databaseId);
-    }
-  }, [selectedPath]);
 
   const dataTypes = [
     "STRING",
@@ -122,30 +115,14 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
         database_id: databaseId,
         columns: fields.map(mapFieldToBackend),
       };
-      console.log("Submitting payload:", payload);
-      const response = await new Promise((resolve) =>
-        setTimeout(() => {
-          // Simulate API success or failure
-          const isSuccess = Math.random() > 0.2; // 80% success rate for demo
-          if (isSuccess) {
-            resolve({
-              ok: true,
-              json: () =>
-                Promise.resolve({
-                  message: `Table "${entityName}" created successfully!`,
-                }),
-            });
-          } else {
-            resolve({
-              ok: false,
-              json: () =>
-                Promise.resolve({
-                  message: "Simulated API error: Failed to create table.",
-                }),
-            });
-          }
-        }, 1000)
-      );
+
+      const response = await fetch("http://localhost:5000/api/tables", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       const result = await response.json();
 
@@ -190,14 +167,14 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
 
   const handleClose = () => {
     setIsOpen(false);
-    // Call setCreate to hide the component in the parent
-    if (setCreate) {
-      setCreate("");
+
+    if (onClose) {
+      onClose();
     }
   };
 
   if (!isOpen) {
-    return null; // Don't render if not open
+    setCreate("");
   }
 
   return (
@@ -248,7 +225,7 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
 
           {/* Database Configuration */}
           <div className=" gap-4 mb-6">
-            {/* <div>
+            <div>
               <label
                 className={`block text-sm font-medium mb-2 ${
                   darkmode ? "text-gray-300" : "text-gray-700"
@@ -268,7 +245,7 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                 placeholder="e.g., database_001"
                 required
               />
-            </div> */}
+            </div>
             <div>
               <label
                 className={`block text-sm font-medium mb-2 ${
