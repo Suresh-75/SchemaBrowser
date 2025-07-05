@@ -131,6 +131,7 @@ function ErDiagram({ selectedPath, darkmode }) {
       const tableInfos = [];
       for (const tableId of tableIds) {
         const info = await fetchTableInfo(tableId);
+        console.log(info);
         tableInfos.push(info);
       }
       const tableMap = {};

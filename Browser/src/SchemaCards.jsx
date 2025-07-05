@@ -14,17 +14,16 @@ const SchemaCards = ({ table, darkmode }) => {
     );
   }
 
-  // Make all types blue (or a dark-mode friendly blue)
   const getTypeColor = (type) => {
     return darkmode ? "bg-blue-800 text-blue-100" : "bg-blue-100 text-blue-800";
   };
 
   return (
     <div
-      className={`rounded-2xl shadow-2xl transition-all duration-300  overflow-hidden max-w-md ring-1 ${
+      className={`rounded-2xl shadow-2xl transition-all duration-300 overflow-hidden max-w-md ring-1 ${
         darkmode
-          ? "bg-gray-800 hover:shadow-3xl-dark border-gray-700 ring-gray-700"
-          : "bg-white hover:shadow-3xl border-slate-200 ring-slate-100"
+          ? "bg-gray-900 hover:shadow-3xl-dark border-gray-700 ring-gray-700 text-gray-100"
+          : "bg-white hover:shadow-3xl border-slate-200 ring-slate-100 text-slate-900"
       }`}
     >
       {/* Handles for ReactFlow */}
@@ -32,223 +31,170 @@ const SchemaCards = ({ table, darkmode }) => {
         type="target"
         position={Position.Left}
         id="left-target"
-        className={`w-5 h-5 rounded-full ${
-          darkmode ? "bg-blue-600" : "bg-blue-500"
+        className={`w-5 h-5 rounded-full z-10 ${
+          darkmode ? "bg-indigo-500" : "bg-indigo-400"
         }`}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right-source"
-        className={`w-5 h-5 rounded-full ${
-          darkmode ? "bg-green-600" : "bg-green-500"
+        className={`w-5 h-5 rounded-full z-10 ${
+          darkmode ? "bg-teal-500" : "bg-teal-400"
         }`}
       />
 
       {/* Table Header */}
-      <div className={`px-6 py-5 ${darkmode ? "bg-blue-700" : "bg-blue-400"}`}>
-        <div className="flex items-center justify-between">
-          <h3
-            className={`text-2xl font-bold tracking-wide drop-shadow ${
-              darkmode ? "text-white" : "text-white"
-            }`}
-          >
-            {table.name}
-          </h3>
-          {table.rowCount && (
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-semibold shadow ${
-                darkmode ? "bg-gray-600 text-white" : "bg-slate-700 text-white"
-              }`}
-            >
-              {table.rowCount} rows
-            </span>
-          )}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-4">
-          <span
-            className={`text-xs px-2 py-1 rounded ${
-              darkmode ? "bg-gray-200 text-gray-800" : "bg-white text-black"
-            }`}
-          >
-            <strong>DB:</strong> {table.database_name}
-          </span>
-          <span
-            className={`text-xs px-2 py-1 rounded ${
-              darkmode ? "bg-black text-white" : "bg-slate-800 text-white"
-            }`}
-          >
-            <strong>Table ID : </strong> {table.id}
-          </span>
-        </div>
-      </div>
-      {/* Columns */}
       <div
-        className={`p-6 ${
+        className={`px-6 py-5 flex items-center justify-between ${
           darkmode
-            ? "bg-gradient-to-b from-gray-700 to-gray-800"
-            : "bg-gradient-to-b from-slate-50 to-white"
+            ? "bg-gradient-to-r from-blue-700 to-indigo-700 text-white"
+            : "bg-gradient-to-r from-blue-400 to-indigo-400 text-white"
         }`}
       >
-        <div className="space-y-3">
-          {Array.isArray(table.columns) && table.columns.length > 0 ? (
-            table.columns.map((column, index) => (
-              <div
+        <h3 className="text-xl font-bold truncate">
+          {table.table_name || "Unknown Table"}
+        </h3>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            darkmode ? "bg-blue-900 text-blue-200" : "bg-blue-300 text-blue-900"
+          }`}
+        >
+          {table.type || "Table"}
+        </span>
+      </div>
+
+      {/* Table Description/Comment */}
+      {table.comment && (
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <p className="text-sm italic opacity-80">{table.comment}</p>
+        </div>
+      )}
+
+      {/* Table Columns/Schema */}
+      {table.columns && table.columns.length > 0 && (
+        <div className="p-6 max-h-60 overflow-y-auto custom-scrollbar">
+          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg
+              className={`w-5 h-5 ${
+                darkmode ? "text-indigo-400" : "text-indigo-600"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16m-7 6h7"
+              />
+            </svg>
+            Columns
+          </h4>
+          <ul className="space-y-3">
+            {table.columns.map((col, index) => (
+              <li
                 key={index}
-                className={`flex items-center justify-between p-3 rounded-lg border shadow-sm transition-colors duration-200 ${
-                  darkmode
-                    ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-                    : "bg-white border-slate-100 hover:bg-blue-50"
-                }`}
+                className="flex items-center justify-between text-sm"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    {column.primaryKey && (
-                      <div
-                        className="w-2 h-2 bg-yellow-400 rounded-full shadow"
-                        title="Primary Key"
-                      ></div>
-                    )}
-                    {column.foreignKey && (
-                      <div
-                        className="w-2 h-2 bg-blue-400 rounded-full shadow"
-                        title="Foreign Key"
-                      ></div>
-                    )}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-medium ${
+                      col.is_primary_key
+                        ? "text-yellow-500 dark:text-yellow-400"
+                        : ""
+                    }`}
+                  >
+                    {col.name}
+                  </span>
+                  {col.is_primary_key && (
                     <span
-                      className={`font-semibold tracking-wide ${
-                        darkmode ? "text-gray-100" : "text-slate-800"
-                      }`}
-                    >
-                      {column.name}
-                    </span>
-                  </div>
-                  {!column.nullable && (
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      className={`text-xs px-2 py-0.5 rounded-full ${
                         darkmode
-                          ? "text-blue-200 bg-blue-700"
-                          : "text-blue-700 bg-blue-100"
+                          ? "bg-yellow-800 text-yellow-100"
+                          : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
-                      NOT NULL
+                      PK
+                    </span>
+                  )}
+                  {col.is_nullable && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        darkmode
+                          ? "bg-gray-700 text-gray-300"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      Nullable
                     </span>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-2 py-1 rounded-md text-xs font-semibold border shadow-sm ${getTypeColor(
-                      column.type
-                    )} ${darkmode ? "border-blue-600" : "border-blue-200"}`}
-                  >
-                    {column.type}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div
-              className={`text-sm ${
-                darkmode ? "text-gray-400" : "text-slate-400"
-              }`}
-            >
-              No columns found.
-            </div>
-          )}
-        </div>
-
-        {/* Foreign Key References */}
-        {Array.isArray(table.columns) &&
-          table.columns.some((col) => col.foreignKey) && (
-            <div
-              className={`mt-6 pt-4 border-t ${
-                darkmode ? "border-gray-600" : "border-slate-200"
-              }`}
-            >
-              <h4
-                className={`text-sm font-semibold mb-2 flex items-center gap-2 ${
-                  darkmode ? "text-blue-400" : "text-blue-700"
-                }`}
-              >
-                <svg
-                  className={`w-4 h-4 ${
-                    darkmode ? "text-blue-500" : "text-blue-400"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
+                <span
+                  className={`text-xs px-2 py-1 rounded-full ${getTypeColor(
+                    col.type
+                  )}`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17 17v-1a4 4 0 00-4-4H7a4 4 0 00-4 4v1"
-                  ></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M23 21v-1a4 4 0 00-3-3.87"
-                  ></path>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 3.13a4 4 0 010 7.75"
-                  ></path>
-                </svg>
-                Foreign Key References
-              </h4>
-              <div className="space-y-1">
-                {table.columns
-                  .filter((col) => col.foreignKey)
-                  .map((col, index) => (
-                    <div
-                      key={index}
-                      className={`text-xs pl-2 ${
-                        darkmode ? "text-gray-300" : "text-slate-600"
-                      }`}
-                    >
-                      <span
-                        className={`font-semibold ${
-                          darkmode ? "text-blue-400" : "text-blue-700"
-                        }`}
-                      >
-                        {col.name}
-                      </span>
-                      <span
-                        className={`mx-1 ${
-                          darkmode ? "text-gray-500" : "text-slate-400"
-                        }`}
-                      >
-                        →
-                      </span>
-                      <span
-                        className={`font-mono ${
-                          darkmode ? "text-gray-200" : "text-slate-700"
-                        }`}
-                      >
-                        {col.foreignKey.table}
-                      </span>
-                      <span
-                        className={`${
-                          darkmode ? "text-gray-500" : "text-slate-400"
-                        }`}
-                      >
-                        .
-                      </span>
-                      <span
-                        className={`font-mono ${
-                          darkmode ? "text-gray-200" : "text-slate-700"
-                        }`}
-                      >
-                        {col.foreignKey.column}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-      </div>
+                  {col.type}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Table Metadata */}
+      {table.input_format && (
+        <div
+          className={`p-6 border-t ring-1 ${
+            darkmode
+              ? "bg-gray-800 text-gray-100 ring-gray-700 border-gray-700"
+              : "bg-slate-50 text-slate-800 ring-slate-200 border-slate-200"
+          }`}
+        >
+          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg
+              className={`w-5 h-5 ${
+                darkmode ? "text-blue-400" : "text-blue-600"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 17v-6h13M9 7H5a2 2 0 00-2 2v9a2 2 0 002 2h4m13-6l-3-3m0 0l3-3m-3 3H9"
+              />
+            </svg>
+            Table Metadata
+          </h4>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <li>
+              <span className="font-semibold block">Input Format</span>
+              <span className="italic opacity-90">{table.input_format}</span>
+            </li>
+            <li>
+              <span className="font-semibold block">Output Format</span>
+              <span className="italic opacity-90">{table.output_format}</span>
+            </li>
+            <li>
+              <span className="font-semibold block">Partitioned By</span>
+              <span className="italic opacity-90">
+                {table.partitioned_by || "—"}
+              </span>
+            </li>
+            <li className="col-span-2">
+              <span className="font-semibold block">Location</span>
+              <span className="italic break-words text-xs opacity-90">
+                {table.location}
+              </span>
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

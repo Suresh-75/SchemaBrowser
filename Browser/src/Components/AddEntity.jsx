@@ -222,7 +222,6 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
               {success}
             </div>
           )}
-
           {/* Database Configuration */}
           <div className=" gap-4 mb-6">
             <div>

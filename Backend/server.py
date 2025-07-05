@@ -189,8 +189,7 @@ def get_tables_inDB(database_name):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/tables/<int:table_id>", methods=["GET"])
-def get_table_by_id(table_id):  
-    print(table_id)
+def get_table_by_id(table_id):
     try:
         cursor.execute("""
             SELECT t.id, t.name, t.schema_name, d.name AS database_name
@@ -199,16 +198,40 @@ def get_table_by_id(table_id):
             WHERE t.id = %s;
         """, (table_id,))
         row = cursor.fetchone()
-        print(row);
-        if row:
-            table = {"id": row[0], "name": row[1], "schema_name": row[2], "database_name": row[3]}
-            print("Fetched table:", table) 
-            return jsonify(table)
-        else:
-            return jsonify({"error": "Table not found asdads"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500  
+        if not row:
+            return jsonify({"error": "Table not found in metadata"}), 404
+        # Extract metadata
+        table_metadata = {
+            "id": row[0],
+            "name": row[1],
+            "schema_name": row[2],
+            "database_name": row[3]
+        }
+        database_name = row[3]
+        schema_name = row[2]
+        cursor.execute(sql.SQL("""
+            SELECT table_id, table_name, input_format, output_format, location, partitioned_by
+            FROM {}.table
+            WHERE table_id = %s;
+        """).format(sql.Identifier(schema_name)), (table_id,))
+        table_row = cursor.fetchone()
+        if not table_row:
+            return jsonify({"error": f"table_id {table_id} not found in {schema_name}.table"}), 404
+        # Prepare full response
+        table_details = {
+            "table_id": table_row[0],
+            "table_name": table_row[1],
+            "input_format": table_row[2],
+            "output_format": table_row[3],
+            "location": table_row[4],
+            "partitioned_by": table_row[5],
+            "database_name": database_name,
+        }
+        return jsonify(table_details)
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/api/tables", methods=["POST"])
 def create_table():
     data = request.json
