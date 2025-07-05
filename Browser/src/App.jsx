@@ -148,7 +148,7 @@ export default function App() {
         </div>
       </nav>
       {/* FilterBar */}
-      <div className="flex-shrink-0 px-6 py-3">
+      <div className="flex-shrink-0 px-5 py-3">
         <FilterBar
           selectedPath={selectedPath}
           onSelect={handleSelection}

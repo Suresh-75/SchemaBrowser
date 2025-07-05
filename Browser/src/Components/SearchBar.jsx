@@ -41,10 +41,7 @@ const SearchBar = ({ onSelect, darkmode }) => {
     return acc;
   }, {});
 
-  // Helper to map search result to selectedPath
   const mapResultToSelectedPath = (item) => {
-    // Assume backend returns: item.type, item.name, item.lob, item.subject, item.database, item.table
-    // Fallbacks for compatibility
     switch (item.type) {
       case "LOB":
         return { lob: item.name, subject: null, database: null, table: null };
@@ -76,8 +73,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
 
   return (
     <div
-      className={`w-full rounded-xl px-3 py-2 relative z-10 ${
-        darkmode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100"
+      className={`w-full rounded-xl px-3 py-2 border-b relative z-10 ${
+        darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
       }`}
     >
       {/* Filter Bar */}
@@ -85,7 +82,7 @@ const SearchBar = ({ onSelect, darkmode }) => {
         {typeOptions.map((opt) => (
           <label
             key={opt.value}
-            className={`flex items-center gap-1 text-xs ${
+            className={`flex items-center gap-1 text-xs cursor-pointer ${
               darkmode ? "text-gray-300" : "text-gray-700"
             }`}
           >
@@ -99,10 +96,10 @@ const SearchBar = ({ onSelect, darkmode }) => {
                     : [...filters, opt.value]
                 );
               }}
-              className={`${
+              className={`rounded transition-colors ${
                 darkmode
-                  ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
-                  : "form-checkbox text-blue-600"
+                  ? "bg-gray-700 border-gray-600 text-blue-400 focus:ring-blue-500"
+                  : "bg-white border-gray-300 text-blue-600 focus:ring-blue-400"
               }`}
             />
             {opt.label}
@@ -112,10 +109,10 @@ const SearchBar = ({ onSelect, darkmode }) => {
 
       <input
         type="text"
-        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 ${
+        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
           darkmode
-            ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+            ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-400 focus:border-blue-400"
         }`}
         placeholder="Search LOB, Subject Area, Database, or Table..."
         value={query}
@@ -128,11 +125,17 @@ const SearchBar = ({ onSelect, darkmode }) => {
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
             darkmode
-              ? "bg-gray-700 border-gray-600"
+              ? "bg-gray-800 border-gray-600"
               : "bg-white border-gray-200"
           }`}
         >
-          <div className="text-center text-gray-400">Searching...</div>
+          <div
+            className={`text-center ${
+              darkmode ? "text-gray-400" : "text-gray-400"
+            }`}
+          >
+            Searching...
+          </div>
         </div>
       )}
 
@@ -140,7 +143,7 @@ const SearchBar = ({ onSelect, darkmode }) => {
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-xl max-h-80 overflow-auto z-50 ${
             darkmode
-              ? "bg-gray-700 border-gray-600"
+              ? "bg-gray-800 border-gray-600"
               : "bg-white border-gray-200"
           }`}
         >
@@ -150,19 +153,15 @@ const SearchBar = ({ onSelect, darkmode }) => {
               groupedResults[type].map((item, idx) => (
                 <button
                   key={`${item.type}-${item.name}-${idx}`}
-                  className={`w-full text-left px-4 py-2 transition-all duration-150 ${
-                    darkmode
-                      ? `text-gray-100 ${
-                          hoveredIdx === `${type}-${idx}`
-                            ? "bg-blue-800 scale-[1.01] shadow"
-                            : "hover:bg-blue-700"
-                        }`
-                      : `text-gray-900 ${
-                          hoveredIdx === `${type}-${idx}`
-                            ? "bg-blue-100 scale-[1.01] shadow"
-                            : "hover:bg-blue-50"
-                        }`
-                  } rounded-md`}
+                  className={`w-full text-left px-4 py-2 transition-all duration-150 rounded-md ${
+                    hoveredIdx === `${type}-${idx}`
+                      ? darkmode
+                        ? "bg-blue-900 text-blue-200 scale-[1.01] shadow"
+                        : "bg-blue-100 scale-[1.01] shadow"
+                      : darkmode
+                      ? "hover:bg-gray-700 text-gray-200"
+                      : "hover:bg-blue-50 text-gray-900"
+                  }`}
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => {
@@ -197,7 +196,7 @@ const SearchBar = ({ onSelect, darkmode }) => {
           <div
             className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
               darkmode
-                ? "bg-gray-700 border-gray-600"
+                ? "bg-gray-800 border-gray-600"
                 : "bg-white border-gray-200"
             }`}
           >
@@ -206,13 +205,7 @@ const SearchBar = ({ onSelect, darkmode }) => {
                 darkmode ? "text-gray-400" : "text-gray-500"
               }`}
             >
-              <div
-                className={`text-sm font-medium ${
-                  darkmode ? "text-gray-300" : "text-gray-900"
-                }`}
-              >
-                No results found
-              </div>
+              <div className="text-sm font-medium">No results found</div>
               <div className="text-xs mt-1">
                 Try searching for a different term
               </div>
@@ -224,18 +217,16 @@ const SearchBar = ({ onSelect, darkmode }) => {
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${
             darkmode
-              ? "bg-gray-700 border-gray-600"
+              ? "bg-gray-800 border-gray-600"
               : "bg-white border-gray-200"
           }`}
         >
-          <div className="text-center text-gray-400">
-            <div
-              className={`text-sm ${
-                darkmode ? "text-gray-300" : "text-gray-900"
-              }`}
-            >
-              Start typing to search...
-            </div>
+          <div
+            className={`text-center ${
+              darkmode ? "text-gray-400" : "text-gray-400"
+            }`}
+          >
+            <div className="text-sm">Start typing to search...</div>
             <div className="text-xs mt-1">
               Search across LOBs, Subject Areas, Databases, and Tables
             </div>
