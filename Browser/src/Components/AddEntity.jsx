@@ -111,7 +111,7 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
         columns: fields.map(mapFieldToBackend)
       };
 
-      const response = await fetch('http://localhost:5000/api/tables', {
+      const response = await fetch('http://localhost:5050/api/tables', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

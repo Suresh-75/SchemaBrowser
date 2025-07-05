@@ -9,8 +9,8 @@ CORS(app)
 
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_NAME = os.environ.get('DB_NAME', 'schemabrowser')
-DB_USER = os.environ.get('DB_USER', 'kattan')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'podicatiman')
+DB_USER = os.environ.get('DB_USER', 'ananya')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '12345')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
 
@@ -401,4 +401,4 @@ def search():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True,port=5050)

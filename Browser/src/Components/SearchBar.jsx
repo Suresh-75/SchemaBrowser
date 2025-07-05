@@ -22,7 +22,7 @@ const SearchBar = ({ onSelect }) => {
       return;
     }
     setLoading(true);
-    fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(query)}`)
+    fetch(`http://localhost:5050/api/search?q=${encodeURIComponent(query)}`)
       .then((res) => res.json())
       .then((data) => {
         setResults(data);

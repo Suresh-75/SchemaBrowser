@@ -18,7 +18,7 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath }) => {
   useEffect(() => {
     const fetchHierarchy = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/hierarchy");
+        const response = await axios.get("http://localhost:5050/api/hierarchy");
         const hierarchy = response.data;
 
         const transformedData = {};

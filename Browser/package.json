@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
     "@xyflow/react": "^12.7.0",
+    "antd": "^5.26.3",
     "axios": "^1.10.0",
     "dagre": "^0.8.5",
     "dom-to-image-more": "^3.6.0",

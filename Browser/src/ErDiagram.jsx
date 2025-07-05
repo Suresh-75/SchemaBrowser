@@ -14,15 +14,122 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   useReactFlow,
+  Handle,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import SchemaCards from "./SchemaCards";
 import axios from "axios";
 import { toJpeg } from "html-to-image";
 
-const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
+// Modal for relationship input
+function RelationshipModal({ open, onClose, onSave, fromNode, toNode }) {
+  const [relationshipType, setRelationshipType] = React.useState("1:N");
+  const [fromColumn, setFromColumn] = React.useState("");
+  const [toColumn, setToColumn] = React.useState("");
+  const [cardinality, setCardinality] = React.useState("1:N");
+
+  React.useEffect(() => {
+    if (open) {
+      setRelationshipType("1:N");
+      setCardinality("1:N");
+      setFromColumn("");
+      setToColumn("");
+    }
+  }, [open]);
+
+  if (!open) return null;
   return (
-    <div style={{ display: "inline-block" }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(0,0,0,0.3)",
+        zIndex: 2000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          padding: 24,
+          borderRadius: 8,
+          minWidth: 320,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Define Relationship</h3>
+        <div style={{ marginBottom: 8 }}>
+          <b>From Table:</b> {fromNode?.data?.label || fromNode?.id}
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <b>To Table:</b> {toNode?.data?.label || toNode?.id}
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>Relationship Type: </label>
+          <select
+            value={relationshipType}
+            onChange={(e) => {
+              setRelationshipType(e.target.value);
+              setCardinality(e.target.value);
+            }}
+          >
+            <option value="1:1">1:1</option>
+            <option value="1:N">1:N</option>
+            <option value="N:1">N:1</option>
+            <option value="N:N">N:N</option>
+          </select>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>From Column: </label>
+          <input
+            value={fromColumn}
+            onChange={(e) => setFromColumn(e.target.value)}
+            placeholder="(optional)"
+          />
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>To Column: </label>
+          <input
+            value={toColumn}
+            onChange={(e) => setToColumn(e.target.value)}
+            placeholder="(optional)"
+          />
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button onClick={onClose} style={{ padding: "6px 12px" }}>
+            Cancel
+          </button>
+          <button
+            onClick={() =>
+              onSave({ relationshipType, fromColumn, toColumn, cardinality })
+            }
+            style={{
+              padding: "6px 12px",
+              background: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: 4,
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SchemaCardNode = React.memo(function SchemaCardNode({ data, id }) {
+  return (
+    <div style={{ display: "inline-block", position: "relative" }}>
+      {/* Handles for React Flow connections */}
+      <Handle type="target" position="left" id="target" style={{ background: '#555' }} />
+      <Handle type="source" position="right" id="source" style={{ background: '#555' }} />
       <SchemaCards table={data.table} />
     </div>
   );
@@ -68,6 +175,9 @@ function ErDiagram({ selectedPath }) {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pendingConnection, setPendingConnection] = useState(null); // { source, target }
+  const [pendingNodes, setPendingNodes] = useState({ from: null, to: null });
 
   const exportRef = useRef(null);
   const reactFlowInstance = useReactFlow();
@@ -95,7 +205,7 @@ function ErDiagram({ selectedPath }) {
       setEdges([]);
       setNodes([]);
       const response = await axios.get(
-        `http://localhost:5000/api/er_relationships/${databaseName}`
+        `http://localhost:5050/api/er_relationships/${databaseName}`
       );
       return response.data;
     } catch (error) {
@@ -104,10 +214,22 @@ function ErDiagram({ selectedPath }) {
     }
   }
 
+  async function fetchAllTables(databaseName) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5050/api/tables/${databaseName}`
+      );
+      return response.data; // Should be an array of table objects
+    } catch (error) {
+      console.error("Error fetching all tables:", error);
+      return [];
+    }
+  }
+
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}`
+        `http://localhost:5050/api/tables/${tableId}`
       );
       return response.data;
     } catch (error) {
@@ -116,51 +238,44 @@ function ErDiagram({ selectedPath }) {
     }
   }
 
-  const createNodesAndEdges = useCallback(async (relationships) => {
-    const tableIds = Array.from(
-      new Set(
-        relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
-      )
-    );
+  const createNodesAndEdges = useCallback(
+    async (relationships, allTables) => {
+      // Get all unique table IDs from allTables
+      const tableIds = allTables.map((table) => table.id.toString());
+      const tableMap = {};
+      allTables.forEach((table) => {
+        tableMap[table.id] = table;
+      });
 
-    // Fetch all table info in parallel
-    const tableInfos = [];
-    for (const tableId of tableIds) {
-      const info = await fetchTableInfo(tableId);
-      tableInfos.push(info);
-    }
-    const tableMap = {};
-    tableIds.forEach((tableId, index) => {
-      tableMap[tableId] = tableInfos[index];
-    });
+      const newNodes = tableIds.map((tableId, index) => ({
+        id: tableId,
+        type: "schemaCard",
+        data: {
+          label: tableMap[tableId]?.name || `Table ${tableId}`,
+          table: tableMap[tableId],
+        },
+        position: {
+          x: (index % 3) * 600,
+          y: Math.floor(index / 3) * 100,
+        },
+      }));
 
-    const newNodes = tableIds.map((tableId, index) => ({
-      id: tableId.toString(),
-      type: "schemaCard",
-      data: {
-        label: tableMap[tableId]?.name || `Table ${tableId}`,
-        table: tableMap[tableId],
-      },
-      position: {
-        x: (index % 3) * 600,
-        y: Math.floor(index / 3) * 100,
-      },
-    }));
+      const newEdges = relationships.map((rel) => ({
+        id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
+        source: rel.from_table_id.toString(),
+        target: rel.to_table_id.toString(),
+        label: `${rel.from_column} → ${rel.to_column}`,
+        animated: true,
+        data: {
+          cardinality: rel.cardinality,
+          relationshipType: rel.relationship_type,
+        },
+      }));
 
-    const newEdges = relationships.map((rel) => ({
-      id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
-      source: rel.from_table_id.toString(),
-      target: rel.to_table_id.toString(),
-      label: `${rel.from_column} → ${rel.to_column}`,
-      animated: true,
-      data: {
-        cardinality: rel.cardinality,
-        relationshipType: rel.relationship_type,
-      },
-    }));
-
-    return { nodes: newNodes, edges: newEdges };
-  }, []);
+      return { nodes: newNodes, edges: newEdges };
+    },
+    []
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -173,14 +288,18 @@ function ErDiagram({ selectedPath }) {
 
       try {
         setLoading(true);
-        const relationships = await fetchRelationships(selectedPath.database);
+        const [relationships, allTables] = await Promise.all([
+          fetchRelationships(selectedPath.database),
+          fetchAllTables(selectedPath.database),
+        ]);
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
-          relationships
+          relationships,
+          allTables
         );
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
-        console.error("Failed to load relationships:", error);
+        console.error("Failed to load relationships or tables:", error);
         setNodes([
           {
             id: "error",
@@ -212,9 +331,56 @@ function ErDiagram({ selectedPath }) {
     []
   );
   const onConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge(connection, eds)),
-    []
+    (connection) => {
+      // Find node objects for modal display
+      const from = nodes.find((n) => n.id === connection.source);
+      const to = nodes.find((n) => n.id === connection.target);
+      setPendingConnection(connection);
+      setPendingNodes({ from, to });
+      setModalOpen(true);
+    },
+    [nodes]
   );
+
+  // Save relationship handler
+  const handleSaveRelationship = async ({
+    relationshipType,
+    fromColumn,
+    toColumn,
+    cardinality,
+  }) => {
+    if (!pendingConnection || !selectedPath?.database) return;
+    const { source, target } = pendingConnection;
+    // Add edge visually
+    setEdges((eds) => [
+      ...eds,
+      {
+        id: `e${source}-${target}-${Date.now()}`,
+        source,
+        target,
+        label: relationshipType,
+        animated: true,
+        data: { cardinality, relationshipType },
+      },
+    ]);
+    // Send to backend
+    try {
+      await axios.post("http://localhost:5050/api/er_relationships", {
+        from_table_id: source,
+        to_table_id: target,
+        from_column: fromColumn,
+        to_column: toColumn,
+        cardinality,
+        relationship_type: relationshipType,
+        database_name: selectedPath.database,
+      });
+    } catch (err) {
+      console.error("Failed to save relationship", err);
+    }
+    setModalOpen(false);
+    setPendingConnection(null);
+    setPendingNodes({ from: null, to: null });
+  };
 
   useEffect(() => {
     if (!loading && nodes.length > 0) {
@@ -238,6 +404,17 @@ function ErDiagram({ selectedPath }) {
 
   return (
     <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
+      <RelationshipModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setPendingConnection(null);
+          setPendingNodes({ from: null, to: null });
+        }}
+        onSave={handleSaveRelationship}
+        fromNode={pendingNodes.from}
+        toNode={pendingNodes.to}
+      />
       {loading ? (
         <div
           style={{

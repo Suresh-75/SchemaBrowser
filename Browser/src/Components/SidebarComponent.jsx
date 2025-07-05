@@ -24,11 +24,11 @@ const SidebarComponent = ({
 
       try {
         const tablesResponse = await axios.get(
-          `http://localhost:5000/api/tables/${selectedPath.database}`
+          `http://localhost:5050/api/tables/${selectedPath.database}`
         );
         setData(tablesResponse.data);
         const relationshipsResponse = await axios.get(
-          `http://localhost:5000/api/er_relationships/${selectedPath.database}`
+          `http://localhost:5050/api/er_relationships/${selectedPath.database}`
         );
         const relsData = relationshipsResponse.data;
         const processedRels = relsData.map((rel) => ({
