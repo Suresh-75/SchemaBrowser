@@ -20,6 +20,17 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
   const [fromTableColumns, setFromTableColumns] = useState([]);
   const [toTableColumns, setToTableColumns] = useState([]);
 
+  async function fetchTableInfo(tableId) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tables/${tableId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching table info for table ${tableId}:`, error);
+      return null;
+    }
+  }
   useEffect(() => {
     setTimeout(() => {
       setError("");
@@ -61,16 +72,16 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
 
   const fetchTableColumns = async (tableId, type) => {
     try {
-      const response = await axios.get(
-        `/api/tables/${databaseName}/columns/${tableId}`
-      );
-      if (response) {
-        // const data = await response.json();
-        if (type === "from") {
-          setFromTableColumns(response.data.columns || []);
-        } else {
-          setToTableColumns(response.data.columns || []);
-        }
+      const response = await fetchTableInfo(tableId);
+      // console.log("Fetched columns for table:", tableId, response);
+      // const data = await response.json();
+      const { input_format, output_format, location, partioned_by } = response;
+      const columns = [input_format, output_format, location, partioned_by];
+      console.log("Columns for table:", tableId, columns);
+      if (type === "from") {
+        setFromTableColumns(columns || []);
+      } else {
+        setToTableColumns(columns || []);
       }
     } catch (err) {
       console.error("Error fetching table columns:", err);
@@ -82,6 +93,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
       const response = await axios.get(
         `http://localhost:5000/api/er_relationships/${databaseName}`
       );
+      console.log(response.data);
       if (response) {
         const data = response.data;
         const existingRelationships = data || [];
@@ -93,7 +105,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
               rel.to_table_id === toTableId) ||
             (rel.from_table_id === toTableId && rel.to_table_id === fromTableId)
         );
-
+        console.log(exists);
         return exists;
       }
       return false;
@@ -142,12 +154,12 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
         relationship_type: relationshipType,
         database_name: databaseName,
       };
-
+      console.log(relationshipData);
       const response = await axios.post(
-        "/api/er_relationships",
+        "http://localhost:5000/api/er_relationships",
         relationshipData
       );
-
+      console.log("Response from server:", response);
       if (response.status === 200 || response.status === 201) {
         setSuccess("Relationship created successfully!");
 
@@ -320,8 +332,8 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
                   >
                     <option value="">Select a column</option>
                     {fromTableColumns.map((column) => (
-                      <option key={column.name} value={column.name}>
-                        {column.name} ({column.type})
+                      <option key={column} value={column}>
+                        {column} ({column})
                       </option>
                     ))}
                   </select>
@@ -395,8 +407,8 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
                   >
                     <option value="">Select a column</option>
                     {toTableColumns.map((column) => (
-                      <option key={column.name} value={column.name}>
-                        {column.name} ({column.type})
+                      <option key={column} value={column}>
+                        {column} ({column})
                       </option>
                     ))}
                   </select>

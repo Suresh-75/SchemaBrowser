@@ -200,13 +200,6 @@ def get_table_by_id(table_id):
         row = cursor.fetchone()
         if not row:
             return jsonify({"error": "Table not found in metadata"}), 404
-        # Extract metadata
-        table_metadata = {
-            "id": row[0],
-            "name": row[1],
-            "schema_name": row[2],
-            "database_name": row[3]
-        }
         database_name = row[3]
         schema_name = row[2]
         cursor.execute(sql.SQL("""
@@ -274,7 +267,46 @@ def create_table():
         conn.rollback()
         return jsonify({"message": str(e)}), 400
 
+# table attributes NOT WORKING
+@app.route('/api/table_attributes/<int:table_id>', methods=['GET'])
+def get_table_attributes(table_id):
+    try:
+        cursor.execute("""
+            SELECT t.id, t.name, t.schema_name, d.name AS database_name
+            FROM tables_metadata t
+            JOIN logical_databases d ON t.database_id = d.id
+            WHERE t.id = %s;
+        """, (table_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Table not found in metadata"}), 404
+        schema_name = row[2]
+        table_name = row[1]
+        print("Schema name:", schema_name)
+        print("Table name:", table_name)
 
+        query = sql.SQL("SELECT column_name FROM {}.columns_metadata WHERE table_id = %s").format(
+            sql.Identifier(schema_name)
+        )
+
+        cursor.execute(query, (table_id,))
+        columns = [col[0] for col in cursor.fetchall()]
+        print("Columns fetched:", columns)
+
+        if not columns:
+            return jsonify({
+                "error": f"No attributes found for table '{table_name}' in schema '{schema_name}'."
+            }), 404
+
+        return jsonify({
+            "table_id": table_id,
+            "schema_name": schema_name,
+            "table_name": table_name,
+            "attributes": columns
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # ------------------- 5. View Hierarchy -------------------
 @app.route("/api/hierarchy", methods=["GET"])
 def get_hierarchy():
@@ -327,7 +359,7 @@ def add_er_relationship():
     cardinality = data.get('cardinality')
     relationship_type = data.get('relationship_type', 'foreign_key') # Default to 'foreign_key'
     database_name = data.get('database_name')
-
+    print("Adding ER Relationship with data:", data)
     required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality, database_name]
     if not all(required_fields):
         return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality, database_name) are required'}), 400
@@ -370,7 +402,6 @@ def get_all_er_relationships():
 
 @app.route('/api/er_relationships/<string:database_name>', methods=['GET'])
 def get_all_er_relationships_inDB(database_name):
-    print("database name :"+database_name)
     """Retrieves all ER Relationships for a specific database."""
     query = """
     SELECT id, from_table_id, from_column, to_table_id, to_column, 

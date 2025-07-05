@@ -29,47 +29,52 @@ const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   );
 });
 
-const Legend = ({ darkmode }) => {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: "10px",
-        left: "10px",
-        backgroundColor: darkmode ? "#374151" : "white",
-        border: darkmode ? "1px solid #4B5563" : "1px solid #ccc",
-        padding: "10px",
-        borderRadius: "5px",
-        fontSize: "12px",
-        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
-        zIndex: 1000,
-        color: darkmode ? "#D1D5DB" : "#374151",
-      }}
-    >
-      <div
-        style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}
-      >
-        <div
-          className="w-2 h-2 bg-yellow-400 rounded-full mr-4"
-          title="Primary Key"
-        ></div>
-        <span className="font-semibold">Primary Key</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <div
-          className="w-2 h-2 bg-blue-400 rounded-full mr-4"
-          title="Foreign Key"
-        ></div>
-        <span className="font-semibold">Foreign Key</span>
-      </div>
-    </div>
-  );
-};
+// const Legend = ({ darkmode }) => {
+//   return (
+//     <div
+//       style={{
+//         position: "absolute",
+//         top: "10px",
+//         left: "10px",
+//         backgroundColor: darkmode ? "#374151" : "white",
+//         border: darkmode ? "1px solid #4B5563" : "1px solid #ccc",
+//         padding: "10px",
+//         borderRadius: "5px",
+//         fontSize: "12px",
+//         boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
+//         zIndex: 1000,
+//         color: darkmode ? "#D1D5DB" : "#374151",
+//       }}
+//     >
+//       <div
+//         style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}
+//       >
+//         <div
+//           className="w-2 h-2 bg-yellow-400 rounded-full mr-4"
+//           title="Primary Key"
+//         ></div>
+//         <span className="font-semibold">Primary Key</span>
+//       </div>
+//       <div style={{ display: "flex", alignItems: "center" }}>
+//         <div
+//           className="w-2 h-2 bg-blue-400 rounded-full mr-4"
+//           title="Foreign Key"
+//         ></div>
+//         <span className="font-semibold">Foreign Key</span>
+//       </div>
+//     </div>
+//   );
+// };
 
 // Accept darkmode prop here
-function ErDiagram({ selectedPath, darkmode }) {
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
+function ErDiagram({
+  selectedPath,
+  darkmode,
+  nodes,
+  edges,
+  setNodes,
+  setEdges,
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const exportRef = useRef(null);
@@ -284,7 +289,7 @@ function ErDiagram({ selectedPath, darkmode }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        // onConnect={onConnect}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         nodeTypes={nodeTypes}
@@ -311,7 +316,7 @@ function ErDiagram({ selectedPath, darkmode }) {
         /> */}
         <Controls className="text-black" />
       </ReactFlow>
-      <Legend darkmode={darkmode} />
+      {/* <Legend darkmode={darkmode} /> */}
       <button
         onClick={handleExport}
         style={{

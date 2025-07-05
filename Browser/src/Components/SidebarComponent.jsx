@@ -11,10 +11,21 @@ const SidebarComponent = ({
   setCreate,
   setDarkmode,
   darkmode,
+  setNodes,
 }) => {
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);
-
+  async function fetchTableInfo(tableId) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tables/${tableId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching table info for table ${tableId}:`, error);
+      return null;
+    }
+  }
   useEffect(() => {
     const fetchAllData = async () => {
       if (!selectedPath || !selectedPath.database) {
@@ -91,6 +102,25 @@ const SidebarComponent = ({
                       : "bg-blue-100 to-white border-blue-100"
                   }`}
                   tabIndex={0}
+                  onClick={async () => {
+                    const data = await fetchTableInfo(entity.id);
+                    setNodes((prevNodes) => [
+                      ...prevNodes,
+                      {
+                        id: entity.id.toString(),
+                        type: "schemaCard",
+                        data: {
+                          // label: tableMap[tableId]?.name || `Table ${tableId}`,
+                          table: data,
+                          darkmode: darkmode,
+                        },
+                        position: {
+                          x: Math.random() * 500,
+                          y: Math.random() * 500,
+                        },
+                      },
+                    ]);
+                  }}
                   aria-label={`Entity: ${entity.name}`}
                 >
                   <Box

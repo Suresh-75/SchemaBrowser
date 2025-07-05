@@ -31,6 +31,9 @@ export default function App() {
   const [showTables, setShowTables] = useState(false);
   const [darkmode, setDarkmode] = useState(true);
   const navigate = useNavigate();
+  //er diagram state
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
     subject: null,
@@ -242,6 +245,7 @@ export default function App() {
               setDarkmode={setDarkmode}
               setCreate={setCreate}
               darkmode={darkmode}
+              setNodes={setNodes}
             />
           </div>
         </div>
@@ -260,7 +264,14 @@ export default function App() {
               style={{ minHeight: 0, minWidth: 0 }}
             >
               <ReactFlowProvider>
-                <ErDiagram selectedPath={selectedPath} darkmode={darkmode} />
+                <ErDiagram
+                  selectedPath={selectedPath}
+                  darkmode={darkmode}
+                  nodes={nodes}
+                  setNodes={setNodes}
+                  setEdges={setEdges}
+                  edges={edges}
+                />
               </ReactFlowProvider>
             </div>
           ) : (
