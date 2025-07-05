@@ -10,7 +10,7 @@ const SidebarComponent = ({
   selectedPath,
   setCreate,
   setDarkmode,
-  darkmode, // <-- add darkmode prop
+  darkmode,
 }) => {
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);

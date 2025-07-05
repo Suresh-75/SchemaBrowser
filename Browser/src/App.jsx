@@ -120,17 +120,7 @@ export default function App() {
             {user == "admin" ? "Modeler" : "Analyst"}
           </button>
           <button
-            className={`transition-all cursor-pointer ${
-              darkmode
-                ? "hover:text-red-400 text-blue-300"
-                : "hover:text-red-600 text-blue-600"
-            }`}
-            onClick={() => navigate("/")}
-          >
-            <LogOutIcon />
-          </button>
-          <button
-            className={`ml-2 px-3 py-2 rounded-lg font-semibold transition-all ${
+            className={` px-3 py-2 rounded-lg font-semibold transition-all ${
               darkmode
                 ? "bg-slate-800 text-blue-200 hover:bg-blue-900"
                 : "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -139,6 +129,16 @@ export default function App() {
             title="Toggle dark mode"
           >
             {darkmode ? "🌙" : "☀️"}
+          </button>
+          <button
+            className={`transition-all cursor-pointer ${
+              darkmode
+                ? "hover:text-red-400 text-blue-300"
+                : "hover:text-red-600 text-blue-600"
+            }`}
+            onClick={() => navigate("/")}
+          >
+            <LogOutIcon />
           </button>
         </div>
       </nav>

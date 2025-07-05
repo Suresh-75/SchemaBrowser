@@ -41,7 +41,6 @@ const AnnotationsPanel = () => {
         <MessageSquare className="text-purple-600" size={20} />
         <h3 className="font-semibold text-gray-800">Annotations</h3>
       </div>
-
       <div className="space-y-3">
         {annotations.map((annotation) => (
           <div

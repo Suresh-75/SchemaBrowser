@@ -9,7 +9,6 @@ import {
   Target,
 } from "lucide-react";
 
-// Add darkmode prop
 const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
   const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
@@ -76,9 +75,7 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
   return (
     <div
       className={`w-full border-b ${
-        darkmode
-          ? "bg-slate-900 border-gray-800"
-          : "bg-gray-50 border-gray-200"
+        darkmode ? "bg-slate-900 border-gray-800" : "bg-gray-50 border-gray-200"
       }`}
     >
       {/* Breadcrumb showing current selection */}
@@ -235,9 +232,7 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                             <div className="py-2">
                               <div
                                 className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                                  darkmode
-                                    ? "text-gray-400"
-                                    : "text-gray-500"
+                                  darkmode ? "text-gray-400" : "text-gray-500"
                                 }`}
                               >
                                 Databases

@@ -21,7 +21,7 @@ import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
 
-const SchemaCardNode = React.memo(function SchemaCardNode({ data, darkmode }) {
+const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
     <div style={{ display: "inline-block" }}>
       <SchemaCards table={data.table} darkmode={data.darkmode} />
@@ -71,7 +71,7 @@ function ErDiagram({ selectedPath, darkmode }) {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(false);
   const exportRef = useRef(null);
   const reactFlowInstance = useReactFlow();
 
@@ -188,13 +188,7 @@ function ErDiagram({ selectedPath, darkmode }) {
         setEdges(newEdges);
       } catch (error) {
         console.error("Failed to load relationships:", error);
-        setNodes([
-          {
-            id: "error",
-            data: { label: "Error loading data" },
-            position: { x: 0, y: 0 },
-          },
-        ]);
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -247,6 +241,24 @@ function ErDiagram({ selectedPath, darkmode }) {
     <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
       {loading ? (
         <CircleLoader size={48} strokeWidth={5} />
+      ) : error ? (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1000,
+            background: darkmode ? "#374151" : "white", // Dark mode background
+            padding: "20px",
+            borderRadius: "8px",
+            border: darkmode ? "1px solid #4B5563" : "1px solid #ccc", // Dark mode border
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.2)",
+            color: darkmode ? "#D1D5DB" : "#374151", // Dark mode text color
+          }}
+        >
+          Error loading relationships
+        </div>
       ) : nodes.length === 0 ? (
         <div
           style={{
@@ -265,9 +277,7 @@ function ErDiagram({ selectedPath, darkmode }) {
         >
           No relationships
         </div>
-      ) : (
-        <></>
-      )}
+      ) : null}
       <ReactFlow
         nodes={nodes}
         edges={edges}

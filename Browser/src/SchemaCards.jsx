@@ -3,6 +3,7 @@ import { Handle, Position } from "@xyflow/react";
 
 const SchemaCards = ({ table, darkmode }) => {
   // Accept darkmode prop
+  console.log(table);
   console.log(darkmode);
   if (!table) {
     return (
@@ -84,7 +85,6 @@ const SchemaCards = ({ table, darkmode }) => {
           </span>
         </div>
       </div>
-
       {/* Columns */}
       <div
         className={`p-6 ${
