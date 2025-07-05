@@ -47,14 +47,66 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False):
     except Exception as e:
         conn.rollback()
         return {'error': str(e), 'status': 400}
+# ------------------- 1. Create LOB -------------------
+@app.route("/api/lobs", methods=["POST"])
+def create_lob():
+    data = request.json
+    name = data.get("name")
+
+    if not name:
+        return jsonify({"error": "LOB name is required"}), 400
+
+    try:
+        # Check if a LOB with the same name already exists
+        cursor.execute("SELECT id FROM lobs WHERE name = %s", (name,))
+        if cursor.fetchone():
+            return jsonify({"error": "LOB with this name already exists"}), 409
+
+        # Insert new LOB
+        cursor.execute(
+            "INSERT INTO lobs (name) VALUES (%s) RETURNING id;",
+            (name,)
+        )
+        lob_id = cursor.fetchone()[0]
+        conn.commit()
+        return jsonify({"message": "LOB created", "id": lob_id}), 201
+
+    except psycopg2.IntegrityError:
+        conn.rollback()
+        return jsonify({"error": "Database constraint failed: LOB name must be unique"}), 409
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 
 # ------------------- 2. Create Subject Area -------------------
 @app.route("/api/subject-areas", methods=["POST"])
 def create_subject_area():
     data = request.json
+    name = data["name"]
+    lob_name = data["lob_name"]
+
+    # Find LOB ID
+    cursor.execute("SELECT id FROM lobs WHERE name = %s", (lob_name,))
+    lob_result = cursor.fetchone()
+    if not lob_result:
+        return jsonify({"message": "LOB not found"}), 404
+
+    lob_id = lob_result[0]
+
+    # Check for existing subject area with same name under same LOB
+    cursor.execute(
+        "SELECT id FROM subject_areas WHERE name = %s AND lob_id = %s",
+        (name, lob_id),
+    )
+    if cursor.fetchone():
+        return jsonify({"message": "Subject Area already exists under this LOB."}), 400
+
     cursor.execute(
         "INSERT INTO subject_areas (name, lob_id) VALUES (%s, %s) RETURNING id",
-        (data["name"], data["lob_id"])
+        (name, lob_id),
     )
     conn.commit()
     return jsonify({"message": "Subject Area created", "id": cursor.fetchone()[0]})
@@ -64,22 +116,44 @@ def create_subject_area():
 @app.route("/api/logical-databases", methods=["POST"])
 def create_logical_db():
     data = request.json
-    cursor.execute(
-        "INSERT INTO databases (name, subject_area_id) VALUES (%s, %s) RETURNING id",
-        (data["name"], data["subject_area_id"])
-    )
-    conn.commit()
-    new_id = cursor.fetchone()[0]
+    lob_name = data["lob_name"]
+    subject_name = data["subject_name"]
 
-    # Create schema in Postgres if not exists
+    # Get subject_area_id from lob_name + subject_name
+    cursor.execute("""
+        SELECT sa.id 
+        FROM subject_areas sa
+        JOIN lobs l ON sa.lob_id = l.id
+        WHERE sa.name = %s AND l.name = %s
+    """, (subject_name, lob_name))
+    
+    result = cursor.fetchone()
+    if not result:
+        return jsonify({"error": "Subject Area not found for given LOB"}), 404
+
+    subject_area_id = result[0]
+
+    # Insert new logical database
     try:
-        cursor.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(data['name'])))
+        cursor.execute(
+            "INSERT INTO logical_databases (name, subject_area_id) VALUES (%s, %s) RETURNING id",
+            (data["name"], subject_area_id)
+        )
         conn.commit()
+        new_id = cursor.fetchone()[0]
+
+        # Create schema in Postgres if not exists
+        try:
+            cursor.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(data['name'])))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"message": f"Schema creation failed: {str(e)}"}), 400
+
+        return jsonify({"message": "Logical DB created", "id": new_id})
     except Exception as e:
         conn.rollback()
-        return jsonify({"message": f"Schema creation failed: {str(e)}"}), 400
-
-    return jsonify({"message": "Logical DB created", "id": new_id})
+        return jsonify({"error": f"Failed to create Logical DB: {str(e)}"}), 400
 
 
 # ------------------- 4. Create Table -------------------
