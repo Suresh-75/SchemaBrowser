@@ -2,9 +2,6 @@ import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
 const SchemaCards = ({ table, darkmode }) => {
-  // Accept darkmode prop
-  console.log(table);
-  console.log(darkmode);
   if (!table) {
     return (
       <div
@@ -24,7 +21,7 @@ const SchemaCards = ({ table, darkmode }) => {
 
   return (
     <div
-      className={`rounded-2xl shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden max-w-md ring-1 ${
+      className={`rounded-2xl shadow-2xl transition-all duration-300  overflow-hidden max-w-md ring-1 ${
         darkmode
           ? "bg-gray-800 hover:shadow-3xl-dark border-gray-700 ring-gray-700"
           : "bg-white hover:shadow-3xl border-slate-200 ring-slate-100"
@@ -35,7 +32,7 @@ const SchemaCards = ({ table, darkmode }) => {
         type="target"
         position={Position.Left}
         id="left-target"
-        className={`w-3 h-3 rounded-full ${
+        className={`w-5 h-5 rounded-full ${
           darkmode ? "bg-blue-600" : "bg-blue-500"
         }`}
       />
@@ -43,7 +40,7 @@ const SchemaCards = ({ table, darkmode }) => {
         type="source"
         position={Position.Right}
         id="right-source"
-        className={`w-3 h-3 rounded-full ${
+        className={`w-5 h-5 rounded-full ${
           darkmode ? "bg-green-600" : "bg-green-500"
         }`}
       />

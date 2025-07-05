@@ -19,6 +19,7 @@ import SidebarComponent from "./Components/SidebarComponent";
 import SearchBar from "./Components/SearchBar";
 import FilterBar from "./Components/FilterBar";
 import AddEntityComponent from "./Components/AddEntity";
+import AddRel from "./Components/AddRel";
 import { useLocation } from "react-router-dom";
 import { ReactFlowProvider } from "@xyflow/react";
 
@@ -73,7 +74,11 @@ export default function App() {
       {create == "Relationship" && (
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
-          <AddEntityComponent setCreate={setCreate} darkmode={darkmode} />
+          <AddRel
+            setCreate={setCreate}
+            darkmode={darkmode}
+            selectedPath={selectedPath}
+          />
         </>
       )}
       <nav

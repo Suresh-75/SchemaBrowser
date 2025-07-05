@@ -212,10 +212,10 @@ function ErDiagram({ selectedPath, darkmode }) {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
-  const onConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge(connection, eds)),
-    []
-  );
+  const onConnect = useCallback((params) => {
+    // console.log(params);
+    setEdges((eds) => addEdge(params, eds));
+  }, []);
 
   useEffect(() => {
     if (!loading && nodes.length > 0) {

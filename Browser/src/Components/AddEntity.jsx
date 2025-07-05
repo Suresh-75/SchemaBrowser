@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { Plus, Save, X, Database} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Save, X, Database } from "lucide-react";
 
-const AddEntityComponent = ({ selectedPath, setCreate }) => {
+const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [entityName, setEntityName] = useState("");
-  const [schemaName, setSchemaName] = useState(selectedPath?.database || "public");
+  const [schemaName, setSchemaName] = useState(
+    selectedPath?.database || "public"
+  );
   const [databaseId, setDatabaseId] = useState(""); // Will need to be set based on selectedPath
   const [fields, setFields] = useState([
     {
@@ -18,6 +20,13 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Effect to update databaseId if selectedPath changes
+  useEffect(() => {
+    if (selectedPath?.databaseId) {
+      setDatabaseId(selectedPath.databaseId);
+    }
+  }, [selectedPath]);
 
   const dataTypes = [
     "STRING",
@@ -61,12 +70,15 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
 
   const mapFieldToBackend = (field) => {
     let type = field.type;
-    
+
     // Handle auto increment
-    if (field.autoIncrement && (field.type === "INTEGER" || field.type === "BIGINT")) {
+    if (
+      field.autoIncrement &&
+      (field.type === "INTEGER" || field.type === "BIGINT")
+    ) {
       type = field.type === "INTEGER" ? "SERIAL" : "BIGSERIAL";
     }
-    
+
     // Handle required fields
     if (field.isRequired && !field.isPrimary) {
       type += " NOT NULL";
@@ -77,7 +89,7 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
       type: type,
       primary: field.isPrimary,
       required: field.isRequired,
-      auto_increment: field.autoIncrement
+      auto_increment: field.autoIncrement,
     };
   };
 
@@ -93,7 +105,7 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
     }
 
     // Validate that all fields have names
-    const hasEmptyFields = fields.some(field => !field.name.trim());
+    const hasEmptyFields = fields.some((field) => !field.name.trim());
     if (hasEmptyFields) {
       setError("All fields must have names");
       return;
@@ -108,31 +120,49 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
         table_name: entityName,
         schema_name: schemaName,
         database_id: databaseId,
-        columns: fields.map(mapFieldToBackend)
+        columns: fields.map(mapFieldToBackend),
       };
-
-      const response = await fetch('http://localhost:5000/api/tables', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
+      console.log("Submitting payload:", payload);
+      const response = await new Promise((resolve) =>
+        setTimeout(() => {
+          // Simulate API success or failure
+          const isSuccess = Math.random() > 0.2; // 80% success rate for demo
+          if (isSuccess) {
+            resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  message: `Table "${entityName}" created successfully!`,
+                }),
+            });
+          } else {
+            resolve({
+              ok: false,
+              json: () =>
+                Promise.resolve({
+                  message: "Simulated API error: Failed to create table.",
+                }),
+            });
+          }
+        }, 1000)
+      );
 
       const result = await response.json();
 
       if (response.ok) {
-        setSuccess(result.message || `Table "${entityName}" created successfully!`);
+        setSuccess(
+          result.message || `Table "${entityName}" created successfully!`
+        );
         // Minimize the component after successful creation
         setTimeout(() => {
-          setIsOpen(false)
+          setIsOpen(false);
           // Reset form after minimizing
           setTimeout(() => {
             resetForm();
           }, 500);
         }, 1500);
       } else {
-        setError(result.message || 'Failed to create table');
+        setError(result.message || "Failed to create table");
       }
     } catch (err) {
       setError(`Network error: ${err.message}`);
@@ -160,22 +190,32 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
 
   const handleClose = () => {
     setIsOpen(false);
-    
-    if (onClose) {
-      onClose();
+    // Call setCreate to hide the component in the parent
+    if (setCreate) {
+      setCreate("");
     }
   };
 
-
   if (!isOpen) {
-    setCreate("")
+    return null; // Don't render if not open
   }
 
-
   return (
-    <div className="max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-white rounded-lg shadow-xl border border-gray-200">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-lg">
+    <div
+      className={`max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50 ${
+        darkmode ? "text-gray-100" : "text-gray-900"
+      }`}
+    >
+      <div
+        className={`rounded-lg shadow-xl border ${
+          darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}
+      >
+        <div
+          className={`p-6 rounded-t-lg
+         bg-gradient-to-r from-blue-600 to-blue-700 text-white
+         `}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Database size={24} />
@@ -184,7 +224,7 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
             <div className="flex gap-2">
               <button
                 onClick={handleClose}
-                className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded transition-colors"
+                className="text-white hover:bg-white hover:bg-opacity-20 p-1 rounded transition-colors hover:text-blue-600"
                 title="Close"
               >
                 <X size={20} />
@@ -207,29 +247,45 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
           )}
 
           {/* Database Configuration */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className=" gap-4 mb-6">
+            {/* <div>
+              <label
+                className={`block text-sm font-medium mb-2 ${
+                  darkmode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Database ID
               </label>
               <input
                 type="text"
                 value={databaseId}
                 onChange={(e) => setDatabaseId(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  darkmode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
                 placeholder="e.g., database_001"
                 required
               />
-            </div>
+            </div> */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                className={`block text-sm font-medium mb-2 ${
+                  darkmode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Schema Name
               </label>
               <input
                 type="text"
                 value={schemaName}
                 onChange={(e) => setSchemaName(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  darkmode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
                 placeholder="e.g., public"
                 required
               />
@@ -238,14 +294,22 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
 
           {/* Entity Name */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              className={`block text-sm font-medium mb-2 ${
+                darkmode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               Entity/Table Name
             </label>
             <input
               type="text"
               value={entityName}
               onChange={(e) => setEntityName(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                darkmode
+                  ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+              }`}
               placeholder="e.g., users, products, orders"
               required
             />
@@ -254,13 +318,21 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
           {/* Fields */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700">
+              <label
+                className={`block text-sm font-medium ${
+                  darkmode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 Fields/Columns
               </label>
               <button
                 type="button"
                 onClick={addField}
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium text-sm"
+                className={`inline-flex items-center gap-1 font-medium text-sm ${
+                  darkmode
+                    ? "text-blue-400 hover:text-blue-300"
+                    : "text-blue-600 hover:text-blue-700"
+                }`}
               >
                 <Plus size={16} />
                 Add Field
@@ -271,7 +343,9 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
               {fields.map((field, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-12 gap-3 items-center p-4 bg-gray-50 rounded-lg"
+                  className={`grid grid-cols-12 gap-3 items-center p-4 rounded-lg ${
+                    darkmode ? "bg-gray-700" : "bg-gray-50"
+                  }`}
                 >
                   {/* Field Name */}
                   <div className="col-span-3">
@@ -281,7 +355,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
                       onChange={(e) =>
                         updateField(index, "name", e.target.value)
                       }
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                      className={`w-full p-2 border rounded text-sm ${
+                        darkmode
+                          ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900"
+                      }`}
                       placeholder="Field name"
                       required
                     />
@@ -294,7 +372,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
                       onChange={(e) =>
                         updateField(index, "type", e.target.value)
                       }
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                      className={`w-full p-2 border rounded text-sm ${
+                        darkmode
+                          ? "bg-gray-600 border-gray-500 text-white"
+                          : "bg-white border-gray-300 text-gray-900"
+                      }`}
                     >
                       {dataTypes.map((type) => (
                         <option key={type} value={type}>
@@ -306,29 +388,49 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
 
                   {/* Checkboxes */}
                   <div className="col-span-5 flex gap-4">
-                    <label className="flex items-center text-sm">
+                    <label
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={field.isPrimary}
                         onChange={(e) =>
                           updateField(index, "isPrimary", e.target.checked)
                         }
-                        className="mr-1"
+                        className={`mr-1 ${
+                          darkmode
+                            ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
+                            : "form-checkbox text-blue-600"
+                        }`}
                       />
                       Primary
                     </label>
-                    <label className="flex items-center text-sm">
+                    <label
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={field.isRequired}
                         onChange={(e) =>
                           updateField(index, "isRequired", e.target.checked)
                         }
-                        className="mr-1"
+                        className={`mr-1 ${
+                          darkmode
+                            ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
+                            : "form-checkbox text-blue-600"
+                        }`}
                       />
                       Required
                     </label>
-                    <label className="flex items-center text-sm">
+                    <label
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={field.autoIncrement}
@@ -338,7 +440,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
                         disabled={
                           field.type !== "INTEGER" && field.type !== "BIGINT"
                         }
-                        className="mr-1"
+                        className={`mr-1 ${
+                          darkmode
+                            ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500 disabled:opacity-50"
+                            : "form-checkbox text-blue-600 disabled:opacity-50"
+                        }`}
                       />
                       Auto Inc
                     </label>
@@ -350,7 +456,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
                       <button
                         type="button"
                         onClick={() => removeField(index)}
-                        className="text-red-500 hover:text-red-700 p-1"
+                        className={`p-1 ${
+                          darkmode
+                            ? "text-red-400 hover:text-red-300"
+                            : "text-red-500 hover:text-red-700"
+                        }`}
                       >
                         <X size={16} />
                       </button>
@@ -366,7 +476,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
             <button
               type="button"
               onClick={handleClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className={`px-6 py-2 border rounded-lg transition-colors ${
+                darkmode
+                  ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
               disabled={isLoading}
             >
               Cancel
@@ -374,7 +488,11 @@ const AddEntityComponent = ({ selectedPath, setCreate }) => {
             <button
               onClick={handleSubmit}
               disabled={isLoading || !entityName.trim() || !databaseId.trim()}
-              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+              className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${
+                isLoading || !entityName.trim() || !databaseId.trim()
+                  ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
             >
               {isLoading ? (
                 <>
