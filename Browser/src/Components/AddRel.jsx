@@ -23,7 +23,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}`
+        `http://localhost:5000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -71,22 +71,20 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   };
 
   const fetchTableColumns = async (tableId, type) => {
-    try {
-      const response = await fetchTableInfo(tableId);
-      // console.log("Fetched columns for table:", tableId, response);
-      // const data = await response.json();
-      const { input_format, output_format, location, partioned_by } = response;
-      const columns = [input_format, output_format, location, partioned_by];
-      console.log("Columns for table:", tableId, columns);
-      if (type === "from") {
-        setFromTableColumns(columns || []);
-      } else {
-        setToTableColumns(columns || []);
-      }
-    } catch (err) {
-      console.error("Error fetching table columns:", err);
+  try {
+    const response = await fetchTableInfo(tableId);
+    const { attributes } = response; // ✅ this contains column names from backend
+    console.log("Columns for table:", tableId, attributes);
+    if (type === "from") {
+      setFromTableColumns(attributes || []);
+    } else {
+      setToTableColumns(attributes || []);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching table columns:", err);
+  }
+};
+
 
   const checkRelationshipExists = async () => {
     try {

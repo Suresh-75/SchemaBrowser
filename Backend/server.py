@@ -268,34 +268,34 @@ def create_table():
         return jsonify({"message": str(e)}), 400
 
 # table attributes NOT WORKING
-@app.route('/api/table_attributes/<int:table_id>', methods=['GET'])
+@app.route('/api/tables/<int:table_id>/attributes', methods=['GET'])
 def get_table_attributes(table_id):
     try:
+        # Step 1: Get table name and schema from metadata
         cursor.execute("""
-            SELECT t.id, t.name, t.schema_name, d.name AS database_name
-            FROM tables_metadata t
-            JOIN logical_databases d ON t.database_id = d.id
-            WHERE t.id = %s;
+            SELECT name, schema_name
+            FROM tables_metadata
+            WHERE id = %s;
         """, (table_id,))
         row = cursor.fetchone()
+
         if not row:
             return jsonify({"error": "Table not found in metadata"}), 404
-        schema_name = row[2]
-        table_name = row[1]
-        print("Schema name:", schema_name)
-        print("Table name:", table_name)
 
-        query = sql.SQL("SELECT column_name FROM {}.columns_metadata WHERE table_id = %s").format(
-            sql.Identifier(schema_name)
-        )
+        table_name, schema_name = row
 
-        cursor.execute(query, (table_id,))
-        columns = [col[0] for col in cursor.fetchall()]
-        print("Columns fetched:", columns)
+        # Step 2: Fetch column names from information_schema
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s
+            ORDER BY ordinal_position;
+        """, (schema_name, table_name))
+        columns = [r[0] for r in cursor.fetchall()]
 
         if not columns:
             return jsonify({
-                "error": f"No attributes found for table '{table_name}' in schema '{schema_name}'."
+                "error": f"No columns found for table '{table_name}' in schema '{schema_name}'"
             }), 404
 
         return jsonify({
@@ -307,6 +307,7 @@ def get_table_attributes(table_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 # ------------------- 5. View Hierarchy -------------------
 @app.route("/api/hierarchy", methods=["GET"])
 def get_hierarchy():
