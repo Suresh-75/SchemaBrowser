@@ -166,6 +166,73 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         },
       };
       setEdges((edges) => [...edges, newNode]);
+      setNodes((prevNodes) => {
+        const existingNodeIds = new Set(prevNodes.map((node) => node.id));
+        const updatedNodes = [...prevNodes];
+
+        const fromTable = tables.find((t) => t.id.toString() === fromTableId);
+        const toTable = tables.find((t) => t.id.toString() === toTableId);
+
+        if (!existingNodeIds.has(fromTableId)) {
+          updatedNodes.push({
+            id: fromTableId,
+            type: "schemaCard",
+            data: {
+              label: fromTable?.name || `Table ${fromTableId}`,
+              table: {
+                ...fromTable,
+                table_name: fromTable?.name || `Table ${fromTableId}`,
+                columns: fromTableColumns.map((col) => ({
+                  name: col,
+                  type: "text",
+                  is_primary_key: false,
+                  is_nullable: true,
+                })),
+                input_format: fromTable?.input_format,
+                output_format: fromTable?.output_format,
+                location: fromTable?.location,
+                partitioned_by: fromTable?.partitioned_by,
+              },
+              darkmode,
+            },
+            position: {
+              x: 100 + Math.random() * 300,
+              y: 100 + Math.random() * 300,
+            },
+          });
+        }
+
+        if (!existingNodeIds.has(toTableId)) {
+          updatedNodes.push({
+            id: toTableId,
+            type: "schemaCard",
+            data: {
+              label: toTable?.name || `Table ${toTableId}`,
+              table: {
+                ...toTable,
+                table_name: toTable?.name || `Table ${toTableId}`,
+                columns: toTableColumns.map((col) => ({
+                  name: col,
+                  type: "text",
+                  is_primary_key: false,
+                  is_nullable: true,
+                })),
+                input_format: toTable?.input_format,
+                output_format: toTable?.output_format,
+                location: toTable?.location,
+                partitioned_by: toTable?.partitioned_by,
+              },
+              darkmode,
+            },
+            position: {
+              x: 400 + Math.random() * 300,
+              y: 100 + Math.random() * 300,
+            },
+          });
+        }
+
+        return updatedNodes;
+      });
       const response = await axios.post(
         "http://localhost:5000/api/er_relationships",
         relationshipData
