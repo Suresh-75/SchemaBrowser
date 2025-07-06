@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Save, X, Database, Link } from "lucide-react";
 import axios from "axios";
 
-const AddRel = ({ selectedPath, setCreate, darkmode, setEdges }) => {
+const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [databaseName, setDatabaseName] = useState(
     selectedPath?.database || "public"
