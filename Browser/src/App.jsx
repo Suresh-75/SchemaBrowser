@@ -79,6 +79,7 @@ export default function App() {
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
           <AddRel
             setCreate={setCreate}
+            setEdges={setEdges}
             darkmode={darkmode}
             selectedPath={selectedPath}
           />

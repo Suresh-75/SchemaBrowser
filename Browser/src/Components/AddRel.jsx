@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Save, X, Database, Link } from "lucide-react";
 import axios from "axios";
 
-const AddRel = ({ selectedPath, setCreate, darkmode }) => {
+const AddRel = ({ selectedPath, setCreate, darkmode, setEdges }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [databaseName, setDatabaseName] = useState(
     selectedPath?.database || "public"
@@ -154,7 +154,18 @@ const AddRel = ({ selectedPath, setCreate, darkmode }) => {
         relationship_type: relationshipType,
         database_name: databaseName,
       };
-      console.log(relationshipData);
+      const newNode = {
+        id: `e${relationshipData.from_table_id}-${relationshipData.to_table_id}-${relationshipData.id}`,
+        source: relationshipData.from_table_id.toString(),
+        target: relationshipData.to_table_id.toString(),
+        label: `${relationshipData.from_column} → ${relationshipData.to_column}`,
+        animated: true,
+        data: {
+          cardinality: relationshipData.cardinality,
+          relationshipType: relationshipData.relationshipDataationship_type,
+        },
+      };
+      setEdges((edges) => [...edges, newNode]);
       const response = await axios.post(
         "http://localhost:5000/api/er_relationships",
         relationshipData
