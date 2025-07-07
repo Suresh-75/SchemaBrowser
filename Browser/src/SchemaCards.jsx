@@ -90,11 +90,6 @@ const SchemaCards = ({ table, darkmode }) => {
           </div>
 
           {/* Table count badge */}
-          {table.attributes && (
-            <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
-              {table.attributes.length} attrs
-            </div>
-          )}
         </div>
       </div>
 
@@ -172,30 +167,43 @@ const SchemaCards = ({ table, darkmode }) => {
               : "bg-slate-50 border-slate-200"
           }`}
         >
-          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <div
-              className={`p-2 rounded-lg ${
+          <div className="mb-4 flex items-center justify-between">
+            <h4 className="text-lg font-semibold flex items-center gap-2">
+              <div
+                className={`p-2 rounded-lg ${
+                  darkmode
+                    ? "bg-gray-700 text-blue-400"
+                    : "bg-blue-100 text-blue-600"
+                }`}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 17v-6h13M9 7H5a2 2 0 00-2 2v9a2 2 0 002 2h4m13-6l-3-3m0 0l3-3m-3 3H9"
+                  />
+                </svg>
+              </div>
+              Metadata
+            </h4>
+
+            <button
+              onClick={handleProfileRequest}
+              className={`px-3 py-1.5 text-sm rounded-lg font-medium shadow ${
                 darkmode
-                  ? "bg-gray-700 text-blue-400"
-                  : "bg-blue-100 text-blue-600"
+                  ? "bg-indigo-600 hover:bg-indigo-500 text-white"
+                  : "bg-indigo-100 hover:bg-indigo-200 text-indigo-800"
               }`}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 17v-6h13M9 7H5a2 2 0 00-2 2v9a2 2 0 002 2h4m13-6l-3-3m0 0l3-3m-3 3H9"
-                />
-              </svg>
-            </div>
-            Metadata
-          </h4>
+              Generate Profile
+            </button>
+          </div>
 
           <div className="grid gap-4">
             {table.table_id && (
