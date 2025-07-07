@@ -1,9 +1,9 @@
 import os
-from flask import Flask, request, jsonify, send_file
 import psycopg2
 from psycopg2 import Error, sql
 from flask_cors import CORS
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify, send_file
 import pandas as pd
 from ydata_profiling import ProfileReport
 # Load environment variables from .env file

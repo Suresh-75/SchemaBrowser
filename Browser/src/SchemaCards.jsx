@@ -2,6 +2,39 @@ import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
 const SchemaCards = ({ table, darkmode }) => {
+  const handleProfileRequest = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          schema: table.schema_name,
+          table: table.table_name,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert("Error: " + error.error);
+        return;
+      }
+
+      // Get the filename from Content-Disposition header (if present)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${table.schema_name}_${table.table_name}_profile.html`;
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error("Profile generation failed:", error);
+      alert("Failed to generate profile.");
+    }
+  };
+
   if (!table) {
     return (
       <div
