@@ -188,42 +188,46 @@ def get_tables_inDB(database_name):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/tables/<int:table_id>", methods=["GET"])
-def get_table_by_id(table_id):
-    try:
-        cursor.execute("""
-            SELECT t.id, t.name, t.schema_name, d.name AS database_name
-            FROM tables_metadata t
-            JOIN logical_databases d ON t.database_id = d.id
-            WHERE t.id = %s;
-        """, (table_id,))
-        row = cursor.fetchone()
-        if not row:
-            return jsonify({"error": "Table not found in metadata"}), 404
-        database_name = row[3]
-        schema_name = row[2]
-        cursor.execute(sql.SQL("""
-            SELECT table_id, table_name, input_format, output_format, location, partitioned_by
-            FROM {}.table
-            WHERE table_id = %s;
-        """).format(sql.Identifier(schema_name)), (table_id,))
-        table_row = cursor.fetchone()
-        if not table_row:
-            return jsonify({"error": f"table_id {table_id} not found in {schema_name}.table"}), 404
-        # Prepare full response
-        table_details = {
-            "table_id": table_row[0],
-            "table_name": table_row[1],
-            "input_format": table_row[2],
-            "output_format": table_row[3],
-            "location": table_row[4],
-            "partitioned_by": table_row[5],
-            "database_name": database_name,
-        }
-        return jsonify(table_details)
+# @app.route("/api/tables/<int:table_id>", methods=["GET"])
+# def get_table_by_id(table_id):
+#     try:
+#         cursor.execute("""
+#             SELECT t.id, t.name, t.schema_name
+#             FROM tables_metadata t
+#             WHERE t.id = %s;
+#         """, (table_id,))
+#         row = cursor.fetchone()
+#         print(row)
+#         if not row:
+#             return jsonify({"error": "Table not found in metadata"}), 404
+        
+#         table_name = row[1]
+#         schema_name = row[2]
+#         # Second query to get table details from schema_name.table_name
+#         cursor.execute("""
+#             SELECT column_name
+#             FROM information_schema.columns
+#             WHERE table_schema = %s AND table_name = %s
+#             ORDER BY ordinal_position;
+#         """, (schema_name, table_name))
+#         columns = [r[0] for r in cursor.fetchall()]
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#         print(f"Attribute names: {columns}")
+#         # Prepare full response
+#         table_details = {
+#             "table_id": table_row[0],
+#             "table_name": table_row[1],
+#             "input_format": table_row[2],
+#             "output_format": table_row[3],
+#             "location": table_row[4],
+#             "partitioned_by": table_row[5],
+#             "database_name": schema_name,
+#         }
+        
+#         return jsonify(table_details)
+    
+#     except Exception as e:
+#         return jsonify({"error": f"Database error: {str(e)}"}), 500
     
 @app.route("/api/tables", methods=["POST"])
 def create_table():
@@ -272,17 +276,20 @@ def create_table():
 def get_table_attributes(table_id):
     try:
         # Step 1: Get table name and schema from metadata
+        print(table_id)
         cursor.execute("""
             SELECT name, schema_name
             FROM tables_metadata
             WHERE id = %s;
         """, (table_id,))
         row = cursor.fetchone()
-
+        
         if not row:
             return jsonify({"error": "Table not found in metadata"}), 404
 
         table_name, schema_name = row
+        print(table_name)
+        print(schema_name)
 
         # Step 2: Fetch column names from information_schema
         cursor.execute("""
@@ -292,7 +299,7 @@ def get_table_attributes(table_id):
             ORDER BY ordinal_position;
         """, (schema_name, table_name))
         columns = [r[0] for r in cursor.fetchall()]
-
+        print(f"Attribute names: {columns}")
         if not columns:
             return jsonify({
                 "error": f"No columns found for table '{table_name}' in schema '{schema_name}'"

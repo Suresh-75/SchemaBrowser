@@ -115,7 +115,7 @@ function ErDiagram({
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}`
+        `http://localhost:5000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -190,6 +190,7 @@ function ErDiagram({
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
         );
+        console.log(newNodes);
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
