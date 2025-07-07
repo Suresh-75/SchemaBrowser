@@ -33,19 +33,21 @@ const SidebarComponent = ({
         setRels([]);
         return;
       }
-
+  
       try {
         const tablesResponse = await axios.get(
           `http://localhost:5000/api/tables/${selectedPath.database}`
         );
         setData(tablesResponse.data);
+  
         const relationshipsResponse = await axios.get(
           `http://localhost:5000/api/er_relationships/${selectedPath.database}`
         );
         const relsData = relationshipsResponse.data;
+  
         const processedRels = relsData.map((rel) => ({
           id: rel.id,
-          display: `${rel.from_column} --> ${rel.to_column}`,
+          display: rel.display,  
         }));
         setRels(processedRels);
       } catch (error) {
@@ -57,9 +59,10 @@ const SidebarComponent = ({
         );
       }
     };
+  
     fetchAllData();
   }, [selectedPath]);
-
+  
   let lineage = [];
   if (selectedPath?.lob) lineage.push(selectedPath.lob);
   if (selectedPath?.subject) lineage.push(selectedPath.subject);

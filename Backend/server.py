@@ -410,13 +410,25 @@ def get_all_er_relationships():
 
 @app.route('/api/er_relationships/<string:database_name>', methods=['GET'])
 def get_all_er_relationships_inDB(database_name):
-    """Retrieves all ER Relationships for a specific database."""
+    """Retrieves all ER Relationships for a specific database with table names."""
     query = """
-    SELECT id, from_table_id, from_column, to_table_id, to_column, 
-           cardinality, relationship_type, created_at, database_name 
-    FROM er_relationships 
-    WHERE database_name = %s 
-    ORDER BY id;
+    SELECT 
+        r.id, 
+        r.from_table_id, 
+        ft.name AS from_table_name,
+        r.from_column, 
+        r.to_table_id, 
+        tt.name AS to_table_name,
+        r.to_column, 
+        r.cardinality, 
+        r.relationship_type, 
+        r.created_at, 
+        r.database_name
+    FROM er_relationships r
+    JOIN tables_metadata ft ON r.from_table_id = ft.id
+    JOIN tables_metadata tt ON r.to_table_id = tt.id
+    WHERE r.database_name = %s
+    ORDER BY r.id;
     """
     results = execute_query(query, (database_name,), fetch_all=True)
     if isinstance(results, list):
@@ -425,15 +437,17 @@ def get_all_er_relationships_inDB(database_name):
             relationships.append({
                 'id': row[0],
                 'from_table_id': row[1],
-                'from_column': row[2],
-                'to_table_id': row[3],
-                'to_column': row[4],
-                'cardinality': row[5],
-                'relationship_type': row[6],
-                'created_at': row[7].isoformat() if row[7] else None, # Convert datetime to ISO format string
-                'database_name': row[8]
+                'from_table_name': row[2],
+                'from_column': row[3],
+                'to_table_id': row[4],
+                'to_table_name': row[5],
+                'to_column': row[6],
+                'cardinality': row[7],
+                'relationship_type': row[8],
+                'created_at': row[9].isoformat() if row[9] else None,
+                'database_name': row[10],
+                'display': f"{row[2]}.{row[3]} → {row[5]}.{row[6]}"
             })
-        # print("rels ",relationships)
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 
