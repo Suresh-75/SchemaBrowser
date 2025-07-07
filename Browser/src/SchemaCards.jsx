@@ -2,8 +2,6 @@ import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
 const SchemaCards = ({ table, darkmode }) => {
-  // Check if table object and its required properties exist
-  console.log(table);
   if (!table) {
     return (
       <div

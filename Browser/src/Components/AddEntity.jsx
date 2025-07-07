@@ -123,9 +123,8 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
         },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
-
+      console.log(result);
       if (response.ok) {
         setSuccess(
           result.message || `Table "${entityName}" created successfully!`

@@ -9,6 +9,7 @@ const SidebarComponent = ({
   activeTab = "overview",
   selectedPath,
   setCreate,
+  create,
   setDarkmode,
   darkmode,
   setNodes,
@@ -18,7 +19,7 @@ const SidebarComponent = ({
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}`
+        `http://localhost:5000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -33,21 +34,22 @@ const SidebarComponent = ({
         setRels([]);
         return;
       }
-  
+
       try {
         const tablesResponse = await axios.get(
           `http://localhost:5000/api/tables/${selectedPath.database}`
         );
+        console.log(tablesResponse.data);
         setData(tablesResponse.data);
-  
+
         const relationshipsResponse = await axios.get(
           `http://localhost:5000/api/er_relationships/${selectedPath.database}`
         );
         const relsData = relationshipsResponse.data;
-  
+
         const processedRels = relsData.map((rel) => ({
           id: rel.id,
-          display: rel.display,  
+          display: rel.display,
         }));
         setRels(processedRels);
       } catch (error) {
@@ -59,10 +61,10 @@ const SidebarComponent = ({
         );
       }
     };
-  
+
     fetchAllData();
-  }, [selectedPath]);
-  
+  }, [selectedPath, create]);
+
   let lineage = [];
   if (selectedPath?.lob) lineage.push(selectedPath.lob);
   if (selectedPath?.subject) lineage.push(selectedPath.subject);
@@ -77,203 +79,325 @@ const SidebarComponent = ({
       return <AnnotationsPanel />;
     case "entities":
       return (
-        <div
-          className={`flex flex-col space-y-4 ${
-            user === "admin" ? "max-h-[25rem]" : "max-h-[30rem]"
-          }`}
-          aria-label="Entities Panel"
-        >
-          <h3
-            className={`font-semibold flex items-center gap-2 mb-2 ${
-              darkmode ? "text-blue-200" : "text-gray-800"
+        <>
+          <style jsx>{`
+            /* Light mode custom scrollbar */
+            .custom-scrollbar-light::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-track {
+              background: #f1f5f9;
+              border-radius: 8px;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-thumb {
+              background: #cbd5e1;
+              border-radius: 8px;
+              border: 2px solid #f1f5f9;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+              background: #94a3b8;
+            }
+
+            /* Dark mode custom scrollbar */
+            .custom-scrollbar-dark::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-track {
+              background: #1e293b;
+              border-radius: 8px;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+              background: #475569;
+              border-radius: 8px;
+              border: 2px solid #1e293b;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+              background: #64748b;
+            }
+
+            /* Firefox scrollbar support */
+            .custom-scrollbar-light {
+              scrollbar-width: thin;
+              scrollbar-color: #cbd5e1 #f1f5f9;
+            }
+
+            .custom-scrollbar-dark {
+              scrollbar-width: thin;
+              scrollbar-color: #475569 #1e293b;
+            }
+          `}</style>
+          <div
+            className={`flex flex-col space-y-4 ${
+              user === "admin" ? "max-h-[30rem]" : "max-h-[35rem]"
             }`}
+            aria-label="Entities Panel"
           >
-            <Box
-              className={darkmode ? "text-blue-400" : "text-blue-600"}
-              size={20}
-            />
-            Entities
-          </h3>
-          <div className="flex-1 overflow-y-scroll space-y-2 pr-1">
-            {data.length > 0 ? (
-              data.map((entity) => (
-                <div
-                  key={entity.id}
-                  className={`p-4 rounded-xl border shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3 ${
-                    darkmode
-                      ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
-                      : "bg-blue-100 to-white border-blue-100"
-                  }`}
-                  tabIndex={0}
-                  onClick={async () => {
-                    const data = await fetchTableInfo(entity.id);
-                    setNodes((prevNodes) => [
-                      ...prevNodes,
-                      {
-                        id: entity.id.toString(),
-                        type: "schemaCard",
-                        data: {
-                          // label: tableMap[tableId]?.name || `Table ${tableId}`,
-                          table: data,
-                          darkmode: darkmode,
+            <h3
+              className={`font-semibold flex items-center gap-2 mb-2 ${
+                darkmode ? "text-blue-200" : "text-gray-800"
+              }`}
+            >
+              <Box
+                className={darkmode ? "text-blue-400" : "text-blue-600"}
+                size={20}
+              />
+              Entities
+            </h3>
+            <div
+              className={`flex-1 overflow-y-scroll space-y-2 pr-1 ${
+                darkmode ? "custom-scrollbar-dark" : "custom-scrollbar-light"
+              }`}
+            >
+              {data.length > 0 ? (
+                data.map((entity) => (
+                  <div
+                    key={entity.id}
+                    className={`p-4 rounded-xl border shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3 ${
+                      darkmode
+                        ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
+                        : "bg-blue-100 to-white border-blue-100"
+                    }`}
+                    tabIndex={0}
+                    onClick={async () => {
+                      const data = await fetchTableInfo(entity.id);
+                      setNodes((prevNodes) => [
+                        ...prevNodes,
+                        {
+                          id: entity.id.toString(),
+                          type: "schemaCard",
+                          data: {
+                            // label: tableMap[tableId]?.name || `Table ${tableId}`,
+                            table: data,
+                            darkmode: darkmode,
+                          },
+                          position: {
+                            x: Math.random() * 500,
+                            y: Math.random() * 500,
+                          },
                         },
-                        position: {
-                          x: Math.random() * 500,
-                          y: Math.random() * 500,
-                        },
-                      },
-                    ]);
-                  }}
-                  aria-label={`Entity: ${entity.name}`}
-                >
-                  <Box
-                    className={darkmode ? "text-blue-300" : "text-blue-500"}
-                    size={20}
-                  />
-                  <div>
-                    <div
-                      className={`font-semibold capitalize text-base ${
-                        darkmode ? "text-blue-100" : "text-gray-800"
-                      }`}
-                    >
-                      {entity.name}
+                      ]);
+                    }}
+                    aria-label={`Entity: ${entity.name}`}
+                  >
+                    <Box
+                      className={darkmode ? "text-blue-300" : "text-blue-500"}
+                      size={20}
+                    />
+                    <div>
+                      <div
+                        className={`font-semibold capitalize text-base ${
+                          darkmode ? "text-blue-100" : "text-gray-800"
+                        }`}
+                      >
+                        {entity.name}
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div
+                  className={
+                    darkmode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
+                  }
+                >
+                  No entities found for this selection.
                 </div>
-              ))
+              )}
+            </div>
+            {user === "admin" ? (
+              selectedPath?.database ? (
+                <button
+                  onClick={() => setCreate("Entity")}
+                  className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
+                    darkmode
+                      ? "bg-blue-800 text-white hover:bg-blue-900"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                  aria-label="Add Entity"
+                >
+                  <Plus size={16} />
+                  Add Entity
+                </button>
+              ) : (
+                <div
+                  className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
+                    darkmode
+                      ? "text-blue-200 bg-blue-950 border-blue-900"
+                      : "text-blue-700 bg-blue-50 border-blue-100"
+                  }`}
+                >
+                  Choose a database to add entities
+                </div>
+              )
             ) : (
-              <div
-                className={
-                  darkmode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
-                }
-              >
-                No entities found for this selection.
-              </div>
+              <></>
             )}
           </div>
-          {user === "admin" ? (
-            selectedPath?.database ? (
-              <button
-                onClick={() => setCreate("Entity")}
-                className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
-                  darkmode
-                    ? "bg-blue-800 text-white hover:bg-blue-900"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-                aria-label="Add Entity"
-              >
-                <Plus size={16} />
-                Add Entity
-              </button>
-            ) : (
-              <div
-                className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
-                  darkmode
-                    ? "text-blue-200 bg-blue-950 border-blue-900"
-                    : "text-blue-700 bg-blue-50 border-blue-100"
-                }`}
-              >
-                Choose a database to add entities
-              </div>
-            )
-          ) : (
-            <></>
-          )}
-        </div>
+        </>
       );
     case "relationships":
       return (
-        <div
-          className="flex flex-col space-y-4"
-          aria-label="Relationships Panel"
-        >
-          <h3
-            className={`font-semibold flex items-center gap-2 mb-2 ${
-              darkmode ? "text-blue-200" : "text-gray-800"
-            }`}
+        <>
+          <div
+            className="flex flex-col space-y-4 "
+            aria-label="Relationships Panel"
           >
-            <Network
-              className={darkmode ? "text-blue-400" : "text-blue-600"}
-              size={20}
-            />
-            Relationships
-          </h3>
-          <div className="flex-1 min-h-0 overflow-y-scroll space-y-3 pr-1">
-            {rels.length > 0 ? (
-              rels.map((relItem) => (
-                <div
-                  key={relItem.id}
-                  className={`p-4 rounded-xl border shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3 ${
-                    darkmode
-                      ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
-                      : "bg-gradient-to-r from-blue-200 to-green-50 border-green-100"
-                  }`}
-                  tabIndex={0}
-                  aria-label={`Relationship: ${relItem.display}`}
-                >
-                  <Network
-                    className={darkmode ? "text-blue-300" : "text-blue-600"}
-                    size={20}
-                  />
-                  <div>
-                    <div
-                      className={`font-semibold text-base ${
-                        darkmode ? "text-blue-100" : "text-gray-800"
-                      }`}
-                    >
-                      {relItem.display}
-                    </div>
-                    <div
-                      className={
-                        darkmode
-                          ? "text-xs text-gray-400"
-                          : "text-xs text-gray-500"
-                      }
-                    >
-                      Foreign Key
+            <h3
+              className={`font-semibold flex items-center gap-2 mb-2 ${
+                darkmode ? "text-blue-200" : "text-gray-800"
+              }`}
+            >
+              <Network
+                className={darkmode ? "text-blue-400" : "text-blue-600"}
+                size={20}
+              />
+              Relationships
+            </h3>
+            <div
+              className={`flex-1 min-h-0 overflow-y-scroll space-y-3 pr-1 overflow-x-hidden ${
+                darkmode ? "custom-scrollbar-dark" : "custom-scrollbar-light"
+              } ${user === "admin" ? "max-h-[25rem]" : "max-h-[30rem]"}`}
+            >
+              {rels.length > 0 ? (
+                rels.map((relItem) => (
+                  <div
+                    key={relItem.id}
+                    className={`p-4  rounded-xl border shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3 ${
+                      darkmode
+                        ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
+                        : "bg-gradient-to-r from-blue-200 to-green-50 border-green-100"
+                    }`}
+                    tabIndex={0}
+                    aria-label={`Relationship: ${relItem.display}`}
+                  >
+                    <div>
+                      <div
+                        className={`font-semibold text-base ${
+                          darkmode ? "text-blue-100" : "text-gray-800"
+                        }`}
+                      >
+                        {relItem.display}
+                      </div>
+                      <div
+                        className={
+                          darkmode
+                            ? "text-xs text-gray-400 mt-1 flex items-center"
+                            : "text-xs text-gray-500 mt-1 flex items-center"
+                        }
+                      >
+                        {" "}
+                        <Network
+                          className={
+                            darkmode
+                              ? "text-blue-300 mr-2"
+                              : "text-blue-600 mr-2"
+                          }
+                          size={20}
+                        />
+                        Foreign Key
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div
+                  className={
+                    darkmode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
+                  }
+                >
+                  No relationships found for this selection.
                 </div>
-              ))
+              )}
+            </div>
+            {user === "admin" ? (
+              selectedPath?.database ? (
+                <button
+                  onClick={() => setCreate("Relationship")}
+                  className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
+                    darkmode
+                      ? "bg-blue-800 text-white hover:bg-blue-900"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                  aria-label="Add Relationship"
+                >
+                  <Plus size={16} />
+                  Add Relationship
+                </button>
+              ) : (
+                <div
+                  className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
+                    darkmode
+                      ? "text-blue-200 bg-blue-950 border-blue-900"
+                      : "text-blue-700 bg-blue-50 border-blue-100"
+                  }`}
+                >
+                  Choose a database to add relationships
+                </div>
+              )
             ) : (
-              <div
-                className={
-                  darkmode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"
-                }
-              >
-                No relationships found for this selection.
-              </div>
+              <></>
             )}
           </div>
-          {user === "admin" ? (
-            selectedPath?.database ? (
-              <button
-                onClick={() => setCreate("Relationship")}
-                className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
-                  darkmode
-                    ? "bg-blue-800 text-white hover:bg-blue-900"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-                aria-label="Add Relationship"
-              >
-                <Plus size={16} />
-                Add Relationship
-              </button>
-            ) : (
-              <div
-                className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
-                  darkmode
-                    ? "text-blue-200 bg-blue-950 border-blue-900"
-                    : "text-blue-700 bg-blue-50 border-blue-100"
-                }`}
-              >
-                Choose a database to add relationships
-              </div>
-            )
-          ) : (
-            <></>
-          )}
-        </div>
+
+          <style jsx>{`
+            /* Light mode custom scrollbar */
+            .custom-scrollbar-light::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-track {
+              background: #f1f5f9;
+              border-radius: 8px;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-thumb {
+              background: #cbd5e1;
+              border-radius: 8px;
+              border: 2px solid #f1f5f9;
+            }
+
+            .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+              background: #94a3b8;
+            }
+
+            /* Dark mode custom scrollbar */
+            .custom-scrollbar-dark::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-track {
+              background: #1e293b;
+              border-radius: 8px;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+              background: #475569;
+              border-radius: 8px;
+              border: 2px solid #1e293b;
+            }
+
+            .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+              background: #64748b;
+            }
+
+            /* Firefox scrollbar support */
+            .custom-scrollbar-light {
+              scrollbar-width: thin;
+              scrollbar-color: #cbd5e1 #f1f5f9;
+            }
+
+            .custom-scrollbar-dark {
+              scrollbar-width: thin;
+              scrollbar-color: #475569 #1e293b;
+            }
+          `}</style>
+        </>
       );
     case "settings":
       return (

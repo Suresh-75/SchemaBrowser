@@ -71,20 +71,19 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   };
 
   const fetchTableColumns = async (tableId, type) => {
-  try {
-    const response = await fetchTableInfo(tableId);
-    const { attributes } = response; // ✅ this contains column names from backend
-    console.log("Columns for table:", tableId, attributes);
-    if (type === "from") {
-      setFromTableColumns(attributes || []);
-    } else {
-      setToTableColumns(attributes || []);
+    try {
+      const response = await fetchTableInfo(tableId);
+      const { attributes } = response; // ✅ this contains column names from backend
+      console.log("Columns for table:", tableId, attributes);
+      if (type === "from") {
+        setFromTableColumns(attributes || []);
+      } else {
+        setToTableColumns(attributes || []);
+      }
+    } catch (err) {
+      console.error("Error fetching table columns:", err);
     }
-  } catch (err) {
-    console.error("Error fetching table columns:", err);
-  }
-};
-
+  };
 
   const checkRelationshipExists = async () => {
     try {
@@ -163,34 +162,28 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
           relationshipType: relationshipData.relationshipDataationship_type,
         },
       };
+      const fromTabledata = await axios.get(
+        "http://localhost:5000/api/tables/" + fromTableId + "/attributes"
+      );
+      const toTabledata = await axios.get(
+        "http://localhost:5000/api/tables/" + toTableId + "/attributes"
+      );
+      console.log(fromTabledata);
+      console.log(toTabledata);
+
+      const toTable = tables.find((t) => t.id.toString() === toTableId);
       setEdges((edges) => [...edges, newNode]);
       setNodes((prevNodes) => {
         const existingNodeIds = new Set(prevNodes.map((node) => node.id));
         const updatedNodes = [...prevNodes];
-
-        const fromTable = tables.find((t) => t.id.toString() === fromTableId);
-        const toTable = tables.find((t) => t.id.toString() === toTableId);
 
         if (!existingNodeIds.has(fromTableId)) {
           updatedNodes.push({
             id: fromTableId,
             type: "schemaCard",
             data: {
-              label: fromTable?.name || `Table ${fromTableId}`,
-              table: {
-                ...fromTable,
-                table_name: fromTable?.name || `Table ${fromTableId}`,
-                columns: fromTableColumns.map((col) => ({
-                  name: col,
-                  type: "text",
-                  is_primary_key: false,
-                  is_nullable: true,
-                })),
-                input_format: fromTable?.input_format,
-                output_format: fromTable?.output_format,
-                location: fromTable?.location,
-                partitioned_by: fromTable?.partitioned_by,
-              },
+              label: fromTabledata.data.table_name || `Table ${fromTableId}`,
+              table: fromTabledata.data,
               darkmode,
             },
             position: {
@@ -205,21 +198,8 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
             id: toTableId,
             type: "schemaCard",
             data: {
-              label: toTable?.name || `Table ${toTableId}`,
-              table: {
-                ...toTable,
-                table_name: toTable?.name || `Table ${toTableId}`,
-                columns: toTableColumns.map((col) => ({
-                  name: col,
-                  type: "text",
-                  is_primary_key: false,
-                  is_nullable: true,
-                })),
-                input_format: toTable?.input_format,
-                output_format: toTable?.output_format,
-                location: toTable?.location,
-                partitioned_by: toTable?.partitioned_by,
-              },
+              label: toTabledata.data.table_name || `Table ${fromTableId}`,
+              table: toTabledata.data,
               darkmode,
             },
             position: {

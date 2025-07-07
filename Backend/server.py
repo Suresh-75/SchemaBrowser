@@ -228,7 +228,9 @@ def get_tables_inDB(database_name):
     
 #     except Exception as e:
 #         return jsonify({"error": f"Database error: {str(e)}"}), 500
-    
+
+
+
 @app.route("/api/tables", methods=["POST"])
 def create_table():
     data = request.json
@@ -240,7 +242,6 @@ def create_table():
     try:
         col_defs = []
         pk_col = None
-
         for col in columns:
             line = f"{col['name']} {col['type']}"
             if col.get("default"):
