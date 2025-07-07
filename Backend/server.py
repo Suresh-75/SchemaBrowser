@@ -234,10 +234,18 @@ def create_table():
     data = request.json
     table_name = data['table_name']
     schema_name = data['schema_name']
-    database_id = data['database_id']
     columns = data['columns']
 
     try:
+        # Get database_id from logical_databases
+        cursor.execute("""
+            SELECT id FROM logical_databases WHERE name = %s
+        """, (schema_name,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": f"No database found for schema '{schema_name}'"}), 404
+        database_id = result[0]
+
         col_defs = []
         pk_col = None
 
@@ -254,6 +262,9 @@ def create_table():
         if pk_col:
             col_defs.append(f"PRIMARY KEY ({pk_col})")
 
+        # Add created_at column
+        col_defs.append("created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
         create_sql = f'CREATE TABLE {schema_name}.{table_name} (\n  ' + ",\n  ".join(col_defs) + "\n);"
         cursor.execute(create_sql)
 
@@ -266,6 +277,10 @@ def create_table():
         conn.commit()
 
         return jsonify({"message": f"Table {schema_name}.{table_name} created and registered."})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
 
     except Exception as e:
         conn.rollback()

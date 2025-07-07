@@ -92,10 +92,6 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
       return;
     }
 
-    if (!databaseId.trim()) {
-      setError("Database ID is required");
-      return;
-    }
 
     // Validate that all fields have names
     const hasEmptyFields = fields.some((field) => !field.name.trim());
@@ -222,52 +218,6 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
               {success}
             </div>
           )}
-          {/* Database Configuration */}
-          <div className=" gap-4 mb-6">
-            <div>
-              <label
-                className={`block text-sm font-medium mb-2 ${
-                  darkmode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Database ID
-              </label>
-              <input
-                type="text"
-                value={databaseId}
-                onChange={(e) => setDatabaseId(e.target.value)}
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  darkmode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                placeholder="e.g., database_001"
-                required
-              />
-            </div>
-            <div>
-              <label
-                className={`block text-sm font-medium mb-2 ${
-                  darkmode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Schema Name
-              </label>
-              <input
-                type="text"
-                value={schemaName}
-                onChange={(e) => setSchemaName(e.target.value)}
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  darkmode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                placeholder="e.g., public"
-                required
-              />
-            </div>
-          </div>
-
           {/* Entity Name */}
           <div className="mb-6">
             <label
@@ -463,9 +413,9 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !entityName.trim() || !databaseId.trim()}
+              disabled={isLoading || !entityName.trim()}
               className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${
-                isLoading || !entityName.trim() || !databaseId.trim()
+                isLoading || !entityName.trim()
                   ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700 text-white"
               }`}
