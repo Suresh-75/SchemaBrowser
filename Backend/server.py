@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_file
 import pandas as pd
 from ydata_profiling import ProfileReport
+import os
+import tempfile
+output_dir = tempfile.mkdtemp()
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -618,22 +622,22 @@ def profile_table():
         schema = data["schema"]
         table = data["table"]
 
-        # Load data into pandas DataFrame
         query = f'SELECT * FROM "{schema}"."{table}"'
         df = pd.read_sql(query, con=conn)
 
         if df.empty:
             return jsonify({"error": "Table is empty"}), 400
 
-        # Generate profile report
         profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
-        output_path = f"/tmp/{schema}_{table}_profile.html"
+        
+        temp_dir = tempfile.gettempdir()
+        output_path = os.path.join(temp_dir, f"{schema}_{table}_profile.html")
+        
         profile.to_file(output_path)
-
+        
         return send_file(output_path, as_attachment=True)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 if __name__ == "__main__":
     app.run(debug=True)
