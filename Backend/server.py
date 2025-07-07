@@ -639,5 +639,34 @@ def profile_table():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/table/csv", methods=["POST"])
+def download_table_csv():
+    try:
+        data = request.get_json()
+        schema = data["schema"]
+        table = data["table"]
+
+        query = f'SELECT * FROM "{schema}"."{table}"'
+        df = pd.read_sql(query, con=conn)
+
+        if df.empty:
+            return jsonify({"error": "Table is empty"}), 400
+
+        # Create CSV content
+        csv_content = df.to_csv(index=False)
+        
+        # Create response with CSV data
+        response = app.response_class(
+            csv_content,
+            mimetype='text/csv',
+            headers={"Content-disposition": f"attachment; filename={schema}_{table}.csv"}
+        )
+        
+        return response
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True,port=3000)

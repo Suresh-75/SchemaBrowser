@@ -112,7 +112,7 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
         columns: fields.map(mapFieldToBackend),
       };
 
-      const response = await fetch("http://localhost:5000/api/tables", {
+      const response = await fetch("http://localhost:3000/api/tables", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

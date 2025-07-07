@@ -19,7 +19,7 @@ const SidebarComponent = ({
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}/attributes`
+        `http://localhost:3000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -37,13 +37,13 @@ const SidebarComponent = ({
 
       try {
         const tablesResponse = await axios.get(
-          `http://localhost:5000/api/tables/${selectedPath.database}`
+          `http://localhost:3000/api/tables/${selectedPath.database}`
         );
         console.log(tablesResponse.data);
         setData(tablesResponse.data);
 
         const relationshipsResponse = await axios.get(
-          `http://localhost:5000/api/er_relationships/${selectedPath.database}`
+          `http://localhost:3000/api/er_relationships/${selectedPath.database}`
         );
         const relsData = relationshipsResponse.data;
 

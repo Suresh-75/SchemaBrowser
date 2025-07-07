@@ -2,17 +2,19 @@ import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
 const SchemaCards = ({ table, darkmode }) => {
+  // Check if table object and its required properties exist
+  console.log(table);
   const handleProfileRequest = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/profile", {
+      const response = await fetch("http://localhost:3000/api/profile", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           schema: table.schema_name,
-          table: table.table_name,
-        }),
+          table: table.table_name
+        })
       });
 
       if (!response.ok) {
@@ -35,14 +37,45 @@ const SchemaCards = ({ table, darkmode }) => {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/table/csv", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          schema: table.schema_name,
+          table: table.table_name
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert("Error: " + error.error);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${table.schema_name}_${table.table_name}.csv`;
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error("CSV download failed:", error);
+      alert("Failed to download CSV.");
+    }
+  };
+
   if (!table) {
     return (
       <div
-        className={`rounded-2xl shadow-lg p-8 text-center border-2 border-dashed ${
-          darkmode
+        className={`rounded-2xl shadow-lg p-8 text-center border-2 border-dashed ${darkmode
             ? "bg-gray-800 text-red-400 border-red-400/50"
             : "bg-red-50 text-red-600 border-red-300"
-        }`}
+          }`}
       >
         <div className="flex flex-col items-center gap-3">
           <svg
@@ -68,11 +101,10 @@ const SchemaCards = ({ table, darkmode }) => {
 
   return (
     <div
-      className={`rounded-2xl shadow-lg overflow-hidden w-[27rem] ring-1 ${
-        darkmode
+      className={`rounded-2xl shadow-lg overflow-hidden w-[27rem] ring-1 ${darkmode
           ? "bg-gray-900 border-gray-700 ring-gray-600 text-gray-100"
           : "bg-white border-slate-200 ring-slate-200 text-slate-900"
-      }`}
+        }`}
     >
       {/* Handles for ReactFlow */}
       <Handle
@@ -226,16 +258,28 @@ const SchemaCards = ({ table, darkmode }) => {
               Metadata
             </h4>
 
-            <button
-              onClick={handleProfileRequest}
-              className={`px-3 py-1.5 text-sm rounded-lg font-medium shadow ${
-                darkmode
-                  ? "bg-indigo-600 hover:bg-indigo-500 text-white"
-                  : "bg-indigo-100 hover:bg-indigo-200 text-indigo-800"
-              }`}
-            >
-              Generate Profile
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleProfileRequest}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium shadow ${
+                  darkmode
+                    ? "bg-indigo-600 hover:bg-indigo-500 text-white"
+                    : "bg-indigo-100 hover:bg-indigo-200 text-indigo-800"
+                }`}
+              >
+                Generate Profile
+              </button>
+              <button
+                onClick={handleDownloadCSV}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium shadow ${
+                  darkmode
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                    : "bg-emerald-100 hover:bg-emerald-200 text-emerald-800"
+                }`}
+              >
+                Download CSV
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-4">
