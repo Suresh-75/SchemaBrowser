@@ -1,10 +1,11 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import psycopg2
 from psycopg2 import Error, sql
 from flask_cors import CORS
 from dotenv import load_dotenv
-
+import pandas as pd
+from ydata_profiling import ProfileReport
 # Load environment variables from .env file
 load_dotenv()
 
@@ -605,6 +606,30 @@ def search():
             })
 
         return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/profile", methods=["POST"])
+def profile_table():
+    try:
+        data = request.get_json()
+        schema = data["schema"]
+        table = data["table"]
+
+        # Load data into pandas DataFrame
+        query = f'SELECT * FROM "{schema}"."{table}"'
+        df = pd.read_sql(query, con=conn)
+
+        if df.empty:
+            return jsonify({"error": "Table is empty"}), 400
+
+        # Generate profile report
+        profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
+        output_path = f"/tmp/{schema}_{table}_profile.html"
+        profile.to_file(output_path)
+
+        return send_file(output_path, as_attachment=True)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
