@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Eye, Network, Plus, Settings, Zap } from "lucide-react";
 import VersionControlPanel from "./VersionControlPanel";
 import AnnotationsPanel from "./Annotations";
+import DatabaseOverviewPanel from "./DatabaseOverviewPanel";
 import axios from "axios";
 
 const SidebarComponent = ({
@@ -527,6 +528,15 @@ const SidebarComponent = ({
             />
             Overview
           </h3>
+          
+          {/* Database Overview Panel - only shown when a database is selected */}
+          {selectedPath?.database && (
+            <DatabaseOverviewPanel 
+              selectedPath={selectedPath}
+              darkmode={darkmode}
+            />
+          )}
+          
           <div className="space-y-3">
             <div
               className={`p-4 rounded-lg border ${

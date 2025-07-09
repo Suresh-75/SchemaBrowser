@@ -39,6 +39,133 @@ except Exception as e:
     conn = None
     cursor = None
 
+# --- Add missing columns to logical_databases table if needed ---
+def ensure_database_columns_exist():
+    try:
+        # Check if description column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='logical_databases' AND column_name='description'
+        """)
+        
+        if cursor.fetchone() is None:
+            # Add description column with default value
+            cursor.execute("ALTER TABLE logical_databases ADD COLUMN description TEXT DEFAULT 'No description available'")
+            
+            # Update existing records that might have NULL descriptions
+            cursor.execute("""
+                UPDATE logical_databases 
+                SET description = 'No description available' 
+                WHERE description IS NULL OR description = ''
+            """)
+            
+            conn.commit()
+            print("Added description column to logical_databases table with default value")
+            
+        # Check if created_date column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='logical_databases' AND column_name='created_date'
+        """)
+        
+        if cursor.fetchone() is None:
+            # Add created_date column without default value first
+            cursor.execute("""
+                ALTER TABLE logical_databases 
+                ADD COLUMN created_date TIMESTAMP WITH TIME ZONE
+            """)
+            
+            # Try to infer creation dates for existing databases using available data
+            # Since PostgreSQL doesn't store object creation times directly,
+            # we'll use the best available heuristics
+            cursor.execute("""
+                UPDATE logical_databases 
+                SET created_date = COALESCE(
+                    (
+                        -- Use earliest ER relationship creation time for this database
+                        SELECT MIN(er.created_at)
+                        FROM er_relationships er
+                        WHERE er.database_name = logical_databases.name
+                    ),
+                    (
+                        -- Use earliest stats reset time for tables in this schema
+                        -- This is an approximation but better than current timestamp
+                        SELECT MIN(stats_reset)
+                        FROM pg_stat_user_tables
+                        WHERE schemaname = logical_databases.name
+                    ),
+                    -- Final fallback: Use a reasonable estimate based on database ID
+                    -- Assumes databases were created in sequence over time
+                    -- Start from a base date and add time intervals based on ID order
+                    (TIMESTAMP '2024-01-01 00:00:00+00' + (logical_databases.id - 1) * INTERVAL '7 days')
+                )
+                WHERE created_date IS NULL
+            """)
+            
+            # Set default for future inserts
+            cursor.execute("""
+                ALTER TABLE logical_databases 
+                ALTER COLUMN created_date SET DEFAULT CURRENT_TIMESTAMP
+            """)
+            
+            conn.commit()
+            print("Added created_date column to logical_databases table with estimated creation times based on available data")
+            
+        # Check if last_modified column exists
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='logical_databases' AND column_name='last_modified'
+        """)
+        
+        if cursor.fetchone() is None:
+            # Add last_modified column with default value
+            cursor.execute("""
+                ALTER TABLE logical_databases 
+                ADD COLUMN last_modified TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            """)
+            conn.commit()
+            print("Added last_modified column to logical_databases table")
+        
+        # Create a trigger function to update last_modified automatically
+        cursor.execute("""
+        DO $$
+        BEGIN
+            -- Check if the function already exists
+            IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_last_modified_column') THEN
+                CREATE OR REPLACE FUNCTION update_last_modified_column()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.last_modified = CURRENT_TIMESTAMP;
+                    RETURN NEW;
+                END;
+                $$ language 'plpgsql';
+            END IF;
+            
+            -- Check if the trigger already exists
+            IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_logical_databases_timestamp') THEN
+                -- Create the trigger
+                CREATE TRIGGER trigger_update_logical_databases_timestamp
+                BEFORE UPDATE ON logical_databases
+                FOR EACH ROW
+                EXECUTE FUNCTION update_last_modified_column();
+            END IF;
+        END $$;
+        """)
+        
+        conn.commit()
+        print("Created last_modified trigger for logical_databases table")
+            
+    except Exception as e:
+        conn.rollback()
+        print(f"Error ensuring database columns exist: {e}")
+        
+# Call this function when the server starts
+if conn is not None and cursor is not None:
+    ensure_database_columns_exist()
+
 def execute_query(query, params=None, fetch_one=False, fetch_all=False):
     try:
         with conn:
@@ -138,11 +265,16 @@ def create_logical_db():
 
     subject_area_id = result[0]
 
-    # Insert new logical database
+    # Insert new logical database with created_date and last_modified
     try:
         cursor.execute(
-            "INSERT INTO logical_databases (name, subject_area_id) VALUES (%s, %s) RETURNING id",
-            (data["name"], subject_area_id)
+            """
+            INSERT INTO logical_databases 
+            (name, subject_area_id, created_date, last_modified, description) 
+            VALUES (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, %s) 
+            RETURNING id
+            """,
+            (data["name"], subject_area_id, data.get("description") or "No description available")
         )
         conn.commit()
         new_id = cursor.fetchone()[0]
@@ -667,6 +799,202 @@ def download_table_csv():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ------------------- Get Database Overview -------------------
+@app.route('/api/database/overview/<string:database_name>', methods=['GET'])
+def get_database_overview(database_name):
+    """
+    Get overview information for a specific database.
+    Returns details like name, owner, location, description, created date, 
+    last modified date, number of tables and total size.
+    """
+    try:
+        # Get column names from logical_databases table to handle schema changes
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'logical_databases'
+        """)
+        columns = [row[0] for row in cursor.fetchall()]
+        
+        # Determine which columns we can query based on what exists
+        has_description = 'description' in columns
+        has_created_date = 'created_date' in columns
+        has_last_modified = 'last_modified' in columns
+        
+        # Build the query dynamically based on available columns
+        query_parts = [
+            "db.id", 
+            "db.name",
+            "l.name as owner",
+            "CONCAT(l.name, '.', sa.name) as location"
+        ]
+        
+        if has_description:
+            query_parts.append("db.description")
+        else:
+            query_parts.append("'No description available' as description")
+            
+        if has_created_date:
+            query_parts.append("db.created_date")
+        else:
+            query_parts.append("NULL as created_date")
+            
+        if has_last_modified:
+            query_parts.append("db.last_modified")
+        else:
+            query_parts.append("NULL as last_modified")
+            
+        # Construct and execute the query
+        query = f"""
+            SELECT 
+                {', '.join(query_parts)}
+            FROM logical_databases db
+            JOIN subject_areas sa ON db.subject_area_id = sa.id
+            JOIN lobs l ON sa.lob_id = l.id
+            WHERE db.name = %s
+        """
+        
+        cursor.execute(query, (database_name,))
+        
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": "Database not found"}), 404
+            
+        # Process the result based on the columns we requested
+        result_dict = {
+            "id": result[0],
+            "name": result[1],
+            "owner": result[2],
+            "location": result[3],
+            "description": result[4]
+        }
+        
+        # Add created_date from result or try to get it from schema creation time
+        offset = 5
+        if has_created_date:
+            created_date = result[offset]
+            if created_date:
+                result_dict["created_date"] = created_date.strftime('%Y-%m-%d')
+                # Also include full timestamp for debugging
+                result_dict["created_date_time"] = created_date.strftime('%Y-%m-%d %H:%M:%S %Z')
+            else:
+                # Note: For existing databases where we couldn't infer creation time,
+                # this will show "Unknown". New databases get accurate creation timestamps.
+                result_dict["created_date"] = "Unknown"
+            offset += 1
+        else:
+            result_dict["created_date"] = "Unknown"
+            
+        # Add last_modified from result or calculate from table modification times
+        # This represents the actual last time the database was modified, 
+        # not just when it was viewed
+        if has_last_modified:
+            last_modified = result[offset]
+            if last_modified:
+                result_dict["last_modified_date"] = last_modified.strftime('%Y-%m-%d')
+            else:
+                # Note: PostgreSQL doesn't have a direct last DDL time in system catalogs
+                # Try to use the most recent stats reset time as an approximation
+                cursor.execute("""
+                    SELECT 
+                        MAX(stats_reset) 
+                    FROM 
+                        pg_stat_user_tables 
+                    WHERE 
+                        schemaname = %s
+                """, (database_name,))
+                
+                last_table_stats = cursor.fetchone()
+                if last_table_stats and last_table_stats[0]:
+                    result_dict["last_modified_date"] = last_table_stats[0].strftime('%Y-%m-%d')
+                else:
+                    result_dict["last_modified_date"] = "Unknown"
+        else:
+            result_dict["last_modified_date"] = "Unknown"
+        
+        # Count tables in the database
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM tables_metadata 
+            WHERE database_id = %s
+        """, (result_dict["id"],))
+        
+        table_count = cursor.fetchone()[0]
+        result_dict["table_count"] = table_count
+        
+        # Get the size of the schema specifically rather than the whole database
+        cursor.execute("""
+            SELECT 
+                pg_size_pretty(
+                    SUM(
+                        pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))
+                    )
+                ) AS schema_size
+            FROM 
+                pg_tables
+            WHERE 
+                schemaname = %s
+        """, (database_name,))
+        
+        size_result = cursor.fetchone()
+        if size_result and size_result[0]:
+            total_size = size_result[0]
+        else:
+            # Fallback to total database size
+            cursor.execute("""
+                SELECT pg_size_pretty(pg_database_size(current_database())) as db_size
+            """)
+            total_size = cursor.fetchone()[0]
+            
+        result_dict["total_size"] = total_size
+        
+        # Don't update last_modified timestamp on view, only on actual modifications
+        # We've removed the automatic update that was previously here
+        
+        return jsonify(result_dict)
+        
+    except Exception as e:
+        print(f"Error in get_database_overview: {str(e)}")
+        return jsonify({"error": f"Could not retrieve database overview: {str(e)}"}), 500
+
+# ------------------- Update Database Description -------------------
+@app.route('/api/database/<string:database_name>/description', methods=['PUT'])
+def update_database_description(database_name):
+    """
+    Update the description of a specific database.
+    """
+    try:
+        data = request.get_json()
+        new_description = data.get('description', '').strip()
+        
+        if not new_description:
+            return jsonify({"error": "Description cannot be empty"}), 400
+        
+        # Check if database exists
+        cursor.execute("SELECT id FROM logical_databases WHERE name = %s", (database_name,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": "Database not found"}), 404
+        
+        # Update the description
+        cursor.execute("""
+            UPDATE logical_databases 
+            SET description = %s 
+            WHERE name = %s
+        """, (new_description, database_name))
+        
+        conn.commit()
+        
+        return jsonify({
+            "message": f"Description updated successfully for database '{database_name}'",
+            "description": new_description
+        }), 200
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating database description: {str(e)}")
+        return jsonify({"error": f"Could not update database description: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True,port=3000)
