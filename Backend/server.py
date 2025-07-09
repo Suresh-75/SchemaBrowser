@@ -89,13 +89,6 @@ def ensure_database_columns_exist():
                         FROM er_relationships er
                         WHERE er.database_name = logical_databases.name
                     ),
-                    (
-                        -- Use earliest stats reset time for tables in this schema
-                        -- This is an approximation but better than current timestamp
-                        SELECT MIN(stats_reset)
-                        FROM pg_stat_user_tables
-                        WHERE schemaname = logical_databases.name
-                    ),
                     -- Final fallback: Use a reasonable estimate based on database ID
                     -- Assumes databases were created in sequence over time
                     -- Start from a base date and add time intervals based on ID order
@@ -131,32 +124,35 @@ def ensure_database_columns_exist():
         
         # Create a trigger function to update last_modified automatically
         cursor.execute("""
-        DO $$
-        BEGIN
-            -- Check if the function already exists
-            IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_last_modified_column') THEN
+            -- Check if the trigger function exists
+            SELECT 1 FROM pg_proc WHERE proname = 'update_last_modified_column'
+        """)
+        if not cursor.fetchone():
+            cursor.execute("""
                 CREATE OR REPLACE FUNCTION update_last_modified_column()
                 RETURNS TRIGGER AS $$
                 BEGIN
                     NEW.last_modified = CURRENT_TIMESTAMP;
                     RETURN NEW;
                 END;
-                $$ language 'plpgsql';
-            END IF;
-            
-            -- Check if the trigger already exists
-            IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_logical_databases_timestamp') THEN
-                -- Create the trigger
+                $$ LANGUAGE plpgsql;
+            """)
+            conn.commit()
+            print("Created update_last_modified_column function")
+
+        # Check if the trigger exists
+        cursor.execute("""
+            SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_logical_databases_timestamp'
+        """)
+        if not cursor.fetchone():
+            cursor.execute("""
                 CREATE TRIGGER trigger_update_logical_databases_timestamp
                 BEFORE UPDATE ON logical_databases
                 FOR EACH ROW
                 EXECUTE FUNCTION update_last_modified_column();
-            END IF;
-        END $$;
-        """)
-        
-        conn.commit()
-        print("Created last_modified trigger for logical_databases table")
+            """)
+            conn.commit()
+            print("Created trigger_update_logical_databases_timestamp trigger")
             
     except Exception as e:
         conn.rollback()
@@ -895,21 +891,8 @@ def get_database_overview(database_name):
                 result_dict["last_modified_date"] = last_modified.strftime('%Y-%m-%d')
             else:
                 # Note: PostgreSQL doesn't have a direct last DDL time in system catalogs
-                # Try to use the most recent stats reset time as an approximation
-                cursor.execute("""
-                    SELECT 
-                        MAX(stats_reset) 
-                    FROM 
-                        pg_stat_user_tables 
-                    WHERE 
-                        schemaname = %s
-                """, (database_name,))
-                
-                last_table_stats = cursor.fetchone()
-                if last_table_stats and last_table_stats[0]:
-                    result_dict["last_modified_date"] = last_table_stats[0].strftime('%Y-%m-%d')
-                else:
-                    result_dict["last_modified_date"] = "Unknown"
+                # Fallback: leave last_modified_date unset or set to None
+                result_dict["last_modified_date"] = None
         else:
             result_dict["last_modified_date"] = "Unknown"
         
@@ -997,4 +980,4 @@ def update_database_description(database_name):
         return jsonify({"error": f"Could not update database description: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=3000)

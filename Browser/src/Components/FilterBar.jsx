@@ -34,7 +34,7 @@ const FilterBar = ({
   useEffect(() => {
     const fetchHierarchy = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/hierarchy");
+        const response = await axios.get("http://localhost:3000/api/hierarchy");
         const hierarchy = response.data;
         const transformedData = {};
         Object.values(hierarchy).forEach((lob) => {
@@ -81,7 +81,7 @@ const FilterBar = ({
       return;
     }
     try {
-      await axios.post("http://localhost:5000/api/lobs", { name: newLobName });
+      await axios.post("http://localhost:3000/api/lobs", { name: newLobName });
       setNewLobName("");
       setShowAddModal(false);
       showMessage("LOB created successfully.");
@@ -100,7 +100,7 @@ const FilterBar = ({
       return;
     }
     try {
-      await axios.post("http://localhost:5000/api/subject-areas", {
+      await axios.post("http://localhost:3000/api/subject-areas", {
         name: newSubjectName,
         lob_name: lobName,
       });
@@ -120,7 +120,7 @@ const FilterBar = ({
   const handleAddDatabase = async (lobName, subjectName) => {
     if (!newDatabaseName.trim()) return;
     try {
-      await axios.post("http://localhost:5000/api/logical-databases", {
+      await axios.post("http://localhost:3000/api/logical-databases", {
         name: newDatabaseName,
         lob_name: lobName,
         subject_name: subjectName,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ErDiagram from "../ErDiagram";
 import axios from "axios";
+import DatabaseOverviewPanel from "./DatabaseOverviewPanel";
 
 const DatabaseTabs = ({
   setSelectedTable,
@@ -45,7 +46,7 @@ const DatabaseTabs = ({
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/profile",
+        "http://localhost:3000/api/profile",
         {
           schema: selectedPath.database,
           table: selectedPath.table,
@@ -165,37 +166,9 @@ const DatabaseTabs = ({
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === "overview" && (
-          <div
-            className={`h-full flex items-center justify-center ${
-              darkmode
-                ? "bg-gray-900 text-gray-300"
-                : "bg-gray-50 text-gray-600"
-            }`}
-          >
-            <div className="text-center">
-              <div
-                className={`p-4 rounded-lg ${
-                  darkmode ? "bg-gray-800" : "bg-white"
-                } shadow-lg`}
-              >
-                <svg
-                  className="w-12 h-12 mx-auto mb-4 opacity-50"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <h3 className="text-lg font-semibold mb-2">Overview Tab</h3>
-                <p className="text-sm">
-                  Content will be implemented by another team member
-                </p>
-              </div>
+          <div className="h-full flex items-center justify-center">
+            <div className="w-full max-w-2xl mx-auto">
+              <DatabaseOverviewPanel selectedPath={selectedPath} darkmode={darkmode} />
             </div>
           </div>
         )}

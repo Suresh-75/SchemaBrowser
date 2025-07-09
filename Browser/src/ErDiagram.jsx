@@ -100,12 +100,12 @@ function ErDiagram({
       setNodes([]);
       if (selectedTable == null) {
         const response = await axios.get(
-          `http://localhost:5000/api/er_relationships/${databaseName}`
+          `http://localhost:3000/api/er_relationships/${databaseName}`
         );
         return response.data;
       } else {
         const response = await axios.get(
-          `http://localhost:5000/api/er_relationships/${databaseName}/${selectedTable}`
+          `http://localhost:3000/api/er_relationships/${databaseName}/${selectedTable}`
         );
         return response.data;
       }
@@ -121,7 +121,7 @@ function ErDiagram({
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}/attributes`
+        `http://localhost:3000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {

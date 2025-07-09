@@ -20,7 +20,7 @@ const SidebarComponent = ({
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}/attributes`
+        `http://localhost:3000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -38,13 +38,13 @@ const SidebarComponent = ({
 
       try {
         const tablesResponse = await axios.get(
-          `http://localhost:5000/api/tables/${selectedPath.database}`
+          `http://localhost:3000/api/tables/${selectedPath.database}`
         );
         console.log(tablesResponse.data);
         setData(tablesResponse.data);
 
         const relationshipsResponse = await axios.get(
-          `http://localhost:5000/api/er_relationships/${selectedPath.database}`
+          `http://localhost:3000/api/er_relationships/${selectedPath.database}`
         );
         const relsData = relationshipsResponse.data;
 
@@ -82,7 +82,7 @@ const SidebarComponent = ({
     }
 
     try {
-      const response = await axios.delete(`http://localhost:5000/api/tables/${tableId}`);
+      const response = await axios.delete(`http://localhost:3000/api/tables/${tableId}`);
 
       if (response.status === 200) {
         // Remove the deleted table from the data state
@@ -551,14 +551,6 @@ const SidebarComponent = ({
             />
             Overview
           </h3>
-          
-          {/* Database Overview Panel - only shown when a database is selected */}
-          {selectedPath?.database && (
-            <DatabaseOverviewPanel 
-              selectedPath={selectedPath}
-              darkmode={darkmode}
-            />
-          )}
           
           <div className="space-y-3">
             <div
