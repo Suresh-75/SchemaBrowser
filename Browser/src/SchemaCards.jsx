@@ -1,7 +1,52 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Handle, Position } from "@xyflow/react";
 
-const SchemaCards = ({ table, darkmode }) => {
+const SchemaCards = ({ table, darkmode, selectedDatabase }) => {
+  const [relationshipColumns, setRelationshipColumns] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (table && table.table_id && selectedDatabase) {
+      fetchRelationshipColumns();
+    }
+  }, [table, selectedDatabase]);
+
+  const fetchRelationshipColumns = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/er_relationships/${selectedDatabase}`
+      );
+      if (response.ok) {
+        const relationships = await response.json();
+
+        // Filter relationships that involve this table
+        const tableRelationships = relationships.filter(
+          (rel) =>
+            rel.from_table_id === table.table_id ||
+            rel.to_table_id === table.table_id
+        );
+
+        // Extract unique columns involved in relationships
+        const columns = new Set();
+        tableRelationships.forEach((rel) => {
+          if (rel.from_table_id === table.table_id) {
+            columns.add(rel.from_column);
+          }
+          if (rel.to_table_id === table.table_id) {
+            columns.add(rel.to_column);
+          }
+        });
+
+        setRelationshipColumns(Array.from(columns));
+      }
+    } catch (error) {
+      console.error("Error fetching relationship columns:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProfileRequest = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/profile", {
@@ -21,7 +66,6 @@ const SchemaCards = ({ table, darkmode }) => {
         return;
       }
 
-      // Get the filename from Content-Disposition header (if present)
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -121,53 +165,55 @@ const SchemaCards = ({ table, darkmode }) => {
             </div>
             <h3 className="text-xl font-bold truncate">{table.table_name}</h3>
           </div>
-
-          {/* Table count badge */}
         </div>
       </div>
 
-      {/* Attributes Section */}
-      {table.attributes && (
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h4 className="text-lg font-semibold flex items-center gap-2">
-              <div
-                className={`p-2 rounded-lg ${
-                  darkmode
-                    ? "bg-gray-700 text-indigo-400"
-                    : "bg-indigo-100 text-indigo-600"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 6h16M4 12h16m-7 6h7"
-                  />
-                </svg>
-              </div>
-              Attributes
-            </h4>
-            <span
-              className={`text-sm px-2 py-1 rounded-full font-medium ${
+      {/* Relationship Columns Section */}
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h4 className="text-lg font-semibold flex items-center gap-2">
+            <div
+              className={`p-2 rounded-lg ${
                 darkmode
-                  ? "bg-gray-700 text-gray-300"
-                  : "bg-gray-100 text-gray-600"
+                  ? "bg-gray-700 text-indigo-400"
+                  : "bg-indigo-100 text-indigo-600"
               }`}
             >
-              {table.attributes.length}
-            </span>
-          </div>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+            </div>
+            Relationship Columns
+          </h4>
+          <span
+            className={`text-sm px-2 py-1 rounded-full font-medium ${
+              darkmode
+                ? "bg-gray-700 text-gray-300"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {loading ? "..." : relationshipColumns.length}
+          </span>
+        </div>
 
-          <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-64 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center p-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+            </div>
+          ) : relationshipColumns.length > 0 ? (
             <div className="space-y-2">
-              {table.attributes.map((attributeName, index) => (
+              {relationshipColumns.map((columnName, index) => (
                 <div
                   key={index}
                   className={`p-3 rounded-lg ${
@@ -182,14 +228,46 @@ const SchemaCards = ({ table, darkmode }) => {
                         darkmode ? "bg-emerald-400" : "bg-emerald-500"
                       }`}
                     />
-                    <span className="font-medium text-sm">{attributeName}</span>
+                    <span className="font-medium text-sm">{columnName}</span>
+                    <div
+                      className={`ml-auto px-2 py-1 text-xs rounded-full ${
+                        darkmode
+                          ? "bg-indigo-600 text-indigo-200"
+                          : "bg-indigo-100 text-indigo-700"
+                      }`}
+                    >
+                      FK/PK
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          ) : (
+            <div
+              className={`text-center p-4 rounded-lg ${
+                darkmode
+                  ? "bg-gray-800 text-gray-400"
+                  : "bg-gray-50 text-gray-500"
+              }`}
+            >
+              <svg
+                className="w-8 h-8 mx-auto mb-2 opacity-50"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+              <p className="text-sm">No relationship columns found</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Metadata Section */}
       {(table.schema_name || table.table_id) && (
