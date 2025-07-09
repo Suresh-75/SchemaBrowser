@@ -163,8 +163,8 @@ function ErDiagram({
         id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
         source: rel.from_table_id.toString(),
         target: rel.to_table_id.toString(),
-        label: `${rel.from_column} → ${rel.to_column}`,
-        animated: true,
+        label: `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`,
+        animated: false,
         data: {
           cardinality: rel.cardinality,
           relationshipType: rel.relationship_type,
