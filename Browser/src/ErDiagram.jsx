@@ -24,7 +24,7 @@ import CircleLoader from "./Components/CircleLoader";
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
     <div style={{ display: "inline-block" }}>
-      <SchemaCards table={data.table} darkmode={data.darkmode} />
+      <SchemaCards table={data.table} darkmode={data.darkmode} selectedDatabase={data.selectedDatabase} />
     </div>
   );
 });
@@ -151,6 +151,7 @@ function ErDiagram({
           label: tableMap[tableId]?.name || `Table ${tableId}`,
           table: tableMap[tableId],
           darkmode: darkmode,
+          selectedDatabase: selectedPath?.database
         },
         position: {
           x: (index % 3) * 600,
@@ -172,7 +173,7 @@ function ErDiagram({
 
       return { nodes: newNodes, edges: newEdges };
     },
-    [darkmode]
+    [darkmode,selectedPath?.database]
   );
 
   useEffect(() => {

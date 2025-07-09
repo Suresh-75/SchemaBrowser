@@ -3,7 +3,7 @@ import psycopg2
 from psycopg2 import Error, sql
 from flask_cors import CORS
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 import pandas as pd
 from ydata_profiling import ProfileReport
 import os
@@ -630,14 +630,14 @@ def profile_table():
 
         profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
         
-        temp_dir = tempfile.gettempdir()
-        output_path = os.path.join(temp_dir, f"{schema}_{table}_profile.html")
+        # Get HTML content directly instead of saving to file
+        html_content = profile.to_html()
         
-        profile.to_file(output_path)
-        
-        return send_file(output_path, as_attachment=True)
+        # Return HTML content with proper content type
+        return Response(html_content, mimetype='text/html')
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
+    app.run(debug=True)
     app.run(debug=True)
