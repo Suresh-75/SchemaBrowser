@@ -18,7 +18,7 @@ const DatabaseTabs = ({
   // Update active tab when table is selected/deselected
   useEffect(() => {
     if (selectedPath?.table && activeTab !== 'profiling') {
-      setActiveTab('profiling');
+      setActiveTab('overview');
     } else if (!selectedPath?.table && activeTab === 'profiling') {
       setActiveTab('overview');
     }

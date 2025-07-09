@@ -309,17 +309,6 @@ const SchemaCards = ({
               </div>
               Metadata
             </h4>
-
-            <button
-              onClick={handleProfileRequest}
-              className={`px-3 py-1.5 text-sm rounded-lg font-medium shadow ${
-                darkmode
-                  ? "bg-indigo-600 hover:bg-indigo-500 text-white"
-                  : "bg-indigo-100 hover:bg-indigo-200 text-indigo-800"
-              }`}
-            >
-              Generate Profile
-            </button>
           </div>
 
           <div className="grid gap-4">
