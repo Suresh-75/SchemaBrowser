@@ -638,6 +638,59 @@ def profile_table():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route("/api/tables/<int:table_id>", methods=["DELETE"])
+def delete_table(table_id):
+    """Delete a table, its metadata, and all associated ER relationships."""
+    try:
+        # Step 1: Get table metadata
+        cursor.execute("""
+            SELECT name, schema_name FROM tables_metadata WHERE id = %s
+        """, (table_id,))
+        table_row = cursor.fetchone()
+        
+        if not table_row:
+            return jsonify({"error": "Table not found in metadata"}), 404
+        
+        table_name, schema_name = table_row
+        
+        # Step 2: Delete all ER relationships involving this table
+        cursor.execute("""
+            DELETE FROM er_relationships 
+            WHERE from_table_id = %s OR to_table_id = %s
+        """, (table_id, table_id))
+        relationships_deleted = cursor.rowcount
+        
+        # Step 3: Drop the actual table from PostgreSQL
+        try:
+            cursor.execute(sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
+                sql.Identifier(schema_name), 
+                sql.Identifier(table_name)
+            ))
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": f"Failed to drop table from database: {str(e)}"}), 500
+        
+        # Step 4: Remove table metadata
+        cursor.execute("""
+            DELETE FROM tables_metadata WHERE id = %s
+        """, (table_id,))
+        
+        if cursor.rowcount == 0:
+            conn.rollback()
+            return jsonify({"error": "Failed to delete table metadata"}), 500
+        
+        conn.commit()
+        
+        return jsonify({
+            "message": f"Table {schema_name}.{table_name} deleted successfully",
+            "table_id": table_id,
+            "relationships_deleted": relationships_deleted
+        }), 200
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"Failed to delete table: {str(e)}"}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
     app.run(debug=True)
