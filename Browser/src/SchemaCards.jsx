@@ -117,7 +117,10 @@ const SchemaCards = ({
 
   return (
     <div
-      onClick={() => setSelectedTable(table.table_id)}
+      onClick={() => {
+        console.log(table.table_id);
+        setSelectedTable(table.table_id);
+      }}
       className={`rounded-2xl shadow-lg overflow-hidden w-[27rem] ring-1 ${
         darkmode
           ? "bg-gray-900 border-gray-700 ring-gray-600 text-gray-100"

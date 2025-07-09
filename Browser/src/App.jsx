@@ -34,6 +34,7 @@ export default function App() {
   //er diagram state
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [selectedTable, setSelectedTable] = useState();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
     subject: null,
@@ -155,6 +156,7 @@ export default function App() {
       {/* FilterBar */}
       <div className="flex-shrink-0 px-5 py-3">
         <FilterBar
+          setSelectedTable={setSelectedTable}
           user={user}
           selectedPath={selectedPath}
           onSelect={handleSelection}
@@ -268,6 +270,8 @@ export default function App() {
             >
               <ReactFlowProvider>
                 <DatabaseTabs
+                  setSelectedTable={setSelectedTable}
+                  selectedTable={selectedTable}
                   selectedPath={selectedPath}
                   darkmode={darkmode}
                   nodes={nodes}

@@ -16,6 +16,7 @@ const FilterBar = ({
   onSelect,
   setSelectedPath,
   darkmode,
+  setSelectedTable,
 }) => {
   const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
@@ -44,9 +45,13 @@ const FilterBar = ({
               databases: {},
             };
             Object.values(subjectArea.databases).forEach((database) => {
+              // console.log(database);
               transformedData[lob.name].subjects[subjectArea.name].databases[
                 database.name
-              ] = Object.values(database.tables);
+              ] = Object.entries(database.tables).map(([id, name]) => ({
+                id: Number(id),
+                name,
+              }));
             });
           });
         });
@@ -58,7 +63,6 @@ const FilterBar = ({
 
     fetchHierarchy();
   }, []);
-
   const showMessage = (message, type = "success") => {
     if (type === "error") {
       setErrorMessage(message);
@@ -389,7 +393,6 @@ const FilterBar = ({
                                   />
                                 </button>
 
-                                {/* Table dropdown */}
                                 {hoveredDatabase === database && (
                                   <div
                                     className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
@@ -397,9 +400,13 @@ const FilterBar = ({
                                         ? "bg-gray-800 border-gray-600"
                                         : "bg-white border-gray-200"
                                     }`}
-                                    onMouseEnter={() =>
-                                      setHoveredDatabase(database)
-                                    }
+                                    onMouseEnter={() => {
+                                      console.log(
+                                        businessData[lob].subjects[subject]
+                                          .databases[database]
+                                      );
+                                      setHoveredDatabase(database);
+                                    }}
                                     onMouseLeave={() =>
                                       setHoveredDatabase(null)
                                     }
@@ -414,21 +421,24 @@ const FilterBar = ({
                                       >
                                         Tables
                                       </div>
+
                                       {businessData[lob].subjects[
                                         subject
-                                      ].databases[database]?.map((table) => (
+                                      ].databases[database]?.map((obj) => (
                                         <button
-                                          key={table}
-                                          onClick={() =>
+                                          key={obj.id}
+                                          onClick={() => {
+                                            console.log(obj.id);
+                                            setSelectedTable(Number(obj.id)); // store the ID
                                             handleTableSelect(
                                               lob,
                                               subject,
                                               database,
-                                              table
-                                            )
-                                          }
+                                              obj.name
+                                            );
+                                          }}
                                           className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
-                                            selectedPath.table === table
+                                            selectedPath.table === obj.name
                                               ? darkmode
                                                 ? "bg-blue-900 text-blue-200"
                                                 : "bg-blue-50 text-blue-700"
@@ -444,7 +454,7 @@ const FilterBar = ({
                                                 : "text-gray-400"
                                             }`}
                                           />
-                                          {table}
+                                          {obj.name}
                                         </button>
                                       ))}
                                     </div>
