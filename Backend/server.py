@@ -472,6 +472,76 @@ def get_all_er_relationships_inDB(database_name):
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 
+@app.route('/api/er_relationships/<string:database_name>/<int:table_id>', methods=['GET'])
+def get_all_er_relationships_inDB_tableid(database_name, table_id):
+    """
+    Retrieves all ER Relationships for a specific database and table ID,
+    including table names and a 'display' string.
+    """
+    query = """
+        SELECT
+            r.id,
+            r.from_table_id,
+            ft.name AS from_table_name,
+            r.from_column,
+            r.to_table_id,
+            tt.name AS to_table_name,
+            r.to_column,
+            r.cardinality,
+            r.relationship_type,
+            r.created_at,
+            r.database_name
+        FROM er_relationships r
+        JOIN tables_metadata ft ON r.from_table_id = ft.id
+        JOIN tables_metadata tt ON r.to_table_id = tt.id
+        WHERE r.database_name = %s
+        AND (r.from_table_id = %s OR r.to_table_id = %s)
+        ORDER BY r.id;
+    """
+    # Corrected parameters: The SQL query expects three %s placeholders,
+    # so we pass table_id twice for the OR condition.
+    results = execute_query(query, (database_name, table_id, table_id), fetch_all=True)
+
+    # Check if results is an error dictionary
+    if isinstance(results, dict) and 'error' in results:
+        return jsonify(results), results.get('status', 400) # Return the error message and status
+
+    # Process successful results (which will be a list of tuples)
+    if isinstance(results, list):
+        relationships = []
+        for row in results: # Iterate through tuples returned by execute_query
+            # Ensure row has enough elements before accessing by index
+            if len(row) < 11:
+                print(f"Warning: Row has fewer than expected columns: {row}")
+                continue # Skip malformed rows
+
+            # Convert datetime object to string for JSON serialization
+            created_at_iso = row[9].isoformat() if isinstance(row[9], datetime) else None
+
+            # Create the 'display' string using tuple indices
+            display_string = (
+                f"{row[2]}.{row[3]} → {row[5]}.{row[6]}"
+            )
+
+            relationships.append({
+                'id': row[0],
+                'from_table_id': row[1],
+                'from_table_name': row[2],
+                'from_column': row[3],
+                'to_table_id': row[4],
+                'to_table_name': row[5],
+                'to_column': row[6],
+                'cardinality': row[7],
+                'relationship_type': row[8],
+                'created_at': created_at_iso,
+                'database_name': row[10],
+                'display': display_string
+            })
+        return jsonify(relationships), 200
+    else:
+        # Fallback for unexpected results from execute_query
+        return jsonify({"error": "Unexpected result format from database query"}), 500
+
 @app.route('/api/er_relationships/<int:rel_id>', methods=['GET'])
 def get_er_relationship_by_id(rel_id):
     """Retrieves an ER Relationship by ID."""

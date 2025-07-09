@@ -24,7 +24,12 @@ import CircleLoader from "./Components/CircleLoader";
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
     <div style={{ display: "inline-block" }}>
-      <SchemaCards table={data.table} darkmode={data.darkmode} selectedDatabase={data.selectedDatabase} />
+      <SchemaCards
+        table={data.table}
+        darkmode={data.darkmode}
+        selectedDatabase={data.selectedDatabase}
+        setSelectedTable={data.setSelectedTable}
+      />
     </div>
   );
 });
@@ -77,6 +82,8 @@ function ErDiagram({
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [tableData, setTableData] = useState([]);
+  const [selectedTable, setSelectedTable] = useState(null);
   const exportRef = useRef(null);
   const reactFlowInstance = useReactFlow();
 
@@ -97,15 +104,22 @@ function ErDiagram({
         });
     }
   }, []);
-
+  useEffect(() => {}, [selectedTable]);
   async function fetchRelationships(databaseName) {
     try {
       setEdges([]);
       setNodes([]);
-      const response = await axios.get(
-        `http://localhost:5000/api/er_relationships/${databaseName}`
-      );
-      return response.data;
+      if (selectedTable == null) {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${databaseName}`
+        );
+        return response.data;
+      } else {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${databaseName}/${selectedTable}`
+        );
+        return response.data;
+      }
     } catch (error) {
       console.error("Error fetching relationships:", error);
       throw error;
@@ -136,7 +150,6 @@ function ErDiagram({
       const tableInfos = [];
       for (const tableId of tableIds) {
         const info = await fetchTableInfo(tableId);
-        console.log(info);
         tableInfos.push(info);
       }
       const tableMap = {};
@@ -151,7 +164,8 @@ function ErDiagram({
           label: tableMap[tableId]?.name || `Table ${tableId}`,
           table: tableMap[tableId],
           darkmode: darkmode,
-          selectedDatabase: selectedPath?.database
+          selectedDatabase: selectedPath?.database,
+          setSelectedTable,
         },
         position: {
           x: (index % 3) * 600,
@@ -173,7 +187,7 @@ function ErDiagram({
 
       return { nodes: newNodes, edges: newEdges };
     },
-    [darkmode,selectedPath?.database]
+    [darkmode, selectedPath?.database]
   );
 
   useEffect(() => {

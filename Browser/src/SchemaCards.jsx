@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Handle, Position } from "@xyflow/react";
 
-const SchemaCards = ({ table, darkmode, selectedDatabase }) => {
+const SchemaCards = ({
+  table,
+  darkmode,
+  selectedDatabase,
+  setSelectedTable,
+}) => {
   const [relationshipColumns, setRelationshipColumns] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -112,6 +117,7 @@ const SchemaCards = ({ table, darkmode, selectedDatabase }) => {
 
   return (
     <div
+      onClick={() => setSelectedTable(table.table_id)}
       className={`rounded-2xl shadow-lg overflow-hidden w-[27rem] ring-1 ${
         darkmode
           ? "bg-gray-900 border-gray-700 ring-gray-600 text-gray-100"
