@@ -13,7 +13,7 @@ import {
   ArrowBigLeft,
   LogOutIcon,
 } from "lucide-react";
-import DatabaseTabs from './Components/DatabaseTabs';
+import DatabaseTabs from "./Components/DatabaseTabs";
 import { useNavigate } from "react-router-dom";
 import SidebarComponent from "./Components/SidebarComponent";
 import SearchBar from "./Components/SearchBar";
@@ -58,10 +58,11 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen min-w-screen font-sans overflow-hidden flex flex-col ${darkmode
+      className={`min-h-screen min-w-screen font-sans overflow-hidden flex flex-col ${
+        darkmode
           ? "bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-900 text-white"
           : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-black"
-        }`}
+      }`}
     >
       {create == "Entity" && (
         <>
@@ -86,24 +87,27 @@ export default function App() {
         </>
       )}
       <nav
-        className={`w-full h-20 ${darkmode
+        className={`w-full h-20 ${
+          darkmode
             ? "bg-slate-900/90 border-indigo-900"
             : "bg-white/90 border-indigo-100"
-          } backdrop-blur-lg shadow-lg flex items-center justify-between px-10 rounded-b-3xl border-b z-10`}
+        } backdrop-blur-lg shadow-lg flex items-center justify-between px-10 rounded-b-3xl border-b z-10`}
       >
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${darkmode ? "bg-blue-800" : "bg-blue-400"
-                }`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                darkmode ? "bg-blue-800" : "bg-blue-400"
+              }`}
             >
               <Database className="text-white" size={28} />
             </div>
             <h1
-              className={`text-2xl md:text-3xl font-extrabold bg-clip-text tracking-wide drop-shadow ${darkmode
+              className={`text-2xl md:text-3xl font-extrabold bg-clip-text tracking-wide drop-shadow ${
+                darkmode
                   ? "bg-blue-300 text-transparent"
                   : "bg-blue-400 text-transparent"
-                }`}
+              }`}
               style={{
                 backgroundImage: darkmode
                   ? "linear-gradient(to right, #60a5fa, #818cf8)"
@@ -116,29 +120,32 @@ export default function App() {
         </div>
         <div className="flex items-center gap-4">
           <button
-            className={`px-4 py-2 text-base border rounded-xl transition-all flex items-center gap-2 shadow-sm font-semibold ${darkmode
+            className={`px-4 py-2 text-base border rounded-xl transition-all flex items-center gap-2 shadow-sm font-semibold ${
+              darkmode
                 ? "bg-slate-900 border-gray-700 text-white hover:bg-blue-950 hover:border-blue-800"
                 : "bg-white border-gray-300 hover:bg-blue-50 hover:border-blue-300"
-              }`}
+            }`}
           >
             <User size={18} />
             {user == "admin" ? "Modeler" : "Analyst"}
           </button>
           <button
-            className={` px-3 py-2 rounded-lg font-semibold transition-all ${darkmode
+            className={` px-3 py-2 rounded-lg font-semibold transition-all ${
+              darkmode
                 ? "bg-slate-800 text-blue-200 hover:bg-blue-900"
                 : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-              }`}
+            }`}
             onClick={() => setDarkmode((d) => !d)}
             title="Toggle dark mode"
           >
             {darkmode ? "🌙" : "☀️"}
           </button>
           <button
-            className={`transition-all cursor-pointer ${darkmode
+            className={`transition-all cursor-pointer ${
+              darkmode
                 ? "hover:text-red-400 text-blue-300"
                 : "hover:text-red-600 text-blue-600"
-              }`}
+            }`}
             onClick={() => navigate("/")}
           >
             <LogOutIcon />
@@ -148,6 +155,7 @@ export default function App() {
       {/* FilterBar */}
       <div className="flex-shrink-0 px-5 py-3">
         <FilterBar
+          user={user}
           selectedPath={selectedPath}
           onSelect={handleSelection}
           setSelectedPath={setSelectedPath}
@@ -156,23 +164,27 @@ export default function App() {
       </div>
 
       <div
-        className={`flex flex-1 px-4 pb-4 gap-4 ${create == "Entity" ? "pointer-events-none" : ""
-          }`}
+        className={`flex flex-1 px-4 pb-4 gap-4 ${
+          create == "Entity" ? "pointer-events-none" : ""
+        }`}
       >
         {/* Sidebar */}
         <div
-          className={`min-w-[20rem] max-w-xs backdrop-blur-sm rounded-3xl flex flex-col border shadow-xl ${darkmode
+          className={`min-w-[20rem] max-w-xs backdrop-blur-sm rounded-3xl flex flex-col border shadow-xl ${
+            darkmode
               ? "bg-slate-900/90 border-indigo-900"
               : "bg-white/90 border-indigo-100"
-            }`}
+          }`}
         >
           <div
-            className={`border-b p-3 ${darkmode ? "border-gray-800" : "border-gray-200"
-              }`}
+            className={`border-b p-3 ${
+              darkmode ? "border-gray-800" : "border-gray-200"
+            }`}
           >
             <div
-              className={`grid grid-cols-3 gap-1 rounded-lg p-1 ${darkmode ? "bg-slate-800" : "bg-gray-100"
-                }`}
+              className={`grid grid-cols-3 gap-1 rounded-lg p-1 ${
+                darkmode ? "bg-slate-800" : "bg-gray-100"
+              }`}
             >
               {sidebarItems.slice(0, 3).map((item) => {
                 const Icon = item.icon;
@@ -180,14 +192,15 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${activeTab === item.id
+                    className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${
+                      activeTab === item.id
                         ? darkmode
                           ? "bg-slate-900 text-blue-300 shadow-sm"
                           : "bg-white text-blue-700 shadow-sm"
                         : darkmode
-                          ? "text-gray-300 hover:text-white"
-                          : "text-gray-600 hover:text-gray-800"
-                      }`}
+                        ? "text-gray-300 hover:text-white"
+                        : "text-gray-600 hover:text-gray-800"
+                    }`}
                     style={{ minWidth: 0 }}
                   >
                     <Icon size={16} />
@@ -198,8 +211,9 @@ export default function App() {
             </div>
           </div>
           <div
-            className={`px-3 py-2 border-b ${darkmode ? "border-gray-800" : "border-gray-200"
-              }`}
+            className={`px-3 py-2 border-b ${
+              darkmode ? "border-gray-800" : "border-gray-200"
+            }`}
           >
             <div className="space-y-1">
               {sidebarItems.slice(3).map((item) => {
@@ -208,14 +222,15 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full px-2 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${activeTab === item.id
+                    className={`w-full px-2 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
+                      activeTab === item.id
                         ? darkmode
                           ? "bg-blue-950 text-blue-300 border border-blue-900"
                           : "bg-blue-50 text-blue-700 border border-blue-200"
                         : darkmode
-                          ? "text-gray-300 hover:text-white hover:bg-slate-800"
-                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                      }`}
+                        ? "text-gray-300 hover:text-white hover:bg-slate-800"
+                        : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                    }`}
                   >
                     <Icon size={16} />
                     {item.label}
@@ -244,10 +259,11 @@ export default function App() {
           </div>
           {selectedPath.database != null ? (
             <div
-              className={`w-full flex-1 backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${darkmode
+              className={`w-full flex-1 backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
+                darkmode
                   ? "bg-slate-900/90 border-gray-800"
                   : "bg-white/90 border-gray-200"
-                }`}
+              }`}
               style={{ minHeight: 0, minWidth: 0 }}
             >
               <ReactFlowProvider>
@@ -263,10 +279,11 @@ export default function App() {
             </div>
           ) : (
             <div
-              className={`w-full h-full items-center text-2xl font-bold justify-center backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${darkmode
+              className={`w-full h-full items-center text-2xl font-bold justify-center backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
+                darkmode
                   ? "bg-slate-900/90 border-gray-800 text-blue-300"
                   : "bg-white/90 border-gray-200 text-blue-400"
-                }`}
+              }`}
               style={{ minHeight: 0, minWidth: 0 }}
             >
               Select a database to view the ER diagram

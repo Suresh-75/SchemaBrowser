@@ -292,11 +292,11 @@ def create_table():
         conn.rollback()
         return jsonify({"message": str(e)}), 400
 
-# table attributes NOT WORKING
+# table attributes
 @app.route('/api/tables/<int:table_id>/attributes', methods=['GET'])
 def get_table_attributes(table_id):
     try:
-        # Step 1: Get table name and schema from metadata
+        #Get table name and schema from metadata
         print(table_id)
         cursor.execute("""
             SELECT name, schema_name
@@ -312,7 +312,7 @@ def get_table_attributes(table_id):
         print(table_name)
         print(schema_name)
 
-        # Step 2: Fetch column names from information_schema
+        # Fetch column names from information_schema
         cursor.execute("""
             SELECT column_name
             FROM information_schema.columns

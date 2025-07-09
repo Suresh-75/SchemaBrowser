@@ -155,7 +155,7 @@ function ErDiagram({
         },
         position: {
           x: (index % 3) * 600,
-          y: Math.floor(index / 3) * 100,
+          y: Math.floor(index / 3) * 700,
         },
       }));
 
