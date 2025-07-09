@@ -23,7 +23,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
-        `http://localhost:3000/api/tables/${tableId}/attributes`
+        `http://localhost:5000/api/tables/${tableId}/attributes`
       );
       return response.data;
     } catch (error) {
@@ -58,7 +58,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
     try {
       console.log("Fetching tables for database:", databaseName);
       const response = await axios.get(
-        `http://localhost:3000/api/tables/${databaseName}`
+        `http://localhost:5000/api/tables/${databaseName}`
       );
       console.log("tables ", response.data);
 
@@ -88,7 +88,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   const checkRelationshipExists = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/api/er_relationships/${databaseName}`
+        `http://localhost:5000/api/er_relationships/${databaseName}`
       );
       console.log(response.data);
       if (response) {
@@ -163,10 +163,10 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         },
       };
       const fromTabledata = await axios.get(
-        "http://localhost:3000/api/tables/" + fromTableId + "/attributes"
+        "http://localhost:5000/api/tables/" + fromTableId + "/attributes"
       );
       const toTabledata = await axios.get(
-        "http://localhost:3000/api/tables/" + toTableId + "/attributes"
+        "http://localhost:5000/api/tables/" + toTableId + "/attributes"
       );
       console.log(fromTabledata);
       console.log(toTabledata);
@@ -212,7 +212,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         return updatedNodes;
       });
       const response = await axios.post(
-        "http://localhost:3000/api/er_relationships",
+        "http://localhost:5000/api/er_relationships",
         relationshipData
       );
       console.log("Response from server:", response);

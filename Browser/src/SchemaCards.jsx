@@ -6,7 +6,7 @@ const SchemaCards = ({ table, darkmode }) => {
   console.log(table);
   const handleProfileRequest = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/profile", {
+      const response = await fetch("http://localhost:5000/api/profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -39,7 +39,7 @@ const SchemaCards = ({ table, darkmode }) => {
 
   const handleDownloadCSV = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/table/csv", {
+      const response = await fetch("http://localhost:5000/api/table/csv", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

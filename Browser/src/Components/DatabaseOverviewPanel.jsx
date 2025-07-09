@@ -23,7 +23,7 @@ const DatabaseOverviewPanel = ({ selectedPath, darkmode }) => {
       setError(null);
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/database/overview/${selectedPath.database}`
+          `http://localhost:5000/api/database/overview/${selectedPath.database}`
         );
         setDbInfo(response.data);
       } catch (err) {
@@ -51,7 +51,7 @@ const DatabaseOverviewPanel = ({ selectedPath, darkmode }) => {
     setIsSaving(true);
     try {
       const response = await axios.put(
-        `http://localhost:3000/api/database/${selectedPath.database}/description`,
+        `http://localhost:5000/api/database/${selectedPath.database}/description`,
         { description: editedDescription.trim() }
       );
       
