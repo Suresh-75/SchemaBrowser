@@ -10,7 +10,13 @@ import {
   Plus,
 } from "lucide-react";
 
-const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
+const FilterBar = ({
+  user,
+  selectedPath,
+  onSelect,
+  setSelectedPath,
+  darkmode,
+}) => {
   const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
@@ -446,56 +452,59 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                 )}
                               </div>
                             ))}
-
-                            <div className="px-4 mt-2">
-                              <button
-                                className={`text-sm transition-colors ${
-                                  darkmode
-                                    ? "text-blue-400 hover:text-blue-300"
-                                    : "text-blue-600 hover:text-blue-800"
-                                }`}
-                                onClick={() =>
-                                  setShowDatabaseModal({ lob, subject })
-                                }
-                              >
-                                + Add Database
-                              </button>
-                            </div>
+                            {user == "admin" && (
+                              <div className="px-4 mt-2">
+                                <button
+                                  className={`text-sm transition-colors ${
+                                    darkmode
+                                      ? "text-blue-400 hover:text-blue-300"
+                                      : "text-blue-600 hover:text-blue-800"
+                                  }`}
+                                  onClick={() =>
+                                    setShowDatabaseModal({ lob, subject })
+                                  }
+                                >
+                                  + Add Database
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
                   ))}
-
-                  <div className="px-4 mt-2">
-                    <button
-                      className={`text-sm transition-colors ${
-                        darkmode
-                          ? "text-blue-400 hover:text-blue-300"
-                          : "text-blue-600 hover:text-blue-800"
-                      }`}
-                      onClick={() => setShowSubjectModal(lob)}
-                    >
-                      + Add Subject Area
-                    </button>
-                  </div>
+                  {user == "admin" && (
+                    <div className="px-4 mt-2">
+                      <button
+                        className={`text-sm transition-colors ${
+                          darkmode
+                            ? "text-blue-400 hover:text-blue-300"
+                            : "text-blue-600 hover:text-blue-800"
+                        }`}
+                        onClick={() => setShowSubjectModal(lob)}
+                      >
+                        + Add Subject Area
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ))}
-
-        <button
-          className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${
-            darkmode
-              ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
-              : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
-          }`}
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add LOB
-        </button>
+        {user == "admin" && (
+          <button
+            className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${
+              darkmode
+                ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
+                : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
+            }`}
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add LOB
+          </button>
+        )}
       </div>
 
       {/* Modals */}
