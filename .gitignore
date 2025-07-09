@@ -1,4 +1,4 @@
 Browser/node_modules
-backend/.env
+Backend/.env
 .venv/
 .venv311/
