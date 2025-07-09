@@ -10,7 +10,14 @@ import {
   Plus,
 } from "lucide-react";
 
-const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
+const FilterBar = ({
+  user,
+  selectedPath,
+  onSelect,
+  setSelectedPath,
+  darkmode,
+  setSelectedTable,
+}) => {
   const [businessData, setBusinessData] = useState({});
   const [hoveredLob, setHoveredLob] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
@@ -38,9 +45,13 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
               databases: {},
             };
             Object.values(subjectArea.databases).forEach((database) => {
+              // console.log(database);
               transformedData[lob.name].subjects[subjectArea.name].databases[
                 database.name
-              ] = Object.values(database.tables);
+              ] = Object.entries(database.tables).map(([id, name]) => ({
+                id: Number(id),
+                name,
+              }));
             });
           });
         });
@@ -52,7 +63,6 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
 
     fetchHierarchy();
   }, []);
-
   const showMessage = (message, type = "success") => {
     if (type === "error") {
       setErrorMessage(message);
@@ -383,7 +393,6 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                   />
                                 </button>
 
-                                {/* Table dropdown */}
                                 {hoveredDatabase === database && (
                                   <div
                                     className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
@@ -391,9 +400,13 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                         ? "bg-gray-800 border-gray-600"
                                         : "bg-white border-gray-200"
                                     }`}
-                                    onMouseEnter={() =>
-                                      setHoveredDatabase(database)
-                                    }
+                                    onMouseEnter={() => {
+                                      console.log(
+                                        businessData[lob].subjects[subject]
+                                          .databases[database]
+                                      );
+                                      setHoveredDatabase(database);
+                                    }}
                                     onMouseLeave={() =>
                                       setHoveredDatabase(null)
                                     }
@@ -408,21 +421,24 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                       >
                                         Tables
                                       </div>
+
                                       {businessData[lob].subjects[
                                         subject
-                                      ].databases[database]?.map((table) => (
+                                      ].databases[database]?.map((obj) => (
                                         <button
-                                          key={table}
-                                          onClick={() =>
+                                          key={obj.id}
+                                          onClick={() => {
+                                            console.log(obj.id);
+                                            setSelectedTable(Number(obj.id)); // store the ID
                                             handleTableSelect(
                                               lob,
                                               subject,
                                               database,
-                                              table
-                                            )
-                                          }
+                                              obj.name
+                                            );
+                                          }}
                                           className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
-                                            selectedPath.table === table
+                                            selectedPath.table === obj.name
                                               ? darkmode
                                                 ? "bg-blue-900 text-blue-200"
                                                 : "bg-blue-50 text-blue-700"
@@ -438,7 +454,7 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                                 : "text-gray-400"
                                             }`}
                                           />
-                                          {table}
+                                          {obj.name}
                                         </button>
                                       ))}
                                     </div>
@@ -446,56 +462,59 @@ const FilterBar = ({ selectedPath, onSelect, setSelectedPath, darkmode }) => {
                                 )}
                               </div>
                             ))}
-
-                            <div className="px-4 mt-2">
-                              <button
-                                className={`text-sm transition-colors ${
-                                  darkmode
-                                    ? "text-blue-400 hover:text-blue-300"
-                                    : "text-blue-600 hover:text-blue-800"
-                                }`}
-                                onClick={() =>
-                                  setShowDatabaseModal({ lob, subject })
-                                }
-                              >
-                                + Add Database
-                              </button>
-                            </div>
+                            {user == "admin" && (
+                              <div className="px-4 mt-2">
+                                <button
+                                  className={`text-sm transition-colors ${
+                                    darkmode
+                                      ? "text-blue-400 hover:text-blue-300"
+                                      : "text-blue-600 hover:text-blue-800"
+                                  }`}
+                                  onClick={() =>
+                                    setShowDatabaseModal({ lob, subject })
+                                  }
+                                >
+                                  + Add Database
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
                   ))}
-
-                  <div className="px-4 mt-2">
-                    <button
-                      className={`text-sm transition-colors ${
-                        darkmode
-                          ? "text-blue-400 hover:text-blue-300"
-                          : "text-blue-600 hover:text-blue-800"
-                      }`}
-                      onClick={() => setShowSubjectModal(lob)}
-                    >
-                      + Add Subject Area
-                    </button>
-                  </div>
+                  {user == "admin" && (
+                    <div className="px-4 mt-2">
+                      <button
+                        className={`text-sm transition-colors ${
+                          darkmode
+                            ? "text-blue-400 hover:text-blue-300"
+                            : "text-blue-600 hover:text-blue-800"
+                        }`}
+                        onClick={() => setShowSubjectModal(lob)}
+                      >
+                        + Add Subject Area
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ))}
-
-        <button
-          className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${
-            darkmode
-              ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
-              : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
-          }`}
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add LOB
-        </button>
+        {user == "admin" && (
+          <button
+            className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${
+              darkmode
+                ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
+                : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
+            }`}
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add LOB
+          </button>
+        )}
       </div>
 
       {/* Modals */}

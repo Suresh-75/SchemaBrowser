@@ -20,51 +20,44 @@ import SchemaCards from "./SchemaCards";
 import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
+import { ArrowBigLeft } from "lucide-react";
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
     <div style={{ display: "inline-block" }}>
-      <SchemaCards table={data.table} darkmode={data.darkmode} />
+      <SchemaCards
+        table={data.table}
+        darkmode={data.darkmode}
+        selectedDatabase={data.selectedDatabase}
+        setSelectedTable={data.setSelectedTable}
+      />
     </div>
   );
 });
 
-// const Legend = ({ darkmode }) => {
-//   return (
-//     <div
-//       style={{
-//         position: "absolute",
-//         top: "10px",
-//         left: "10px",
-//         backgroundColor: darkmode ? "#374151" : "white",
-//         border: darkmode ? "1px solid #4B5563" : "1px solid #ccc",
-//         padding: "10px",
-//         borderRadius: "5px",
-//         fontSize: "12px",
-//         boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
-//         zIndex: 1000,
-//         color: darkmode ? "#D1D5DB" : "#374151",
-//       }}
-//     >
-//       <div
-//         style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}
-//       >
-//         <div
-//           className="w-2 h-2 bg-yellow-400 rounded-full mr-4"
-//           title="Primary Key"
-//         ></div>
-//         <span className="font-semibold">Primary Key</span>
-//       </div>
-//       <div style={{ display: "flex", alignItems: "center" }}>
-//         <div
-//           className="w-2 h-2 bg-blue-400 rounded-full mr-4"
-//           title="Foreign Key"
-//         ></div>
-//         <span className="font-semibold">Foreign Key</span>
-//       </div>
-//     </div>
-//   );
-// };
+const Legend = ({ darkmode, setSelectedTable }) => {
+  return (
+    <div
+      className="cursor-pointer"
+      onClick={() => setSelectedTable(null)}
+      style={{
+        position: "absolute",
+        top: "10px",
+        left: "10px",
+        backgroundColor: darkmode ? "#374151" : "white",
+        border: darkmode ? "1px solid #4B5563" : "1px solid #ccc",
+        padding: "10px",
+        borderRadius: "5px",
+        fontSize: "12px",
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
+        zIndex: 1000,
+        color: darkmode ? "#D1D5DB" : "#374151",
+      }}
+    >
+      <ArrowBigLeft />
+    </div>
+  );
+};
 
 // Accept darkmode prop here
 function ErDiagram({
@@ -74,9 +67,13 @@ function ErDiagram({
   edges,
   setNodes,
   setEdges,
+  setSelectedTable,
+  selectedTable,
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // const [tableData, setTableData] = useState([]);
+
   const exportRef = useRef(null);
   const reactFlowInstance = useReactFlow();
 
@@ -97,21 +94,30 @@ function ErDiagram({
         });
     }
   }, []);
-
   async function fetchRelationships(databaseName) {
     try {
       setEdges([]);
       setNodes([]);
-      const response = await axios.get(
-        `http://localhost:5000/api/er_relationships/${databaseName}`
-      );
-      return response.data;
+      if (selectedTable == null) {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${databaseName}`
+        );
+        return response.data;
+      } else {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${databaseName}/${selectedTable}`
+        );
+        return response.data;
+      }
     } catch (error) {
       console.error("Error fetching relationships:", error);
       throw error;
     }
   }
-
+  useEffect(() => {
+    createNodesAndEdges();
+    console.log(nodes);
+  }, [selectedTable]);
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
@@ -136,7 +142,6 @@ function ErDiagram({
       const tableInfos = [];
       for (const tableId of tableIds) {
         const info = await fetchTableInfo(tableId);
-        console.log(info);
         tableInfos.push(info);
       }
       const tableMap = {};
@@ -151,10 +156,12 @@ function ErDiagram({
           label: tableMap[tableId]?.name || `Table ${tableId}`,
           table: tableMap[tableId],
           darkmode: darkmode,
+          selectedDatabase: selectedPath?.database,
+          setSelectedTable: setSelectedTable,
         },
         position: {
           x: (index % 3) * 600,
-          y: Math.floor(index / 3) * 100,
+          y: Math.floor(index / 3) * 700,
         },
       }));
 
@@ -162,8 +169,8 @@ function ErDiagram({
         id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
         source: rel.from_table_id.toString(),
         target: rel.to_table_id.toString(),
-        label: `${rel.from_column} → ${rel.to_column}`,
-        animated: true,
+        label: `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`,
+        animated: false,
         data: {
           cardinality: rel.cardinality,
           relationshipType: rel.relationship_type,
@@ -172,7 +179,7 @@ function ErDiagram({
 
       return { nodes: newNodes, edges: newEdges };
     },
-    [darkmode]
+    [darkmode, selectedPath?.database]
   );
 
   useEffect(() => {
@@ -202,7 +209,7 @@ function ErDiagram({
     };
 
     loadData();
-  }, [selectedPath.database, createNodesAndEdges]);
+  }, [selectedPath.database, createNodesAndEdges, selectedTable]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -317,7 +324,7 @@ function ErDiagram({
         /> */}
         <Controls className="text-black" />
       </ReactFlow>
-      {/* <Legend darkmode={darkmode} /> */}
+      <Legend darkmode={darkmode} setSelectedTable={setSelectedTable} />
       <button
         onClick={handleExport}
         style={{

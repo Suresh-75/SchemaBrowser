@@ -13,7 +13,7 @@ import {
   ArrowBigLeft,
   LogOutIcon,
 } from "lucide-react";
-import ErDiagram from "./ErDiagram";
+import DatabaseTabs from "./Components/DatabaseTabs";
 import { useNavigate } from "react-router-dom";
 import SidebarComponent from "./Components/SidebarComponent";
 import SearchBar from "./Components/SearchBar";
@@ -34,6 +34,7 @@ export default function App() {
   //er diagram state
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [selectedTable, setSelectedTable] = useState();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
     subject: null,
@@ -155,6 +156,8 @@ export default function App() {
       {/* FilterBar */}
       <div className="flex-shrink-0 px-5 py-3">
         <FilterBar
+          setSelectedTable={setSelectedTable}
+          user={user}
           selectedPath={selectedPath}
           onSelect={handleSelection}
           setSelectedPath={setSelectedPath}
@@ -266,13 +269,15 @@ export default function App() {
               style={{ minHeight: 0, minWidth: 0 }}
             >
               <ReactFlowProvider>
-                <ErDiagram
+                <DatabaseTabs
+                  setSelectedTable={setSelectedTable}
+                  selectedTable={selectedTable}
                   selectedPath={selectedPath}
                   darkmode={darkmode}
                   nodes={nodes}
+                  edges={edges}
                   setNodes={setNodes}
                   setEdges={setEdges}
-                  edges={edges}
                 />
               </ReactFlowProvider>
             </div>
