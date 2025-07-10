@@ -885,6 +885,29 @@ def table_overview(schema, table):
         mod_row = cursor.fetchone()
         last_modified = mod_row[0].isoformat() if mod_row and mod_row[0] else None
 
+        # Column details
+        cursor.execute("""
+            SELECT 
+                column_name, 
+                data_type, 
+                is_nullable, 
+                column_default,
+                ordinal_position
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s
+            ORDER BY ordinal_position
+        """, (schema, table))
+        columns = [
+            {
+                "name": r[0],
+                "type": r[1],
+                "nullable": r[2],
+                "default": r[3],
+                "ordinal_position": r[4],
+            }
+            for r in cursor.fetchall()
+        ]
+
         return jsonify({
             "schema": schema,
             "table": table,
@@ -892,7 +915,8 @@ def table_overview(schema, table):
             "row_count": row_count,
             "column_count": column_count,
             "is_partition": is_partition,
-            "last_modified": last_modified
+            "last_modified": last_modified,
+            "columns": columns
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

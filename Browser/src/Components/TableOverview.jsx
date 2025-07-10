@@ -62,6 +62,37 @@ const TableOverview = ({ schema, table, darkmode }) => {
             <div className="mb-2">
                 <span className="font-semibold">Last Modified:</span> {info.last_modified ? new Date(info.last_modified).toLocaleString() : <span className="italic text-gray-400">N/A</span>}
             </div>
+            <div className="mb-4">
+                <span className="font-semibold">Columns:</span>
+                {info.columns && info.columns.length > 0 ? (
+                    <div className="overflow-x-auto mt-2">
+                        <table className="min-w-full border text-sm">
+                            <thead>
+                                <tr className={darkmode ? "bg-blue-950" : "bg-blue-100"}>
+                                    <th className="px-3 py-2 text-left">#</th>
+                                    <th className="px-3 py-2 text-left">Name</th>
+                                    <th className="px-3 py-2 text-left">Type</th>
+                                    <th className="px-3 py-2 text-left">Nullable</th>
+                                    <th className="px-3 py-2 text-left">Default</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {info.columns.map((col, idx) => (
+                                    <tr key={col.name} className={darkmode ? "hover:bg-blue-900" : "hover:bg-blue-50"}>
+                                        <td className="px-3 py-2">{col.ordinal_position}</td>
+                                        <td className="px-3 py-2 font-mono">{col.name}</td>
+                                        <td className="px-3 py-2">{col.type}</td>
+                                        <td className="px-3 py-2">{col.nullable}</td>
+                                        <td className="px-3 py-2">{col.default !== null ? col.default : <span className="italic text-gray-400">-</span>}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="italic text-gray-400 mt-2">No columns found.</div>
+                )}
+            </div>
         </div>
     );
 };
