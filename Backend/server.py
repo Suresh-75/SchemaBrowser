@@ -735,6 +735,169 @@ def delete_table(table_id):
         conn.rollback()
         return jsonify({"error": f"Failed to delete table: {str(e)}"}), 500
 
+@app.route("/api/schema-overview/<string:schema_name>", methods=["GET"])
+def schema_overview(schema_name):
+    """Return detailed info about a schema (database) and its tables."""
+    try:
+        # Check schema existence
+        cursor.execute("""
+            SELECT schema_name
+            FROM information_schema.schemata
+            WHERE schema_name = %s
+        """, (schema_name,))
+        schema_row = cursor.fetchone()
+        if not schema_row:
+            return jsonify({"error": f"Schema '{schema_name}' not found"}), 404
+
+        # Get tables, owners, and sizes
+        cursor.execute("""
+            SELECT
+                c.relname AS table_name,
+                r.rolname AS owner,
+                COALESCE(pg_total_relation_size(c.oid), 0) AS total_bytes
+            FROM pg_class c
+            JOIN pg_roles r ON c.relowner = r.oid
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE c.relkind = 'r' AND n.nspname = %s
+            ORDER BY c.relname
+        """, (schema_name,))
+        table_rows = cursor.fetchall()
+
+        tables = []
+        for row in table_rows:
+            table_name, owner, total_bytes = row
+            # Get row count
+            try:
+                cursor.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
+                        sql.Identifier(schema_name), sql.Identifier(table_name)
+                    )
+                )
+                count = cursor.fetchone()[0]
+            except Exception:
+                count = None
+            tables.append({
+                "table": table_name,
+                "owner": owner,
+                "row_count": count,
+                "size_bytes": total_bytes if total_bytes is not None else 0,
+            })
+
+        # Get total schema size (use COALESCE to avoid NULL)
+        cursor.execute("""
+            SELECT
+                pg_size_pretty(COALESCE(SUM(pg_total_relation_size(c.oid)),0)) AS total_size_pretty,
+                COALESCE(SUM(pg_total_relation_size(c.oid)),0) AS total_size_bytes
+            FROM pg_class c
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE n.nspname = %s AND c.relkind = 'r'
+        """, (schema_name,))
+        size_row = cursor.fetchone()
+        schema_size_pretty = size_row[0] if size_row else "0 bytes"
+        schema_size_bytes = size_row[1] if size_row else 0
+
+        # Get tablespace (location)
+        cursor.execute("""
+            SELECT
+                n.nspname AS schema_name,
+                COALESCE(ts.spcname, 'pg_default') AS tablespace
+            FROM pg_namespace n
+            LEFT JOIN pg_tablespace ts ON nspacl IS NOT NULL AND ts.oid = (SELECT dattablespace FROM pg_database WHERE datname = current_database())
+            WHERE n.nspname = %s
+            LIMIT 1
+        """, (schema_name,))
+        ts_row = cursor.fetchone()
+        tablespace = ts_row[1] if ts_row else "pg_default"
+
+        return jsonify({
+            "schema": schema_name,
+            "tables": tables,
+            "table_count": len(tables),
+            "schema_size_pretty": schema_size_pretty,
+            "schema_size_bytes": schema_size_bytes,
+            "tablespace": tablespace
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/table-overview/<string:schema>/<string:table>", methods=["GET"])
+def table_overview(schema, table):
+    """Return detailed info about a table."""
+    try:
+        # Table owner
+        cursor.execute("""
+            SELECT r.rolname
+            FROM pg_class c
+            JOIN pg_roles r ON c.relowner = r.oid
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'r'
+        """, (schema, table))
+        owner_row = cursor.fetchone()
+        owner = owner_row[0] if owner_row else None
+
+        # Row count (estimate, fallback to COUNT(*) if -1)
+        cursor.execute(
+            sql.SQL("SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid WHERE n.nspname = %s AND c.relname = %s"),
+            (schema, table)
+        )
+        row_count_row = cursor.fetchone()
+        row_count = int(row_count_row[0]) if row_count_row else None
+
+        if row_count == -1:
+            try:
+                cursor.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
+                        sql.Identifier(schema), sql.Identifier(table)
+                    )
+                )
+                row_count = cursor.fetchone()[0]
+            except Exception:
+                row_count = None
+
+        # Column count
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s
+        """, (schema, table))
+        col_count_row = cursor.fetchone()
+        column_count = col_count_row[0] if col_count_row else None
+
+        # Partition info (if any)
+        cursor.execute("""
+            SELECT relispartition FROM pg_class c
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            WHERE n.nspname = %s AND c.relname = %s
+        """, (schema, table))
+        part_row = cursor.fetchone()
+        is_partition = bool(part_row[0]) if part_row else False
+
+        # Last modified time (from pg_stat_all_tables)
+        cursor.execute("""
+            SELECT GREATEST(
+                COALESCE(last_vacuum, 'epoch'),
+                COALESCE(last_autovacuum, 'epoch'),
+                COALESCE(last_analyze, 'epoch'),
+                COALESCE(last_autoanalyze, 'epoch')
+            ) AS last_modified
+            FROM pg_stat_all_tables
+            WHERE schemaname = %s AND relname = %s
+        """, (schema, table))
+        mod_row = cursor.fetchone()
+        last_modified = mod_row[0].isoformat() if mod_row and mod_row[0] else None
+
+        return jsonify({
+            "schema": schema,
+            "table": table,
+            "owner": owner,
+            "row_count": row_count,
+            "column_count": column_count,
+            "is_partition": is_partition,
+            "last_modified": last_modified
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
+    app.run(debug=True)
     app.run(debug=True)
     app.run(debug=True)
