@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Save, X, Database, Link } from "lucide-react";
 import axios from "axios";
-
-const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
+import CustomEdge from "./CustomEdge";
+const AddRel = ({
+  selectedPath,
+  setCreate,
+  darkmode,
+  setEdges,
+  setNodes,
+  edges,
+}) => {
   const [isOpen, setIsOpen] = useState(true);
   const [databaseName, setDatabaseName] = useState(
     selectedPath?.database || "public"
@@ -31,10 +38,12 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
       return null;
     }
   }
+
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setError("");
     }, 7000);
+    return () => clearTimeout(timer);
   }, [error]);
 
   useEffect(() => {
@@ -61,8 +70,6 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         `http://localhost:5000/api/tables/${databaseName}`
       );
       console.log("tables ", response.data);
-
-      // Directly set tables, defaulting to an empty array if response.data is falsy
       setTables(response.data || []);
     } catch (err) {
       setError("Error fetching tables: " + err.message);
@@ -73,12 +80,14 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
   const fetchTableColumns = async (tableId, type) => {
     try {
       const response = await fetchTableInfo(tableId);
-      const { attributes } = response; // ✅ this contains column names from backend
-      console.log("Columns for table:", tableId, attributes);
-      if (type === "from") {
-        setFromTableColumns(attributes || []);
-      } else {
-        setToTableColumns(attributes || []);
+      if (response) {
+        const { attributes } = response;
+        console.log("Columns for table:", tableId, attributes);
+        if (type === "from") {
+          setFromTableColumns(attributes || []);
+        } else {
+          setToTableColumns(attributes || []);
+        }
       }
     } catch (err) {
       console.error("Error fetching table columns:", err);
@@ -91,18 +100,21 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         `http://localhost:5000/api/er_relationships/${databaseName}`
       );
       console.log(response.data);
-      if (response) {
-        const data = response.data;
-        const existingRelationships = data || [];
+      if (response?.data) {
+        const existingRelationships = response.data || [];
 
         // Check if relationship already exists
         const exists = existingRelationships.some(
           (rel) =>
-            (rel.from_table_id === fromTableId &&
-              rel.to_table_id === toTableId) ||
-            (rel.from_table_id === toTableId && rel.to_table_id === fromTableId)
+            (rel.from_table_id == fromTableId &&
+              rel.to_table_id == toTableId &&
+              rel.from_column == fromColumn &&
+              rel.to_column == toColumn) ||
+            (rel.from_table_id == toTableId &&
+              rel.to_table_id == fromTableId &&
+              rel.from_column == toColumn &&
+              rel.to_column == fromColumn)
         );
-        console.log(exists);
         return exists;
       }
       return false;
@@ -111,6 +123,12 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
       return false;
     }
   };
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+    }),
+    []
+  );
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -141,7 +159,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         return;
       }
 
-      // Create relationship
+      // Create relationship data
       const relationshipData = {
         from_table_id: fromTableId,
         from_column: fromColumn,
@@ -151,87 +169,120 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         relationship_type: relationshipType,
         database_name: databaseName,
       };
-      const newNode = {
-        id: `e${relationshipData.from_table_id}-${relationshipData.to_table_id}-${relationshipData.id}`,
-        source: relationshipData.from_table_id.toString(),
-        target: relationshipData.to_table_id.toString(),
-        label: `${relationshipData.from_column} → ${relationshipData.to_column} (${relationshipData.cardinality})`,
-        labelStyle: {
-          fontSize: "24px",
-          fontWeight: "bold",
-          fill: "#333",
-          backgroundColor: "#fff",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          border: "1px solid #ccc",
-        },
-        labelBgStyle: {
-          fill: "#fff",
-          fillOpacity: 0.8,
-          stroke: "#ccc",
-          strokeWidth: 1,
-        },
-        animated: false,
-        data: {
-          cardinality: relationshipData.cardinality,
-          relationshipType: relationshipData.relationshipDataationship_type,
-        },
-      };
-      const fromTabledata = await axios.get(
-        "http://localhost:5000/api/tables/" + fromTableId + "/attributes"
-      );
-      const toTabledata = await axios.get(
-        "http://localhost:5000/api/tables/" + toTableId + "/attributes"
-      );
-      console.log(fromTabledata);
-      console.log(toTabledata);
 
-      const toTable = tables.find((t) => t.id.toString() === toTableId);
-      setEdges((edges) => [...edges, newNode]);
-      setNodes((prevNodes) => {
-        const existingNodeIds = new Set(prevNodes.map((node) => node.id));
-        const updatedNodes = [...prevNodes];
-
-        if (!existingNodeIds.has(fromTableId)) {
-          updatedNodes.push({
-            id: fromTableId,
-            type: "schemaCard",
-            data: {
-              label: fromTabledata.data.table_name || `Table ${fromTableId}`,
-              table: fromTabledata.data,
-              darkmode,
-            },
-            position: {
-              x: 100 + Math.random() * 300,
-              y: 100 + Math.random() * 300,
-            },
-          });
-        }
-
-        if (!existingNodeIds.has(toTableId)) {
-          updatedNodes.push({
-            id: toTableId,
-            type: "schemaCard",
-            data: {
-              label: toTabledata.data.table_name || `Table ${fromTableId}`,
-              table: toTabledata.data,
-              darkmode,
-            },
-            position: {
-              x: 400 + Math.random() * 300,
-              y: 100 + Math.random() * 300,
-            },
-          });
-        }
-
-        return updatedNodes;
-      });
+      // Create the relationship in the backend first
       const response = await axios.post(
         "http://localhost:5000/api/er_relationships",
         relationshipData
       );
+
       console.log("Response from server:", response);
+
       if (response.status === 200 || response.status === 201) {
+        // Get the created relationship ID from the response
+        const createdRelationship = response.data;
+
+        // Fetch table data for nodes
+        const fromTabledata = await fetchTableInfo(fromTableId);
+        const toTabledata = await fetchTableInfo(toTableId);
+
+        // Create new edge with the actual relationship ID
+        const newEdge = {
+          id: `e${relationshipData.from_table_id}-${
+            relationshipData.to_table_id
+          }-${createdRelationship.id || Date.now()}`,
+          source: relationshipData.from_table_id.toString(),
+          target: relationshipData.to_table_id.toString(),
+          type: "custom",
+          label: `${relationshipData.from_column} → ${relationshipData.to_column} (${relationshipData.cardinality})`,
+          style: { stroke: "#666", strokeWidth: 1 },
+          labelStyle: {
+            fontSize: "12px",
+            fontFamily: "monospace",
+            fill: darkmode ? "#E5E7EB" : "#374151",
+            lineHeight: "1.5em",
+            whiteSpace: "pre",
+          },
+          labelBgStyle: {
+            fill: darkmode ? "#374151" : "#FFFFFF",
+            fillOpacity: 0.95,
+            stroke: darkmode ? "#4B5563" : "#E5E7EB",
+            strokeWidth: 1,
+          },
+          animated: false,
+          data: {
+            cardinality: relationshipData.cardinality,
+            relationshipType: relationshipData.relationship_type, // Fixed typo
+            from_table_id: fromTableId,
+            to_table_id: toTableId,
+          },
+        };
+
+        // Find and handle existing edges between the same tables
+        let existingEdge = null;
+        const remEdges = edges.filter((edge) => {
+          const isMatchingEdge =
+            (edge.data?.from_table_id == fromTableId &&
+              edge.data?.to_table_id == toTableId) ||
+            (edge.data?.from_table_id == toTableId &&
+              edge.data?.to_table_id == fromTableId);
+
+          if (isMatchingEdge) {
+            existingEdge = edge;
+            console.log("Found existing edge:", edge);
+            return false; // Remove this edge from the filtered array
+          }
+          return true; // Keep this edge in the filtered array
+        });
+
+        // Combine labels if there's an existing edge
+        if (existingEdge?.label) {
+          newEdge.label = [newEdge.label, existingEdge.label].join("\n");
+        }
+
+        // Update edges
+        setEdges([...remEdges, newEdge]);
+
+        // Update nodes
+        setNodes((prevNodes) => {
+          const existingNodeIds = new Set(prevNodes.map((node) => node.id));
+          const updatedNodes = [...prevNodes];
+
+          if (!existingNodeIds.has(fromTableId)) {
+            updatedNodes.push({
+              id: fromTableId,
+              type: "schemaCard",
+              data: {
+                label: fromTabledata?.table_name || `Table ${fromTableId}`,
+                table: fromTabledata,
+                darkmode,
+              },
+              position: {
+                x: 100 + Math.random() * 300,
+                y: 100 + Math.random() * 300,
+              },
+            });
+          }
+
+          if (!existingNodeIds.has(toTableId)) {
+            updatedNodes.push({
+              id: toTableId,
+              type: "schemaCard",
+              data: {
+                label: toTabledata?.table_name || `Table ${toTableId}`, // Fixed: was using fromTableId
+                table: toTabledata,
+                darkmode,
+              },
+              position: {
+                x: 400 + Math.random() * 300,
+                y: 100 + Math.random() * 300,
+              },
+            });
+          }
+
+          return updatedNodes;
+        });
+
         setSuccess("Relationship created successfully!");
 
         // Reset form after successful creation
@@ -242,7 +293,10 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
         setError("Failed to create relationship");
       }
     } catch (err) {
-      setError("Error creating relationship: " + err.message);
+      setError(
+        "Error creating relationship: " +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
       setIsLoading(false);
     }
@@ -359,13 +413,14 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
                     value={fromTableId}
                     onChange={(e) => {
                       if (
-                        e.target.value != "" &&
+                        e.target.value !== "" &&
                         e.target.value === toTableId
                       ) {
                         setError("Cannot select the same table for both sides");
                         return;
                       }
                       setFromTableId(e.target.value);
+                      setFromColumn(""); // Reset column selection
                     }}
                     className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       darkmode
@@ -404,7 +459,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
                     <option value="">Select a column</option>
                     {fromTableColumns.map((column) => (
                       <option key={column} value={column}>
-                        {column} ({column})
+                        {column}
                       </option>
                     ))}
                   </select>
@@ -434,13 +489,14 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
                     value={toTableId}
                     onChange={(e) => {
                       if (
-                        e.target.value != "" &&
+                        e.target.value !== "" &&
                         e.target.value === fromTableId
                       ) {
                         setError("Cannot select the same table for both sides");
                         return;
                       }
                       setToTableId(e.target.value);
+                      setToColumn(""); // Reset column selection
                     }}
                     className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       darkmode
@@ -479,7 +535,7 @@ const AddRel = ({ selectedPath, setCreate, darkmode, setEdges, setNodes }) => {
                     <option value="">Select a column</option>
                     {toTableColumns.map((column) => (
                       <option key={column} value={column}>
-                        {column} ({column})
+                        {column}
                       </option>
                     ))}
                   </select>

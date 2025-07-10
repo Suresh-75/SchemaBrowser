@@ -21,7 +21,7 @@ import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
 import { ArrowBigLeft } from "lucide-react";
-import CustomEdge from './Components/CustomEdge';
+import CustomEdge from "./Components/CustomEdge";
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
@@ -131,12 +131,16 @@ function ErDiagram({
     }
   }
 
-  const edgeTypes = useMemo(() => ({
-    custom: CustomEdge,
-  }), []);
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+    }),
+    []
+  );
 
   const createNodesAndEdges = useCallback(
-    async (relationships = []) => { // Add default empty array
+    async (relationships = []) => {
+      // Add default empty array
       if (!relationships || relationships.length === 0) {
         return { nodes: [], edges: [] };
       }
@@ -185,16 +189,19 @@ function ErDiagram({
       }));
 
       const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
-        const [fromId, toId] = key.split('-');
+        const [fromId, toId] = key.split("-");
         return {
           id: `e${key}`,
           source: fromId.toString(),
           target: toId.toString(),
-          type: 'custom', // Use our custom edge
-          label: rels.map(rel =>
-            `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
-          ).join('\n'),
-          style: { stroke: '#666', strokeWidth: 1 },
+          type: "custom", // Use our custom edge
+          label: rels
+            .map(
+              (rel) =>
+                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
+            )
+            .join("\n"),
+          style: { stroke: "#666", strokeWidth: 1 },
           labelStyle: {
             fontSize: "12px",
             fontFamily: "monospace",
@@ -209,8 +216,8 @@ function ErDiagram({
             strokeWidth: 1,
           },
           data: {
-            relationships: rels
-          }
+            relationships: rels,
+          },
         };
       });
 
@@ -236,7 +243,9 @@ function ErDiagram({
           setEdges([]);
           return;
         }
-        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(relationships);
+        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+          relationships
+        );
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {

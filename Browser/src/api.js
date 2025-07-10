@@ -13,14 +13,17 @@ export const endpoints = {
   deleteTable: (tableId) => api.delete(`/tables/${tableId}`),
 
   // Overview and profiles
-  getTableOverview: (schema, table) => api.get(`/table-overview/${schema}/${table}`),
+  getTableOverview: (schema, table) =>
+    api.get(`/table-overview/${schema}/${table}`),
   getSchemaOverview: (schema) => api.get(`/schema-overview/${schema}`),
   getTableProfile: (data) => api.post("/profile", data),
-  downloadCsv: (schema, table) => api.get(`/table-csv/${schema}/${table}`, { responseType: 'blob' }),
+  downloadCsv: (schema, table) =>
+    api.get(`/table-csv/${schema}/${table}`, { responseType: "blob" }),
 
   // Relationships
   getRelationships: (dbName) => api.get(`/er_relationships/${dbName}`),
-  getTableRelationships: (dbName, tableId) => api.get(`/er_relationships/${dbName}/${tableId}`),
+  getTableRelationships: (dbName, tableId) =>
+    api.get(`/er_relationships/${dbName}/${tableId}`),
   createRelationship: (data) => api.post("/er_relationships", data),
 
   // Hierarchy
@@ -33,6 +36,9 @@ export const endpoints = {
   createLob: (data) => api.post("/lobs", data),
   createSubjectArea: (data) => api.post("/subject-areas", data),
   createLogicalDatabase: (data) => api.post("/logical-databases", data),
+
+  //delete ER
+  deleteER: (id) => api.delete(`/er_relationships/${id}`),
 };
 
 export default api;

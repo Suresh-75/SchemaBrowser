@@ -79,6 +79,7 @@ export default function App() {
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
           <AddRel
+            edges={edges}
             setCreate={setCreate}
             setNodes={setNodes}
             setEdges={setEdges}
@@ -172,7 +173,7 @@ export default function App() {
       >
         {/* Sidebar */}
         <div
-          className={`min-w-[20rem] max-w-xs backdrop-blur-sm rounded-3xl flex flex-col border shadow-xl ${
+          className={`min-w-[23rem] max-w-xs backdrop-blur-sm rounded-3xl flex flex-col border shadow-xl ${
             darkmode
               ? "bg-slate-900/90 border-indigo-900"
               : "bg-white/90 border-indigo-100"
@@ -243,6 +244,8 @@ export default function App() {
           </div>
           <div className="flex-1 p-3 overflow-y-auto min-h-0">
             <SidebarComponent
+              edges={edges}
+              setEdges={setEdges}
               user={user}
               activeTab={activeTab}
               selectedPath={selectedPath}
