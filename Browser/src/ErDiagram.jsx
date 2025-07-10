@@ -164,13 +164,27 @@ function ErDiagram({
           y: Math.floor(index / 3) * 700,
         },
       }));
-
       const newEdges = relationships.map((rel) => ({
         id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
         source: rel.from_table_id.toString(),
         target: rel.to_table_id.toString(),
         label: `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`,
         animated: false,
+        labelStyle: {
+          fontSize: "24px",
+          fontWeight: "bold",
+          fill: "#333",
+          backgroundColor: "#fff",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          border: "1px solid #ccc",
+        },
+        labelBgStyle: {
+          fill: "#fff",
+          fillOpacity: 0.8,
+          stroke: "#ccc",
+          strokeWidth: 1,
+        },
         data: {
           cardinality: rel.cardinality,
           relationshipType: rel.relationship_type,
@@ -197,7 +211,6 @@ function ErDiagram({
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
         );
-        console.log(newNodes);
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
