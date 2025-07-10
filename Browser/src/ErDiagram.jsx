@@ -203,7 +203,7 @@ function ErDiagram({
             .join("\n"),
           style: { stroke: "#666", strokeWidth: 1 },
           labelStyle: {
-            fontSize: "12px",
+            fontSize: "16px",
             fontFamily: "monospace",
             fill: darkmode ? "#E5E7EB" : "#374151",
             lineHeight: "1.5em",

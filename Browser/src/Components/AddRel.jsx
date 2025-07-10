@@ -197,7 +197,7 @@ const AddRel = ({
           label: `${relationshipData.from_column} → ${relationshipData.to_column} (${relationshipData.cardinality})`,
           style: { stroke: "#666", strokeWidth: 1 },
           labelStyle: {
-            fontSize: "12px",
+            fontSize: "16px",
             fontFamily: "monospace",
             fill: darkmode ? "#E5E7EB" : "#374151",
             lineHeight: "1.5em",

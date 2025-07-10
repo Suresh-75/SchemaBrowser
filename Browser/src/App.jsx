@@ -155,7 +155,7 @@ export default function App() {
         </div>
       </nav>
       {/* FilterBar */}
-      <div className="flex-shrink-0 px-5 py-3">
+      <div className="flex-shrink-0 px-5 py-3 flex-wrap">
         <FilterBar
           setSelectedTable={setSelectedTable}
           user={user}
