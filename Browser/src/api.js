@@ -28,6 +28,11 @@ export const endpoints = {
 
   // Search
   search: (query) => api.get(`/search?q=${query}`),
+
+  // Administrative operations
+  createLob: (data) => api.post("/lobs", data),
+  createSubjectArea: (data) => api.post("/subject-areas", data),
+  createLogicalDatabase: (data) => api.post("/logical-databases", data),
 };
 
 export default api;

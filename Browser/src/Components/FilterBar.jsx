@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   ChevronDown,
   ChevronRight,
@@ -101,7 +100,7 @@ const FilterBar = ({
       return;
     }
     try {
-      await axios.post("http://localhost:5000/api/subject-areas", {
+      await endpoints.createSubjectArea({
         name: newSubjectName,
         lob_name: lobName,
       });
@@ -121,7 +120,7 @@ const FilterBar = ({
   const handleAddDatabase = async (lobName, subjectName) => {
     if (!newDatabaseName.trim()) return;
     try {
-      await axios.post("http://localhost:5000/api/logical-databases", {
+      await endpoints.createLogicalDatabase({
         name: newDatabaseName,
         lob_name: lobName,
         subject_name: subjectName,
@@ -208,8 +207,8 @@ const FilterBar = ({
           <React.Fragment key={index}>
             <div
               className={`flex items-center px-2 py-1 rounded ${darkmode
-                  ? "bg-gray-700 text-gray-200"
-                  : "bg-gray-200 text-gray-700"
+                ? "bg-gray-700 text-gray-200"
+                : "bg-gray-200 text-gray-700"
                 }`}
             >
               <item.icon className="w-3 h-3 mr-1" />
@@ -244,8 +243,8 @@ const FilterBar = ({
       <div
         // className={``}
         className={`flex items-center px-6 py-3 space-x-8  rounded-2xl ${darkmode
-            ? "bg-gradient-to-r from-slate-900 to-blue-950"
-            : "bg-gray-50 border-gray-200"
+          ? "bg-gradient-to-r from-slate-900 to-blue-950"
+          : "bg-gray-50 border-gray-200"
           }`}
       >
         {Object.keys(businessData).map((lob) => (
@@ -262,14 +261,14 @@ const FilterBar = ({
             <button
               onClick={() => handleLobSelect(lob)}
               className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedPath.lob === lob
-                  ? "bg-blue-600 text-white shadow-md"
-                  : hoveredLob === lob
-                    ? darkmode
-                      ? "bg-blue-900 text-blue-200"
-                      : "bg-blue-100 text-blue-700"
-                    : darkmode
-                      ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700"
-                      : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                ? "bg-blue-600 text-white shadow-md"
+                : hoveredLob === lob
+                  ? darkmode
+                    ? "bg-blue-900 text-blue-200"
+                    : "bg-blue-100 text-blue-700"
+                  : darkmode
+                    ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                 }`}
             >
               <Building2 className="w-4 h-4 mr-2" />
@@ -280,8 +279,8 @@ const FilterBar = ({
             {hoveredLob === lob && (
               <div
                 className={`absolute top-full left-0 w-64 rounded-lg shadow-xl border z-50 ${darkmode
-                    ? "bg-gray-800 border-gray-600"
-                    : "bg-white border-gray-200"
+                  ? "bg-gray-800 border-gray-600"
+                  : "bg-white border-gray-200"
                   }`}
               >
                 <div className="py-2">
@@ -296,16 +295,16 @@ const FilterBar = ({
                       <button
                         onClick={() => handleSubjectSelect(lob, subject)}
                         className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${selectedPath.subject === subject
+                          ? darkmode
+                            ? "bg-blue-900 text-blue-200 border-r-2 border-blue-400"
+                            : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                          : hoveredSubject === subject
                             ? darkmode
-                              ? "bg-blue-900 text-blue-200 border-r-2 border-blue-400"
-                              : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-                            : hoveredSubject === subject
-                              ? darkmode
-                                ? "bg-gray-700 text-gray-200"
-                                : "bg-gray-50 text-gray-900"
-                              : darkmode
-                                ? "text-gray-300 hover:bg-gray-700"
-                                : "text-gray-700 hover:bg-gray-50"
+                              ? "bg-gray-700 text-gray-200"
+                              : "bg-gray-50 text-gray-900"
+                            : darkmode
+                              ? "text-gray-300 hover:bg-gray-700"
+                              : "text-gray-700 hover:bg-gray-50"
                           }`}
                         onMouseEnter={() => setHoveredSubject(subject)}
                       >
@@ -326,8 +325,8 @@ const FilterBar = ({
                       {hoveredSubject === subject && (
                         <div
                           className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${darkmode
-                              ? "bg-gray-800 border-gray-600"
-                              : "bg-white border-gray-200"
+                            ? "bg-gray-800 border-gray-600"
+                            : "bg-white border-gray-200"
                             }`}
                           onMouseEnter={() => setHoveredSubject(subject)}
                           onMouseLeave={() => setHoveredSubject(null)}
@@ -355,27 +354,27 @@ const FilterBar = ({
                                     handleDatabaseSelect(lob, subject, database)
                                   }
                                   className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${selectedPath.database === database
-                                      ? darkmode
-                                        ? "bg-blue-900 text-blue-200 shadow-md"
-                                        : "bg-blue-50 text-blue-700 shadow-md"
-                                      : darkmode
-                                        ? "text-gray-300 hover:bg-gray-700"
-                                        : "text-gray-700 hover:bg-gray-50"
+                                    ? darkmode
+                                      ? "bg-blue-900 text-blue-200 shadow-md"
+                                      : "bg-blue-50 text-blue-700 shadow-md"
+                                    : darkmode
+                                      ? "text-gray-300 hover:bg-gray-700"
+                                      : "text-gray-700 hover:bg-gray-50"
                                     }`}
                                 >
                                   <div className="flex items-center">
                                     <Database
                                       className={`w-4 h-4 mr-3 ${darkmode
-                                          ? "text-gray-500"
-                                          : "text-gray-400"
+                                        ? "text-gray-500"
+                                        : "text-gray-400"
                                         }`}
                                     />
                                     {database}
                                   </div>
                                   <ChevronRight
                                     className={`w-4 h-4 ${darkmode
-                                        ? "text-gray-500"
-                                        : "text-gray-400"
+                                      ? "text-gray-500"
+                                      : "text-gray-400"
                                       }`}
                                   />
                                 </button>
@@ -383,8 +382,8 @@ const FilterBar = ({
                                 {hoveredDatabase === database && (
                                   <div
                                     className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${darkmode
-                                        ? "bg-gray-800 border-gray-600"
-                                        : "bg-white border-gray-200"
+                                      ? "bg-gray-800 border-gray-600"
+                                      : "bg-white border-gray-200"
                                       }`}
                                     onMouseEnter={() => {
                                       console.log(
@@ -400,8 +399,8 @@ const FilterBar = ({
                                     <div className="py-2">
                                       <div
                                         className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${darkmode
-                                            ? "text-gray-400"
-                                            : "text-gray-500"
+                                          ? "text-gray-400"
+                                          : "text-gray-500"
                                           }`}
                                       >
                                         Tables
@@ -423,18 +422,18 @@ const FilterBar = ({
                                             );
                                           }}
                                           className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${selectedPath.table === obj.name
-                                              ? darkmode
-                                                ? "bg-blue-900 text-blue-200"
-                                                : "bg-blue-50 text-blue-700"
-                                              : darkmode
-                                                ? "text-gray-400 hover:bg-gray-700"
-                                                : "text-gray-600 hover:bg-gray-50"
+                                            ? darkmode
+                                              ? "bg-blue-900 text-blue-200"
+                                              : "bg-blue-50 text-blue-700"
+                                            : darkmode
+                                              ? "text-gray-400 hover:bg-gray-700"
+                                              : "text-gray-600 hover:bg-gray-50"
                                             }`}
                                         >
                                           <Table
                                             className={`w-4 h-4 mr-3 ${darkmode
-                                                ? "text-gray-500"
-                                                : "text-gray-400"
+                                              ? "text-gray-500"
+                                              : "text-gray-400"
                                               }`}
                                           />
                                           {obj.name}
@@ -449,8 +448,8 @@ const FilterBar = ({
                               <div className="px-4 mt-2">
                                 <button
                                   className={`text-sm transition-colors ${darkmode
-                                      ? "text-blue-400 hover:text-blue-300"
-                                      : "text-blue-600 hover:text-blue-800"
+                                    ? "text-blue-400 hover:text-blue-300"
+                                    : "text-blue-600 hover:text-blue-800"
                                     }`}
                                   onClick={() =>
                                     setShowDatabaseModal({ lob, subject })
@@ -469,8 +468,8 @@ const FilterBar = ({
                     <div className="px-4 mt-2">
                       <button
                         className={`text-sm transition-colors ${darkmode
-                            ? "text-blue-400 hover:text-blue-300"
-                            : "text-blue-600 hover:text-blue-800"
+                          ? "text-blue-400 hover:text-blue-300"
+                          : "text-blue-600 hover:text-blue-800"
                           }`}
                         onClick={() => setShowSubjectModal(lob)}
                       >
@@ -486,8 +485,8 @@ const FilterBar = ({
         {user == "admin" && (
           <button
             className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${darkmode
-                ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
-                : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
+              ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
+              : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
               }`}
             onClick={() => setShowAddModal(true)}
           >
@@ -554,16 +553,16 @@ const Modal = ({ title, value, onChange, onClose, onSubmit, darkmode }) => (
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring transition-colors ${darkmode
-            ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500"
-            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"
+          ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500"
+          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"
           }`}
       />
       <div className="flex justify-end space-x-2">
         <button
           onClick={onClose}
           className={`px-4 py-2 rounded transition-colors ${darkmode
-              ? "bg-gray-600 hover:bg-gray-500 text-gray-100"
-              : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+            ? "bg-gray-600 hover:bg-gray-500 text-gray-100"
+            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
             }`}
         >
           Cancel
@@ -571,8 +570,8 @@ const Modal = ({ title, value, onChange, onClose, onSubmit, darkmode }) => (
         <button
           onClick={onSubmit}
           className={`px-4 py-2 rounded border-2 border-dashed transition-colors ${darkmode
-              ? "border-gray-500 text-gray-200 hover:border-gray-400"
-              : "border-gray-400 text-gray-700 hover:border-gray-500"
+            ? "border-gray-500 text-gray-200 hover:border-gray-400"
+            : "border-gray-400 text-gray-700 hover:border-gray-500"
             }`}
         >
           Add

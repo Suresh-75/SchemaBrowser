@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import ErDiagram from "../ErDiagram";
-import axios from "axios";
 import DatabaseOverview from "./DatabaseOverview";
 import TableOverview from "./TableOverview";
 import { endpoints } from '../api';
