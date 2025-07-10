@@ -921,6 +921,50 @@ def table_overview(schema, table):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/table-csv/<string:schema>/<string:table>", methods=["GET"])
+def download_table_csv(schema, table):
+    """Download table data as CSV."""
+    try:
+        # First check if table exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = %s AND table_name = %s
+            );
+        """, (schema, table))
+        exists = cursor.fetchone()[0]
+        if not exists:
+            return jsonify({"error": f"Table {schema}.{table} not found"}), 404
+
+        # Use pandas with chunks for large tables
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("SELECT * FROM {}.{}").format(
+                    sql.Identifier(schema), sql.Identifier(table)
+                )
+            )
+            # Fetch column names
+            columns = [desc[0] for desc in cur.description]
+            
+            # Fetch all data
+            data = cur.fetchall()
+            
+            # Create DataFrame
+            df = pd.DataFrame(data, columns=columns)
+            csv_data = df.to_csv(index=False)
+
+            return Response(
+                csv_data,
+                mimetype='text/csv',
+                headers={
+                    'Content-Disposition': f'attachment; filename={table}.csv',
+                    'Content-Type': 'text/csv; charset=utf-8'
+                }
+            )
+    except Exception as e:
+        print(f"Error downloading CSV: {str(e)}")  # For debugging
+        return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
     app.run(debug=True)

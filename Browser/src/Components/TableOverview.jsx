@@ -42,11 +42,40 @@ const TableOverview = ({ schema, table, darkmode }) => {
     }
     if (!info) return null;
 
+    const handleDownloadCSV = async () => {
+        try {
+            const response = await axios.get(
+                `http://localhost:5000/api/table-csv/${schema}/${table}`,
+                { responseType: 'blob' }
+            );
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${table}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Failed to download CSV:', error);
+        }
+    };
+
     return (
         <div className={`p-6 ${darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"} rounded-lg shadow`}>
-            <h2 className="text-xl font-bold mb-2">
-                Table: <span className="font-mono">{info.schema}.{info.table}</span>
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                    Table: <span className="font-mono">{info.schema}.{info.table}</span>
+                </h2>
+                <button
+                    onClick={handleDownloadCSV}
+                    className={`px-4 py-2 rounded ${darkmode
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-blue-500 hover:bg-blue-600 text-white"
+                        } transition-colors`}
+                >
+                    Download CSV
+                </button>
+            </div>
             <div className="mb-2">
                 <span className="font-semibold">Owner:</span> {info.owner || <span className="italic text-gray-400">N/A</span>}
             </div>
