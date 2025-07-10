@@ -21,6 +21,7 @@ import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
 import { ArrowBigLeft } from "lucide-react";
+import CustomEdge from './Components/CustomEdge';
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
@@ -130,6 +131,10 @@ function ErDiagram({
     }
   }
 
+  const edgeTypes = useMemo(() => ({
+    custom: CustomEdge,
+  }), []);
+
   const createNodesAndEdges = useCallback(
     async (relationships) => {
       const tableIds = Array.from(
@@ -149,6 +154,16 @@ function ErDiagram({
         tableMap[tableId] = tableInfos[index];
       });
 
+      // Group relationships by source-target pair
+      const edgeGroups = {};
+      relationships.forEach((rel) => {
+        const key = `${rel.from_table_id}-${rel.to_table_id}`;
+        if (!edgeGroups[key]) {
+          edgeGroups[key] = [];
+        }
+        edgeGroups[key].push(rel);
+      });
+
       const newNodes = tableIds.map((tableId, index) => ({
         id: tableId.toString(),
         type: "schemaCard",
@@ -164,32 +179,36 @@ function ErDiagram({
           y: Math.floor(index / 3) * 700,
         },
       }));
-      const newEdges = relationships.map((rel) => ({
-        id: `e${rel.from_table_id}-${rel.to_table_id}-${rel.id}`,
-        source: rel.from_table_id.toString(),
-        target: rel.to_table_id.toString(),
-        label: `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`,
-        animated: false,
-        labelStyle: {
-          fontSize: "24px",
-          fontWeight: "bold",
-          fill: "#333",
-          backgroundColor: "#fff",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          border: "1px solid #ccc",
-        },
-        labelBgStyle: {
-          fill: "#fff",
-          fillOpacity: 0.8,
-          stroke: "#ccc",
-          strokeWidth: 1,
-        },
-        data: {
-          cardinality: rel.cardinality,
-          relationshipType: rel.relationship_type,
-        },
-      }));
+
+      const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
+        const [fromId, toId] = key.split('-');
+        return {
+          id: `e${key}`,
+          source: fromId.toString(),
+          target: toId.toString(),
+          type: 'custom', // Use our custom edge
+          label: rels.map(rel =>
+            `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
+          ).join('\n'),
+          style: { stroke: '#666', strokeWidth: 1 },
+          labelStyle: {
+            fontSize: "12px",
+            fontFamily: "monospace",
+            fill: darkmode ? "#E5E7EB" : "#374151",
+            lineHeight: "1.5em",
+            whiteSpace: "pre",
+          },
+          labelBgStyle: {
+            fill: darkmode ? "#374151" : "#FFFFFF",
+            fillOpacity: 0.95,
+            stroke: darkmode ? "#4B5563" : "#E5E7EB",
+            strokeWidth: 1,
+          },
+          data: {
+            relationships: rels
+          }
+        };
+      });
 
       return { nodes: newNodes, edges: newEdges };
     },
@@ -314,6 +333,7 @@ function ErDiagram({
         fitView
         fitViewOptions={{ padding: 0.2 }}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         panOnDrag
         nodesDraggable
         proOptions={{ hideAttribution: true }}
