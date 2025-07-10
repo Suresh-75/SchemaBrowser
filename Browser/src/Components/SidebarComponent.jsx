@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, Eye, Network, Plus, Settings, Zap, Trash2 } from "lucide-react";
-import VersionControlPanel from "./VersionControlPanel";
-import AnnotationsPanel from "./Annotations";
-import axios from "axios";
+import { endpoints } from '../api';
 
 const SidebarComponent = ({
   user,
@@ -18,50 +16,44 @@ const SidebarComponent = ({
   const [rels, setRels] = useState([]);
   async function fetchTableInfo(tableId) {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}/attributes`
-      );
+      const response = await endpoints.getTableAttributes(tableId);
       return response.data;
     } catch (error) {
       console.error(`Error fetching table info for table ${tableId}:`, error);
       return null;
     }
   }
+
+  const fetchAllData = async () => {
+    if (!selectedPath || !selectedPath.database) {
+      setData([]);
+      setRels([]);
+      return;
+    }
+
+    try {
+      const tablesResponse = await endpoints.getTablesByDatabase(selectedPath.database);
+      setData(tablesResponse.data);
+
+      const relationshipsResponse = await endpoints.getRelationships(selectedPath.database);
+      const relsData = relationshipsResponse.data;
+
+      const processedRels = relsData.map((rel) => ({
+        id: rel.id,
+        display: rel.display,
+      }));
+      setRels(processedRels);
+    } catch (error) {
+      setData([]);
+      setRels([]);
+      console.error(
+        `Error fetching data for database ${selectedPath.database}:`,
+        error
+      );
+    }
+  };
+
   useEffect(() => {
-    const fetchAllData = async () => {
-      if (!selectedPath || !selectedPath.database) {
-        setData([]);
-        setRels([]);
-        return;
-      }
-
-      try {
-        const tablesResponse = await axios.get(
-          `http://localhost:5000/api/tables/${selectedPath.database}`
-        );
-        console.log(tablesResponse.data);
-        setData(tablesResponse.data);
-
-        const relationshipsResponse = await axios.get(
-          `http://localhost:5000/api/er_relationships/${selectedPath.database}`
-        );
-        const relsData = relationshipsResponse.data;
-
-        const processedRels = relsData.map((rel) => ({
-          id: rel.id,
-          display: rel.display,
-        }));
-        setRels(processedRels);
-      } catch (error) {
-        setData([]);
-        setRels([]);
-        console.error(
-          `Error fetching data for database ${selectedPath.database}:`,
-          error
-        );
-      }
-    };
-
     fetchAllData();
   }, [selectedPath, create]);
 
@@ -81,7 +73,7 @@ const SidebarComponent = ({
     }
 
     try {
-      const response = await axios.delete(`http://localhost:5000/api/tables/${tableId}`);
+      const response = await endpoints.deleteTable(tableId);
 
       if (response.status === 200) {
         // Remove the deleted table from the data state
@@ -181,8 +173,8 @@ const SidebarComponent = ({
                   <div
                     key={entity.id}
                     className={`p-4 rounded-xl border shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3 ${darkmode
-                        ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
-                        : "bg-blue-100 to-white border-blue-100"
+                      ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
+                      : "bg-blue-100 to-white border-blue-100"
                       }`}
                     tabIndex={0}
                     aria-label={`Entity: ${entity.name}`}
@@ -226,8 +218,8 @@ const SidebarComponent = ({
                           handleDeleteTable(entity.id, entity.name);
                         }}
                         className={`p-2 rounded-lg transition-colors hover:scale-110 ${darkmode
-                            ? "text-red-400 hover:bg-red-900 hover:text-red-300"
-                            : "text-red-500 hover:bg-red-100 hover:text-red-700"
+                          ? "text-red-400 hover:bg-red-900 hover:text-red-300"
+                          : "text-red-500 hover:bg-red-100 hover:text-red-700"
                           }`}
                         aria-label={`Delete table ${entity.name}`}
                         title={`Delete table ${entity.name}`}
@@ -252,8 +244,8 @@ const SidebarComponent = ({
                 <button
                   onClick={() => setCreate("Entity")}
                   className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${darkmode
-                      ? "bg-blue-800 text-white hover:bg-blue-900"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
+                    ? "bg-blue-800 text-white hover:bg-blue-900"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
                     }`}
                   aria-label="Add Entity"
                 >
@@ -263,8 +255,8 @@ const SidebarComponent = ({
               ) : (
                 <div
                   className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${darkmode
-                      ? "text-blue-200 bg-blue-950 border-blue-900"
-                      : "text-blue-700 bg-blue-50 border-blue-100"
+                    ? "text-blue-200 bg-blue-950 border-blue-900"
+                    : "text-blue-700 bg-blue-50 border-blue-100"
                     }`}
                 >
                   Choose a database to add entities
@@ -302,8 +294,8 @@ const SidebarComponent = ({
                   <div
                     key={relItem.id}
                     className={`p-4  rounded-xl border shadow hover:shadow-md transition-all cursor-pointer flex items-center gap-3 ${darkmode
-                        ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
-                        : "bg-gradient-to-r from-blue-200 to-green-50 border-green-100"
+                      ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
+                      : "bg-gradient-to-r from-blue-200 to-green-50 border-green-100"
                       }`}
                     tabIndex={0}
                     aria-label={`Relationship: ${relItem.display}`}
@@ -351,8 +343,8 @@ const SidebarComponent = ({
                 <button
                   onClick={() => setCreate("Relationship")}
                   className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${darkmode
-                      ? "bg-blue-800 text-white hover:bg-blue-900"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
+                    ? "bg-blue-800 text-white hover:bg-blue-900"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
                     }`}
                   aria-label="Add Relationship"
                 >
@@ -362,8 +354,8 @@ const SidebarComponent = ({
               ) : (
                 <div
                   className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${darkmode
-                      ? "text-blue-200 bg-blue-950 border-blue-900"
-                      : "text-blue-700 bg-blue-50 border-blue-100"
+                    ? "text-blue-200 bg-blue-950 border-blue-900"
+                    : "text-blue-700 bg-blue-50 border-blue-100"
                     }`}
                 >
                   Choose a database to add relationships
@@ -471,8 +463,8 @@ const SidebarComponent = ({
                   setDarkmode((prev) => !prev);
                 }}
                 className={`relative inline-flex h-7 w-16 items-center rounded-full transition-colors focus:outline-none border-2 ${darkmode
-                    ? "bg-gray-800 border-gray-700"
-                    : "bg-gray-300 border-gray-400"
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-gray-300 border-gray-400"
                   }`}
                 aria-label="Toggle dark mode"
               >
@@ -553,8 +545,8 @@ const SidebarComponent = ({
           <div className="space-y-3">
             <div
               className={`p-4 rounded-lg border ${darkmode
-                  ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
-                  : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
+                ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
+                : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
                 }`}
             >
               <div className="flex items-center gap-2 mb-2">

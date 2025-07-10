@@ -136,7 +136,11 @@ function ErDiagram({
   }), []);
 
   const createNodesAndEdges = useCallback(
-    async (relationships) => {
+    async (relationships = []) => { // Add default empty array
+      if (!relationships || relationships.length === 0) {
+        return { nodes: [], edges: [] };
+      }
+
       const tableIds = Array.from(
         new Set(
           relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
@@ -227,9 +231,12 @@ function ErDiagram({
       try {
         setLoading(true);
         const relationships = await fetchRelationships(selectedPath.database);
-        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
-          relationships
-        );
+        if (!relationships) {
+          setNodes([]);
+          setEdges([]);
+          return;
+        }
+        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(relationships);
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
@@ -241,7 +248,7 @@ function ErDiagram({
     };
 
     loadData();
-  }, [selectedPath.database, createNodesAndEdges, selectedTable]);
+  }, [selectedPath?.database, createNodesAndEdges, selectedTable]);
 
   const nodeTypes = useMemo(
     () => ({

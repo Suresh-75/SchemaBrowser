@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { endpoints } from '../api';
 
 const typeOrder = ["LOB", "Subject Area", "Database", "Table"];
 const typeOptions = [
@@ -22,10 +23,9 @@ const SearchBar = ({ onSelect, darkmode }) => {
       return;
     }
     setLoading(true);
-    fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(query)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setResults(data);
+    endpoints.search(query)
+      .then((res) => {
+        setResults(res.data);
         setLoading(false);
       })
       .catch(() => setResults([]));
@@ -135,8 +135,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
       <input
         type="text"
         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${darkmode
-            ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-400 focus:border-blue-400"
+          ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-400 focus:border-blue-400"
           }`}
         placeholder="Search LOB, Subject Area, Database, or Table..."
         value={query}
@@ -148,8 +148,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
       {focused && loading && (
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${darkmode
-              ? "bg-gray-800 border-gray-600"
-              : "bg-white border-gray-200"
+            ? "bg-gray-800 border-gray-600"
+            : "bg-white border-gray-200"
             }`}
         >
           <div
@@ -164,8 +164,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
       {focused && !loading && filteredResults.length > 0 && (
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-xl max-h-80 overflow-auto z-50 ${darkmode
-              ? "bg-gray-800 border-gray-600"
-              : "bg-white border-gray-200"
+            ? "bg-gray-800 border-gray-600"
+            : "bg-white border-gray-200"
             }`}
         >
           {typeOrder.map(
@@ -175,12 +175,12 @@ const SearchBar = ({ onSelect, darkmode }) => {
                 <button
                   key={`${item.type}-${item.name}-${idx}`}
                   className={`w-full text-left px-4 py-2 transition-all duration-150 rounded-md ${hoveredIdx === `${type}-${idx}`
-                      ? darkmode
-                        ? "bg-blue-900 text-blue-200 scale-[1.01] shadow"
-                        : "bg-blue-100 scale-[1.01] shadow"
-                      : darkmode
-                        ? "hover:bg-gray-700 text-gray-200"
-                        : "hover:bg-blue-50 text-gray-900"
+                    ? darkmode
+                      ? "bg-blue-900 text-blue-200 scale-[1.01] shadow"
+                      : "bg-blue-100 scale-[1.01] shadow"
+                    : darkmode
+                      ? "hover:bg-gray-700 text-gray-200"
+                      : "hover:bg-blue-50 text-gray-900"
                     }`}
                   onMouseEnter={() => setHoveredIdx(`${type}-${idx}`)}
                   onMouseLeave={() => setHoveredIdx(null)}
@@ -214,8 +214,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
         filteredResults.length === 0 && (
           <div
             className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${darkmode
-                ? "bg-gray-800 border-gray-600"
-                : "bg-white border-gray-200"
+              ? "bg-gray-800 border-gray-600"
+              : "bg-white border-gray-200"
               }`}
           >
             <div
@@ -233,8 +233,8 @@ const SearchBar = ({ onSelect, darkmode }) => {
       {focused && query.length === 0 && (
         <div
           className={`absolute left-6 right-6 mt-2 border rounded-lg shadow-lg z-50 px-4 py-3 ${darkmode
-              ? "bg-gray-800 border-gray-600"
-              : "bg-white border-gray-200"
+            ? "bg-gray-800 border-gray-600"
+            : "bg-white border-gray-200"
             }`}
         >
           <div

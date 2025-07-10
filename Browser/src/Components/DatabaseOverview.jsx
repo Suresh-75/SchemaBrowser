@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { endpoints } from '../api';
 
 const formatBytes = (bytes) => {
     if (bytes === null || bytes === undefined) return "N/A";
@@ -18,8 +18,7 @@ const DatabaseOverview = ({ schemaName, darkmode }) => {
         if (!schemaName) return;
         setLoading(true);
         setErr("");
-        axios
-            .get(`http://localhost:5000/api/schema-overview/${schemaName}`)
+        endpoints.getSchemaOverview(schemaName)
             .then((res) => {
                 setOverview(res.data);
                 setLoading(false);

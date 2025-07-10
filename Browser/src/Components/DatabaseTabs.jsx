@@ -3,6 +3,7 @@ import ErDiagram from "../ErDiagram";
 import axios from "axios";
 import DatabaseOverview from "./DatabaseOverview";
 import TableOverview from "./TableOverview";
+import { endpoints } from '../api';
 
 const DatabaseTabs = ({
   setSelectedTable,
@@ -46,18 +47,11 @@ const DatabaseTabs = ({
     setProfilingError("");
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/profile",
-        {
-          schema: selectedPath.database,
-          table: selectedPath.table,
-        },
-        {
-          responseType: "text",
-        }
-      );
+      const response = await endpoints.getTableProfile({
+        schema: selectedPath.database,
+        table: selectedPath.table,
+      });
 
-      // Response data is already HTML text
       setProfilingHtml(response.data);
     } catch (error) {
       console.error("Error fetching profiling data:", error);
@@ -147,12 +141,12 @@ const DatabaseTabs = ({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${activeTab === tab.id
-                  ? darkmode
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-blue-500 text-white shadow-sm"
-                  : darkmode
-                    ? "text-gray-300 hover:text-white hover:bg-gray-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                ? darkmode
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-blue-500 text-white shadow-sm"
+                : darkmode
+                  ? "text-gray-300 hover:text-white hover:bg-gray-700"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 }`}
             >
               {renderTabIcon(tab.icon)}
@@ -171,8 +165,8 @@ const DatabaseTabs = ({
         ) : activeTab === "overview" ? (
           <div
             className={`h-full flex items-center justify-center ${darkmode
-                ? "bg-gray-900 text-gray-300"
-                : "bg-gray-50 text-gray-600"
+              ? "bg-gray-900 text-gray-300"
+              : "bg-gray-50 text-gray-600"
               }`}
           >
             <div className="text-center">
@@ -234,8 +228,8 @@ const DatabaseTabs = ({
                 <div className="text-center">
                   <div
                     className={`p-4 rounded-lg ${darkmode
-                        ? "bg-red-900 border-red-700"
-                        : "bg-red-50 border-red-200"
+                      ? "bg-red-900 border-red-700"
+                      : "bg-red-50 border-red-200"
                       } border`}
                   >
                     <svg
@@ -266,8 +260,8 @@ const DatabaseTabs = ({
                     <button
                       onClick={fetchProfilingData}
                       className={`mt-3 px-4 py-2 rounded-lg text-sm transition-colors ${darkmode
-                          ? "bg-red-700 hover:bg-red-600 text-red-100"
-                          : "bg-red-600 hover:bg-red-700 text-white"
+                        ? "bg-red-700 hover:bg-red-600 text-red-100"
+                        : "bg-red-600 hover:bg-red-700 text-white"
                         }`}
                     >
                       Retry

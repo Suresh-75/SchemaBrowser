@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { endpoints } from '../api';
 
 const TableOverview = ({ schema, table, darkmode }) => {
     const [info, setInfo] = useState(null);
@@ -10,8 +10,7 @@ const TableOverview = ({ schema, table, darkmode }) => {
         if (!schema || !table) return;
         setLoading(true);
         setErr("");
-        axios
-            .get(`http://localhost:5000/api/table-overview/${schema}/${table}`)
+        endpoints.getTableOverview(schema, table)
             .then((res) => {
                 setInfo(res.data);
                 setLoading(false);
@@ -21,6 +20,21 @@ const TableOverview = ({ schema, table, darkmode }) => {
                 setLoading(false);
             });
     }, [schema, table]);
+
+    const handleDownloadCSV = async () => {
+        try {
+            const response = await endpoints.downloadCsv(schema, table);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${table}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Failed to download CSV:', error);
+        }
+    };
 
     if (loading) {
         return (
@@ -42,24 +56,6 @@ const TableOverview = ({ schema, table, darkmode }) => {
     }
     if (!info) return null;
 
-    const handleDownloadCSV = async () => {
-        try {
-            const response = await axios.get(
-                `http://localhost:5000/api/table-csv/${schema}/${table}`,
-                { responseType: 'blob' }
-            );
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${table}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            console.error('Failed to download CSV:', error);
-        }
-    };
-
     return (
         <div className={`p-6 ${darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"} rounded-lg shadow`}>
             <div className="flex justify-between items-center mb-4">
@@ -69,8 +65,8 @@ const TableOverview = ({ schema, table, darkmode }) => {
                 <button
                     onClick={handleDownloadCSV}
                     className={`px-4 py-2 rounded ${darkmode
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : "bg-blue-500 hover:bg-blue-600 text-white"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
                         } transition-colors`}
                 >
                     Download CSV
