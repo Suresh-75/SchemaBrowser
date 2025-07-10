@@ -47,12 +47,13 @@ const Login = ({ setUser }) => {
         >
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome Back
+              <h1
+                className={`text-2xl md:text-3xl font-extrabold bg-clip-text tracking-wide drop-shadow bg-blue-400 text-transparent text-center`}
+              >
+                DATABEE
               </h1>
-              <p className="text-gray-600">Login</p>
+              <p className="text-3xl font-bold text-gray-900 mb-2">Login</p>
             </div>
-
             <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setRole("admin")}
