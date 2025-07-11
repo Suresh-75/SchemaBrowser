@@ -21,19 +21,35 @@ const TableOverview = ({ schema, table, darkmode }) => {
             });
     }, [schema, table]);
 
-    const handleDownloadCSV = async () => {
-        try {
-            const response = await endpoints.downloadCsv(schema, table);
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${table}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            console.error('Failed to download CSV:', error);
-        }
+    const handleDownloadCSV = () => {
+        if (!info || !info.columns) return;
+
+    // Convert columns data to CSV format
+        const headers = ['S.No', 'Column Name', 'Type', 'Nullable', 'Default'];
+        const rows = info.columns.map(col => [
+            col.ordinal_position,
+            col.name,
+            col.type,
+            col.nullable,
+            col.default !== null ? col.default : '-'
+        ]);
+
+    // Combine headers and rows
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+    // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${info.table}_overview.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
     };
 
     if (loading) {

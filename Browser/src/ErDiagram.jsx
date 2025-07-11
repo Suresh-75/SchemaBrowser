@@ -21,7 +21,7 @@ import axios from "axios";
 import { toJpeg } from "html-to-image";
 import CircleLoader from "./Components/CircleLoader";
 import { ArrowBigLeft } from "lucide-react";
-import CustomEdge from './Components/CustomEdge';
+import CustomEdge from "./Components/CustomEdge";
 
 const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
   return (
@@ -31,6 +31,7 @@ const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
         darkmode={data.darkmode}
         selectedDatabase={data.selectedDatabase}
         setSelectedTable={data.setSelectedTable}
+        setSelectedPath={data.setSelectedPath}
       />
     </div>
   );
@@ -62,6 +63,7 @@ const Legend = ({ darkmode, setSelectedTable }) => {
 
 // Accept darkmode prop here
 function ErDiagram({
+  setSelectedPath,
   selectedPath,
   darkmode,
   nodes,
@@ -131,12 +133,16 @@ function ErDiagram({
     }
   }
 
-  const edgeTypes = useMemo(() => ({
-    custom: CustomEdge,
-  }), []);
+  const edgeTypes = useMemo(
+    () => ({
+      custom: CustomEdge,
+    }),
+    []
+  );
 
   const createNodesAndEdges = useCallback(
-    async (relationships = []) => { // Add default empty array
+    async (relationships = []) => {
+      // Add default empty array
       if (!relationships || relationships.length === 0) {
         return { nodes: [], edges: [] };
       }
@@ -177,6 +183,7 @@ function ErDiagram({
           darkmode: darkmode,
           selectedDatabase: selectedPath?.database,
           setSelectedTable: setSelectedTable,
+          setSelectedPath: setSelectedPath,
         },
         position: {
           x: (index % 3) * 600,
@@ -185,7 +192,6 @@ function ErDiagram({
       }));
 
       const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
-        console.log(rels)
         const [fromId, toId] = key.split('-');
         return {
           id: `e${key}`,
@@ -193,12 +199,12 @@ function ErDiagram({
           target: toId.toString(),
           type: 'custom', // Use our custom edge
           label: rels.map(rel =>
-            
+
             `${rel.from_table_name}.${rel.from_column} → ${rel.to_table_name}.${rel.to_column} (${rel.cardinality})`
           ).join('\n'),
           style: { stroke: '#666', strokeWidth: 1 },
           labelStyle: {
-            fontSize: "12px",
+            fontSize: "16px",
             fontFamily: "monospace",
             fill: darkmode ? "#E5E7EB" : "#374151",
             lineHeight: "1.5em",
@@ -211,8 +217,8 @@ function ErDiagram({
             strokeWidth: 1,
           },
           data: {
-            relationships: rels
-          }
+            relationships: rels,
+          },
         };
       });
 
@@ -238,7 +244,9 @@ function ErDiagram({
           setEdges([]);
           return;
         }
-        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(relationships);
+        const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+          relationships
+        );
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
