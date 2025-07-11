@@ -24,23 +24,24 @@ const TableOverview = ({ schema, table, darkmode }) => {
     const handleDownloadCSV = () => {
         if (!info || !info.columns) return;
 
-    // Convert columns data to CSV format
-        const headers = ['S.No', 'Column Name', 'Type', 'Nullable', 'Default'];
+        // Convert columns data to CSV format
+        const headers = ['S.No', 'Column Name', 'Type', 'Nullable', 'Default', 'Primary Key'];
         const rows = info.columns.map(col => [
             col.ordinal_position,
             col.name,
             col.type,
             col.nullable,
-            col.default !== null ? col.default : '-'
+            col.default !== null ? col.default : '-',
+            col.is_primary_key ? 'Yes' : 'No'
         ]);
 
-    // Combine headers and rows
+        // Combine headers and rows
         const csvContent = [
             headers.join(','),
             ...rows.map(row => row.join(','))
         ].join('\n');
 
-    // Create and trigger download
+        // Create and trigger download
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -115,6 +116,7 @@ const TableOverview = ({ schema, table, darkmode }) => {
                                     <th className="px-3 py-2 text-left">Type</th>
                                     <th className="px-3 py-2 text-left">Nullable</th>
                                     <th className="px-3 py-2 text-left">Default</th>
+                                    <th className="px-3 py-2 text-left">Primary Key</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -125,6 +127,15 @@ const TableOverview = ({ schema, table, darkmode }) => {
                                         <td className="px-3 py-2">{col.type}</td>
                                         <td className="px-3 py-2">{col.nullable}</td>
                                         <td className="px-3 py-2">{col.default !== null ? col.default : <span className="italic text-gray-400">-</span>}</td>
+                                        <td className="px-3 py-2">
+                                            {col.is_primary_key ? (
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${darkmode ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"}`}>
+                                                    Yes
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">No</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

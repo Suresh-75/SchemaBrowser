@@ -885,18 +885,32 @@ def table_overview(schema, table):
         mod_row = cursor.fetchone()
         last_modified = mod_row[0].isoformat() if mod_row and mod_row[0] else None
 
-        # Column details
+        # Column details with primary key information
         cursor.execute("""
             SELECT 
-                column_name, 
-                data_type, 
-                is_nullable, 
-                column_default,
-                ordinal_position
-            FROM information_schema.columns
-            WHERE table_schema = %s AND table_name = %s
-            ORDER BY ordinal_position
-        """, (schema, table))
+                c.column_name,
+                c.data_type,
+                c.is_nullable,
+                c.column_default,
+                c.ordinal_position,
+                CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END as is_primary_key
+            FROM information_schema.columns c
+            LEFT JOIN (
+                SELECT ku.column_name
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage ku 
+                    ON tc.constraint_name = ku.constraint_name
+                    AND tc.table_schema = ku.table_schema
+                    AND tc.table_name = ku.table_name
+                WHERE tc.constraint_type = 'PRIMARY KEY'
+                    AND tc.table_schema = %s
+                    AND tc.table_name = %s
+            ) pk ON c.column_name = pk.column_name
+            WHERE c.table_schema = %s 
+                AND c.table_name = %s
+            ORDER BY c.ordinal_position
+        """, (schema, table, schema, table))
+        
         columns = [
             {
                 "name": r[0],
@@ -904,6 +918,7 @@ def table_overview(schema, table):
                 "nullable": r[2],
                 "default": r[3],
                 "ordinal_position": r[4],
+                "is_primary_key": r[5],
             }
             for r in cursor.fetchall()
         ]
