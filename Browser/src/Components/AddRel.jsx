@@ -212,38 +212,30 @@ const AddRel = ({
           animated: false,
           data: {
             cardinality: relationshipData.cardinality,
-            relationshipType: relationshipData.relationship_type, // Fixed typo
+            relationshipType: relationshipData.relationship_type,
             from_table_id: fromTableId,
             to_table_id: toTableId,
           },
         };
-
-        // Find and handle existing edges between the same tables
         let existingEdge = null;
         const remEdges = edges.filter((edge) => {
           const isMatchingEdge =
-            (edge.data?.from_table_id == fromTableId &&
-              edge.data?.to_table_id == toTableId) ||
-            (edge.data?.from_table_id == toTableId &&
-              edge.data?.to_table_id == fromTableId);
+            (edge.source == fromTableId && edge.target == toTableId) ||
+            (edge.source == toTableId && edge.target == fromTableId);
 
           if (isMatchingEdge) {
             existingEdge = edge;
             console.log("Found existing edge:", edge);
-            return false; // Remove this edge from the filtered array
+            return null;
           }
-          return true; // Keep this edge in the filtered array
+          return edge;
         });
 
-        // Combine labels if there's an existing edge
         if (existingEdge?.label) {
-          newEdge.label = [newEdge.label, existingEdge.label].join("\n");
+          newEdge.label = [existingEdge.label, newEdge.label].join("\n");
         }
-
-        // Update edges
+        console.log(remEdges);
         setEdges([...remEdges, newEdge]);
-
-        // Update nodes
         setNodes((prevNodes) => {
           const existingNodeIds = new Set(prevNodes.map((node) => node.id));
           const updatedNodes = [...prevNodes];
@@ -269,7 +261,7 @@ const AddRel = ({
               id: toTableId,
               type: "schemaCard",
               data: {
-                label: toTabledata?.table_name || `Table ${toTableId}`, // Fixed: was using fromTableId
+                label: toTabledata?.table_name || `Table ${toTableId}`,
                 table: toTabledata,
                 darkmode,
               },
@@ -285,7 +277,6 @@ const AddRel = ({
 
         setSuccess("Relationship created successfully!");
 
-        // Reset form after successful creation
         setTimeout(() => {
           setCreate("");
         }, 1500);
