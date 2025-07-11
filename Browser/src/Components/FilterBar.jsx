@@ -362,14 +362,14 @@ const FilterBar = ({
                                       : "text-gray-700 hover:bg-gray-50"
                                     }`}
                                 >
-                                  <div className="flex items-center">
+                                  <div className="flex items-center break-words w-full max-w-full">
                                     <Database
                                       className={`w-4 h-4 mr-3 ${darkmode
                                         ? "text-gray-500"
                                         : "text-gray-400"
                                         }`}
                                     />
-                                    {database}
+                                    <span className="truncate block w-full">{database}</span>
                                   </div>
                                   <ChevronRight
                                     className={`w-4 h-4 ${darkmode
