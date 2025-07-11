@@ -129,7 +129,7 @@ const TableOverview = ({ schema, table, darkmode }) => {
                                         <td className="px-3 py-2">{col.default !== null ? col.default : <span className="italic text-gray-400">-</span>}</td>
                                         <td className="px-3 py-2">
                                             {col.is_primary_key ? (
-                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${darkmode ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"}`}>
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${darkmode ? "bg-green-900 text-green-200" : "bg-green-100 text-green-800"}`}>
                                                     Yes
                                                 </span>
                                             ) : (
