@@ -43,12 +43,9 @@ const SidebarComponent = ({
     setRels(newRels);
     const newEdges = edges
       .map((edge) => {
-        if (
-          edge.data &&
-          edge.data.from_table_id == from_table_id &&
-          edge.data.to_table_id == to_table_id
-        ) {
+        if (edge.source == from_table_id && edge.target == to_table_id) {
           const relationships = edge.label.split("\n");
+          console.log(relationships);
           const updatedRelationships = relationships.filter((rel) => {
             const parts = rel.split(" → ");
             if (parts.length === 2) {
@@ -58,6 +55,7 @@ const SidebarComponent = ({
             }
             return true;
           });
+          console.log(updatedRelationships);
           if (updatedRelationships.length === 0) {
             return null;
           }
@@ -71,7 +69,6 @@ const SidebarComponent = ({
       })
       .filter((edge) => edge !== null);
 
-    console.log(newEdges);
     if (newEdges?.length == 0) {
       setNodes([]);
     }
