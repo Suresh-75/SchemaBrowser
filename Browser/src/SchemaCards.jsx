@@ -6,6 +6,7 @@ const SchemaCards = ({
   darkmode,
   selectedDatabase,
   setSelectedTable,
+  setSelectedPath,
 }) => {
   const [relationshipColumns, setRelationshipColumns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -118,7 +119,10 @@ const SchemaCards = ({
   return (
     <div
       onClick={() => {
-        console.log(table.table_id);
+        setSelectedPath((path) => {
+          console.log({ ...path, table: table.table_name });
+          return { ...path, table: table.table_name };
+        });
         setSelectedTable(table.table_id);
       }}
       className={`rounded-2xl shadow-lg overflow-hidden w-[27rem] ring-1 ${

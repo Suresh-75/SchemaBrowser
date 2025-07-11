@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import ErDiagram from "../ErDiagram";
 import DatabaseOverview from "./DatabaseOverview";
 import TableOverview from "./TableOverview";
-import { endpoints } from '../api';
+import { endpoints } from "../api";
 
 const DatabaseTabs = ({
   setSelectedTable,
+  setSelectedPath,
   selectedTable,
   selectedPath,
   darkmode,
@@ -70,9 +71,9 @@ const DatabaseTabs = ({
   // Add profiling tab only when table is selected
   const tabs = selectedPath?.table
     ? [
-      ...baseTabs,
-      { id: "profiling", label: "Data Profiling", icon: "analytics" },
-    ]
+        ...baseTabs,
+        { id: "profiling", label: "Data Profiling", icon: "analytics" },
+      ]
     : baseTabs;
 
   const renderTabIcon = (iconType) => {
@@ -131,22 +132,24 @@ const DatabaseTabs = ({
     <div className="h-full flex flex-col">
       {/* Tab Headers */}
       <div
-        className={`border-b ${darkmode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
-          }`}
+        className={`border-b ${
+          darkmode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white"
+        }`}
       >
         <div className="flex space-x-1 p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${activeTab === tab.id
-                ? darkmode
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-blue-500 text-white shadow-sm"
-                : darkmode
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                activeTab === tab.id
+                  ? darkmode
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "bg-blue-500 text-white shadow-sm"
+                  : darkmode
                   ? "text-gray-300 hover:text-white hover:bg-gray-700"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
+              }`}
             >
               {renderTabIcon(tab.icon)}
               {tab.label}
@@ -157,21 +160,34 @@ const DatabaseTabs = ({
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
-        {activeTab === "overview" && selectedPath?.database && selectedPath?.table ? (
-          <TableOverview schema={selectedPath.database} table={selectedPath.table} darkmode={darkmode} />
-        ) : activeTab === "overview" && selectedPath?.database && !selectedPath?.table ? (
-          <DatabaseOverview schemaName={selectedPath.database} darkmode={darkmode} />
+        {activeTab === "overview" &&
+        selectedPath?.database &&
+        selectedPath?.table ? (
+          <TableOverview
+            schema={selectedPath.database}
+            table={selectedPath.table}
+            darkmode={darkmode}
+          />
+        ) : activeTab === "overview" &&
+          selectedPath?.database &&
+          !selectedPath?.table ? (
+          <DatabaseOverview
+            schemaName={selectedPath.database}
+            darkmode={darkmode}
+          />
         ) : activeTab === "overview" ? (
           <div
-            className={`h-full flex items-center justify-center ${darkmode
-              ? "bg-gray-900 text-gray-300"
-              : "bg-gray-50 text-gray-600"
-              }`}
+            className={`h-full flex items-center justify-center ${
+              darkmode
+                ? "bg-gray-900 text-gray-300"
+                : "bg-gray-50 text-gray-600"
+            }`}
           >
             <div className="text-center">
               <div
-                className={`p-4 rounded-lg ${darkmode ? "bg-gray-800" : "bg-white"
-                  } shadow-lg`}
+                className={`p-4 rounded-lg ${
+                  darkmode ? "bg-gray-800" : "bg-white"
+                } shadow-lg`}
               >
                 <svg
                   className="w-12 h-12 mx-auto mb-4 opacity-50"
@@ -197,6 +213,7 @@ const DatabaseTabs = ({
 
         {activeTab === "erdiagram" && (
           <ErDiagram
+            setSelectedPath={setSelectedPath}
             setSelectedTable={setSelectedTable}
             selectedTable={selectedTable}
             selectedPath={selectedPath}
@@ -215,8 +232,9 @@ const DatabaseTabs = ({
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                   <p
-                    className={`text-sm ${darkmode ? "text-gray-300" : "text-gray-600"
-                      }`}
+                    className={`text-sm ${
+                      darkmode ? "text-gray-300" : "text-gray-600"
+                    }`}
                   >
                     Generating data profile for {selectedPath?.table}...
                   </p>
@@ -226,10 +244,11 @@ const DatabaseTabs = ({
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <div
-                    className={`p-4 rounded-lg ${darkmode
-                      ? "bg-red-900 border-red-700"
-                      : "bg-red-50 border-red-200"
-                      } border`}
+                    className={`p-4 rounded-lg ${
+                      darkmode
+                        ? "bg-red-900 border-red-700"
+                        : "bg-red-50 border-red-200"
+                    } border`}
                   >
                     <svg
                       className="w-12 h-12 mx-auto mb-4 text-red-500"
@@ -245,23 +264,26 @@ const DatabaseTabs = ({
                       />
                     </svg>
                     <h3
-                      className={`text-lg font-semibold mb-2 ${darkmode ? "text-red-200" : "text-red-800"
-                        }`}
+                      className={`text-lg font-semibold mb-2 ${
+                        darkmode ? "text-red-200" : "text-red-800"
+                      }`}
                     >
                       Profiling Error
                     </h3>
                     <p
-                      className={`text-sm ${darkmode ? "text-red-300" : "text-red-600"
-                        }`}
+                      className={`text-sm ${
+                        darkmode ? "text-red-300" : "text-red-600"
+                      }`}
                     >
                       {profilingError}
                     </p>
                     <button
                       onClick={fetchProfilingData}
-                      className={`mt-3 px-4 py-2 rounded-lg text-sm transition-colors ${darkmode
-                        ? "bg-red-700 hover:bg-red-600 text-red-100"
-                        : "bg-red-600 hover:bg-red-700 text-white"
-                        }`}
+                      className={`mt-3 px-4 py-2 rounded-lg text-sm transition-colors ${
+                        darkmode
+                          ? "bg-red-700 hover:bg-red-600 text-red-100"
+                          : "bg-red-600 hover:bg-red-700 text-white"
+                      }`}
                     >
                       Retry
                     </button>
@@ -282,8 +304,9 @@ const DatabaseTabs = ({
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <div
-                    className={`p-4 rounded-lg ${darkmode ? "bg-gray-800" : "bg-white"
-                      } shadow-lg`}
+                    className={`p-4 rounded-lg ${
+                      darkmode ? "bg-gray-800" : "bg-white"
+                    } shadow-lg`}
                   >
                     <svg
                       className="w-12 h-12 mx-auto mb-4 opacity-50"
@@ -299,14 +322,16 @@ const DatabaseTabs = ({
                       />
                     </svg>
                     <h3
-                      className={`text-lg font-semibold mb-2 ${darkmode ? "text-gray-200" : "text-gray-800"
-                        }`}
+                      className={`text-lg font-semibold mb-2 ${
+                        darkmode ? "text-gray-200" : "text-gray-800"
+                      }`}
                     >
                       Select a Table
                     </h3>
                     <p
-                      className={`text-sm ${darkmode ? "text-gray-400" : "text-gray-600"
-                        }`}
+                      className={`text-sm ${
+                        darkmode ? "text-gray-400" : "text-gray-600"
+                      }`}
                     >
                       Choose a table to view its data profile
                     </p>

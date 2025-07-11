@@ -31,6 +31,7 @@ const SchemaCardNode = React.memo(function SchemaCardNode({ data }) {
         darkmode={data.darkmode}
         selectedDatabase={data.selectedDatabase}
         setSelectedTable={data.setSelectedTable}
+        setSelectedPath={data.setSelectedPath}
       />
     </div>
   );
@@ -62,6 +63,7 @@ const Legend = ({ darkmode, setSelectedTable }) => {
 
 // Accept darkmode prop here
 function ErDiagram({
+  setSelectedPath,
   selectedPath,
   darkmode,
   nodes,
@@ -181,6 +183,7 @@ function ErDiagram({
           darkmode: darkmode,
           selectedDatabase: selectedPath?.database,
           setSelectedTable: setSelectedTable,
+          setSelectedPath: setSelectedPath,
         },
         position: {
           x: (index % 3) * 600,

@@ -248,6 +248,7 @@ export default function App() {
               setEdges={setEdges}
               user={user}
               activeTab={activeTab}
+              // setSelectedPath={setSelectedPath}
               selectedPath={selectedPath}
               create={create}
               setDarkmode={setDarkmode}
@@ -275,6 +276,7 @@ export default function App() {
                 <DatabaseTabs
                   setSelectedTable={setSelectedTable}
                   selectedTable={selectedTable}
+                  setSelectedPath={setSelectedPath}
                   selectedPath={selectedPath}
                   darkmode={darkmode}
                   nodes={nodes}
