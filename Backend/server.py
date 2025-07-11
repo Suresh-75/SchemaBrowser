@@ -10,7 +10,6 @@ import os
 import tempfile
 import json
 from datetime import datetime, timedelta
-import threading
 import time
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -1356,12 +1355,12 @@ if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     
     # Schedule profiling job to run every week (Monday at 2 AM)
-    # scheduler.add_job(
-    #     func=auto_profiler.run_scheduled_profiling,
-    #     trigger=CronTrigger(day_of_week='mon', hour=2, minute=0),
-    #     id='weekly_profiling',
-    #     replace_existing=True
-    # )
+    scheduler.add_job(
+        func=auto_profiler.run_scheduled_profiling,
+        trigger=CronTrigger(day_of_week='mon', hour=2, minute=0),
+        id='weekly_profiling',
+        replace_existing=True
+    )
     
     # # Run initial profiling immediately when server starts (after 10 seconds)
     # scheduler.add_job(
