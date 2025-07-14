@@ -9,7 +9,7 @@ const formatBytes = (bytes) => {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
-const DatabaseOverview = ({ schemaName, darkmode }) => {
+const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedPath }) => {
     const [overview, setOverview] = useState(null);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
@@ -28,6 +28,14 @@ const DatabaseOverview = ({ schemaName, darkmode }) => {
                 setLoading(false);
             });
     }, [schemaName]);
+
+    const handleTableClick = (table) => {
+        setSelectedPath(prev => ({
+            ...prev,
+            table: table.table
+        }));
+        setSelectedTable(table.table_id);
+    };
 
     if (loading) {
         return (
@@ -80,10 +88,23 @@ const DatabaseOverview = ({ schemaName, darkmode }) => {
                         </thead>
                         <tbody>
                             {overview.tables.map((t) => (
-                                <tr key={t.table} className={darkmode ? "hover:bg-blue-900" : "hover:bg-blue-50"}>
+                                <tr 
+                                    key={t.table} 
+                                    onClick={() => handleTableClick(t)}
+                                    className={`cursor-pointer transition-colors duration-150 ${
+                                        darkmode 
+                                            ? "hover:bg-blue-900" 
+                                            : "hover:bg-blue-50"
+                                    }`}
+                                >
                                     <td className="px-3 py-2 font-mono">{t.table}</td>
                                     <td className="px-3 py-2">{t.owner}</td>
-                                    <td className="px-3 py-2">{t.row_count !== null ? t.row_count : <span className="italic text-gray-400">N/A</span>}</td>
+                                    <td className="px-3 py-2">
+                                        {t.row_count !== null 
+                                            ? t.row_count 
+                                            : <span className="italic text-gray-400">N/A</span>
+                                        }
+                                    </td>
                                     <td className="px-3 py-2">{formatBytes(t.size_bytes)}</td>
                                 </tr>
                             ))}
