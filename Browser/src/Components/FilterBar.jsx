@@ -161,60 +161,57 @@ const FilterBar = ({
 
   const renderBreadcrumb = () => {
     const breadcrumbItems = [];
-
+  
     if (selectedPath.lob) {
       breadcrumbItems.push({
         type: "lob",
         name: selectedPath.lob,
         icon: Building2,
+        onClick: () => handleLobSelect(selectedPath.lob)
       });
     }
-
+  
     if (selectedPath.subject) {
       breadcrumbItems.push({
         type: "subject",
         name: selectedPath.subject,
         icon: Target,
+        onClick: () => handleSubjectSelect(selectedPath.lob, selectedPath.subject)
       });
     }
-
+  
     if (selectedPath.database) {
       breadcrumbItems.push({
         type: "database",
         name: selectedPath.database,
         icon: Database,
+        onClick: () => handleDatabaseSelect(selectedPath.lob, selectedPath.subject, selectedPath.database)
       });
     }
-
+  
     if (selectedPath.table) {
       breadcrumbItems.push({
         type: "table",
         name: selectedPath.table,
-        icon: Table,
+        icon: Table
       });
     }
-
+  
     return breadcrumbItems.length > 0 ? (
       <div className="flex items-center space-x-2 px-4 py-2">
-        {/* <span
-          className={`text-sm font-medium ${
-            darkmode ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
-          Current Path:
-        </span> */}
         {breadcrumbItems.map((item, index) => (
           <React.Fragment key={index}>
-            <div
-              className={`flex items-center px-2 py-1 rounded ${
+            <button
+              onClick={item.onClick}
+              className={`flex items-center px-2 py-1 rounded transition-colors ${
                 darkmode
-                  ? "bg-gray-700 text-gray-200"
-                  : "bg-gray-200 text-gray-700"
-              }`}
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              } ${!item.onClick ? 'cursor-default' : 'cursor-pointer'}`}
             >
               <item.icon className="w-3 h-3 mr-1" />
               <span className="text-sm">{item.name}</span>
-            </div>
+            </button>
             {index < breadcrumbItems.length - 1 && (
               <ChevronRight
                 className={`w-4 h-4 ${
@@ -227,7 +224,6 @@ const FilterBar = ({
       </div>
     ) : null;
   };
-
   return (
     <div className={`w-full `}>
       {errorMessage && (
