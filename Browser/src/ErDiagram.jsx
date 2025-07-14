@@ -119,7 +119,6 @@ function ErDiagram({
   }
   useEffect(() => {
     createNodesAndEdges();
-    console.log(nodes);
   }, [selectedTable]);
   async function fetchTableInfo(tableId) {
     try {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Eye, Network, Plus, Settings, Zap, Trash2 } from "lucide-react";
 import { endpoints } from "../api";
+import ERentities from "./ERentities";
 
 const SidebarComponent = ({
   user,
@@ -14,6 +15,20 @@ const SidebarComponent = ({
   setEdges,
   edges,
 }) => {
+  async function getERdiagram(diagram_id) {
+    console.log(diagram_id);
+    const relationships = await fetchRelationships(selectedPath.database);
+    if (!relationships) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+    const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+      relationships
+    );
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);
   async function fetchTableInfo(tableId) {
@@ -637,104 +652,119 @@ const SidebarComponent = ({
         );
       }
       return (
-        <div className="space-y-4" aria-label="Overview Panel">
-          <h3
-            className={`font-semibold flex items-center gap-2 ${
-              darkmode ? "text-blue-200" : "text-gray-800"
-            }`}
-          >
-            <Eye
-              className={darkmode ? "text-indigo-400" : "text-indigo-600"}
-              size={20}
+        <>
+          {selectedPath.lob && selectedPath.subject == null ? (
+            <ERentities
+              selectedPath={selectedPath}
+              getERdiagram={getERdiagram}
             />
-            Overview
-          </h3>
-          <div className="space-y-3">
-            <div
-              className={`p-4 rounded-lg border ${
-                darkmode
-                  ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
-                  : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Zap
-                  className={darkmode ? "text-blue-400" : "text-blue-600"}
-                  size={16}
-                />
-                <span
-                  className={`font-medium ${
-                    darkmode ? "text-blue-200" : "text-blue-800"
-                  }`}
-                >
-                  Quick Stats
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <div className={darkmode ? "text-blue-200" : "text-gray-600"}>
-                    Entities
-                  </div>
-                  {data.length}
-                </div>
-                <div>
-                  <div className={darkmode ? "text-blue-200" : "text-gray-600"}>
-                    Relationships
-                  </div>
-                  <div
-                    className={`font-semibold ${
-                      darkmode ? "text-blue-100" : "text-gray-800"
-                    }`}
-                  >
-                    {rels.length}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <div className={darkmode ? "text-blue-200" : "text-gray-600"}>
-                    Source Lineage
-                  </div>
-                  <div
-                    className={`font-semibold ${
-                      darkmode ? "text-blue-100" : "text-gray-800"
-                    }`}
-                  >
-                    {lineage.join(" > ")}
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`mt-2 text-xs space-y-1 ${
-                  darkmode ? "text-blue-300" : "text-gray-500"
+          ) : (
+            <div className="space-y-4" aria-label="Overview Panel">
+              <h3
+                className={`font-semibold flex items-center gap-2 ${
+                  darkmode ? "text-blue-200" : "text-gray-800"
                 }`}
               >
-                {selectedPath?.lob && (
-                  <div>
-                    <span className="font-semibold">LOB:</span>{" "}
-                    {selectedPath.lob}
+                <Eye
+                  className={darkmode ? "text-indigo-400" : "text-indigo-600"}
+                  size={20}
+                />
+                Overview
+              </h3>
+              <div className="space-y-3">
+                <div
+                  className={`p-4 rounded-lg border ${
+                    darkmode
+                      ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
+                      : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap
+                      className={darkmode ? "text-blue-400" : "text-blue-600"}
+                      size={16}
+                    />
+                    <span
+                      className={`font-medium ${
+                        darkmode ? "text-blue-200" : "text-blue-800"
+                      }`}
+                    >
+                      Quick Stats
+                    </span>
                   </div>
-                )}
-                {selectedPath?.subject && (
-                  <div>
-                    <span className="font-semibold">Subject:</span>{" "}
-                    {selectedPath.subject}
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <div
+                        className={darkmode ? "text-blue-200" : "text-gray-600"}
+                      >
+                        Entities
+                      </div>
+                      {data.length}
+                    </div>
+                    <div>
+                      <div
+                        className={darkmode ? "text-blue-200" : "text-gray-600"}
+                      >
+                        Relationships
+                      </div>
+                      <div
+                        className={`font-semibold ${
+                          darkmode ? "text-blue-100" : "text-gray-800"
+                        }`}
+                      >
+                        {rels.length}
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <div
+                        className={darkmode ? "text-blue-200" : "text-gray-600"}
+                      >
+                        Source Lineage
+                      </div>
+                      <div
+                        className={`font-semibold ${
+                          darkmode ? "text-blue-100" : "text-gray-800"
+                        }`}
+                      >
+                        {lineage.join(" > ")}
+                      </div>
+                    </div>
                   </div>
-                )}
-                {selectedPath?.database && (
-                  <div>
-                    <span className="font-semibold">Database:</span>{" "}
-                    {selectedPath.database}
+                  <div
+                    className={`mt-2 text-xs space-y-1 ${
+                      darkmode ? "text-blue-300" : "text-gray-500"
+                    }`}
+                  >
+                    {selectedPath?.lob && (
+                      <div>
+                        <span className="font-semibold">LOB:</span>{" "}
+                        {selectedPath.lob}
+                      </div>
+                    )}
+                    {selectedPath?.subject && (
+                      <div>
+                        <span className="font-semibold">Subject:</span>{" "}
+                        {selectedPath.subject}
+                      </div>
+                    )}
+                    {selectedPath?.database && (
+                      <div>
+                        <span className="font-semibold">Database:</span>{" "}
+                        {selectedPath.database}
+                      </div>
+                    )}
+                    {selectedPath?.table && (
+                      <div>
+                        <span className="font-semibold">Table:</span>{" "}
+                        {selectedPath.table}
+                      </div>
+                    )}
                   </div>
-                )}
-                {selectedPath?.table && (
-                  <div>
-                    <span className="font-semibold">Table:</span>{" "}
-                    {selectedPath.table}
-                  </div>
-                )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       );
   }
 };

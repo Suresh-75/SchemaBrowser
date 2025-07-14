@@ -235,6 +235,81 @@ def get_tables_inDB(database_name):
 #         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
+# get er entities
+@app.route('/api/get_er_entities/<string:lob_name>', methods=["GET"])
+def getERentity(lob_name):
+    try:
+        print(lob_name)
+        # Query to get ER entities for a specific LOB
+        query = """
+            SELECT 
+                ee.id,
+                ee.entity_name,
+                ee.description,
+                ee.created_at,
+                ee.updated_at,
+                l.name as lob_name,
+                COUNT(er.id) as relationship_count
+            FROM ER_entities ee
+            JOIN lobs l ON ee.lob_id = l.id
+            LEFT JOIN er_relationships er ON ee.id = er.er_entity_id
+            WHERE LOWER(l.name) = LOWER(%s)
+            GROUP BY ee.id, ee.entity_name, ee.description, ee.created_at, ee.updated_at, l.name
+            ORDER BY ee.entity_name
+        """
+        cursor.execute(query, (lob_name,))
+        results = cursor.fetchall()
+        
+        # Check if LOB exists
+        if not results:
+            # Check if LOB name exists at all
+            lob_check_query = "SELECT id FROM lobs WHERE LOWER(name) = LOWER(%s)"
+            cursor.execute(lob_check_query, (lob_name,))
+            lob_exists = cursor.fetchone()
+            
+            if not lob_exists:
+                return jsonify({
+                    "success": False,
+                    "error": f"LOB '{lob_name}' not found",
+                    "data": []
+                }), 404
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": f"No ER entities found for LOB '{lob_name}'",
+                    "data": []
+                }), 200
+        
+        # Format results
+        er_entities = []
+        for row in results:
+            er_entities.append({
+                "id": row[0],
+                "entity_name": row[1],
+                "description": row[2],
+                "created_at": row[3].isoformat() if row[3] else None,
+                "updated_at": row[4].isoformat() if row[4] else None,
+                "lob_name": row[5],
+                "relationship_count": row[6]
+            })
+        
+        return jsonify({
+            "success": True,
+            "lob_name": lob_name,
+            "total_entities": len(er_entities),
+            "data": er_entities
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "data": []
+        }), 500
+        
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
 
 @app.route("/api/tables", methods=["POST"])
 def create_table():

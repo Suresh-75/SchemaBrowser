@@ -39,6 +39,9 @@ export const endpoints = {
 
   //delete ER
   deleteER: (id) => api.delete(`/er_relationships/${id}`),
+
+  //get ER entities
+  getErEntities: (lob_name) => api.get("/get_er_entities/" + lob_name),
 };
 
-export default api;
+export default endpoints;
