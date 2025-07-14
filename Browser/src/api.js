@@ -39,6 +39,9 @@ export const endpoints = {
 
   //delete ER
   deleteER: (id) => api.delete(`/er_relationships/${id}`),
+
+  // Attribute-level profiling endpoint
+  getAttributeProfile: (data) => api.post("/profile/attribute", data),
 };
 
 export default api;

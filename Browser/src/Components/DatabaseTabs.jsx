@@ -19,6 +19,11 @@ const DatabaseTabs = ({
   const [profilingHtml, setProfilingHtml] = useState("");
   const [profilingLoading, setProfilingLoading] = useState(false);
   const [profilingError, setProfilingError] = useState("");
+  const [attributeProfilingHtml, setAttributeProfilingHtml] = useState("");
+  const [attributeProfilingLoading, setAttributeProfilingLoading] = useState(false);
+  const [attributeProfilingError, setAttributeProfilingError] = useState("");
+  const [selectedAttribute, setSelectedAttribute] = useState("");
+  const [tableAttributes, setTableAttributes] = useState([]);
 
   // Update active tab when table is selected/deselected
   useEffect(() => {
@@ -39,6 +44,35 @@ const DatabaseTabs = ({
       fetchProfilingData();
     }
   }, [selectedPath?.table, selectedPath?.database, activeTab]);
+
+  // Fetch table attributes when table changes
+  useEffect(() => {
+    async function fetchAttributes() {
+      if (selectedPath?.table) {
+        try {
+          const response = await endpoints.getTableAttributes(selectedTable);
+          setTableAttributes(response.data.attributes || []);
+        } catch (error) {
+          setTableAttributes([]);
+        }
+      } else {
+        setTableAttributes([]);
+      }
+    }
+    fetchAttributes();
+  }, [selectedTable, selectedPath?.table]);
+
+  // Fetch attribute profiling data
+  useEffect(() => {
+    if (
+      selectedPath?.table &&
+      selectedPath?.database &&
+      selectedAttribute &&
+      activeTab === "attributeProfiling"
+    ) {
+      fetchAttributeProfilingData();
+    }
+  }, [selectedPath?.table, selectedPath?.database, selectedAttribute, activeTab]);
 
   const fetchProfilingData = async () => {
     if (!selectedPath?.table || !selectedPath?.database) return;
@@ -63,6 +97,26 @@ const DatabaseTabs = ({
     }
   };
 
+  const fetchAttributeProfilingData = async () => {
+    if (!selectedPath?.table || !selectedPath?.database || !selectedAttribute) return;
+    setAttributeProfilingLoading(true);
+    setAttributeProfilingError("");
+    try {
+      const response = await endpoints.getAttributeProfile({
+        schema: selectedPath.database,
+        table: selectedPath.table,
+        attribute: selectedAttribute,
+      });
+      setAttributeProfilingHtml(response.data);
+    } catch (error) {
+      setAttributeProfilingError(
+        error.response?.data?.error || "Failed to generate attribute profile"
+      );
+    } finally {
+      setAttributeProfilingLoading(false);
+    }
+  };
+
   const baseTabs = [
     { id: "overview", label: "Overview", icon: "chart" },
     { id: "erdiagram", label: "ER Diagram", icon: "diagram" },
@@ -72,7 +126,8 @@ const DatabaseTabs = ({
   const tabs = selectedPath?.table
     ? [
         ...baseTabs,
-        { id: "profiling", label: "Data Profiling", icon: "analytics" },
+        { id: "profiling", label: "Table Profiling", icon: "analytics" },
+        { id: "attributeProfiling", label: "Attribute Profiling", icon: "chart" },
       ]
     : baseTabs;
 
@@ -339,6 +394,73 @@ const DatabaseTabs = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "attributeProfiling" && (
+          <div className={`h-full ${darkmode ? "bg-gray-900" : "bg-gray-50"}`} style={{ minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div className="p-4">
+              <label className="block mb-2 font-medium">Select Attribute:</label>
+              <select
+                value={selectedAttribute}
+                onChange={(e) => setSelectedAttribute(e.target.value)}
+                className={`mb-4 px-3 py-2 rounded-lg border focus:outline-none ${
+                  darkmode ? "bg-gray-800 text-white border-gray-700" : "bg-white border-gray-300"
+                }`}
+              >
+                <option value="">-- Select Attribute --</option>
+                {tableAttributes.map((attr) => (
+                  <option key={attr} value={attr}>
+                    {attr}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              {attributeProfilingLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className={`text-sm ${darkmode ? "text-gray-300" : "text-gray-600"}`}>
+                      Generating profile for attribute {selectedAttribute}...
+                    </p>
+                  </div>
+                </div>
+              ) : attributeProfilingError ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className={`p-4 rounded-lg ${darkmode ? "bg-red-900 border-red-700" : "bg-red-50 border-red-200"} border`}>
+                      <svg className="w-12 h-12 mx-auto mb-4 text-red-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                      </svg>
+                      <h3 className={`text-lg font-semibold mb-2 ${darkmode ? "text-red-200" : "text-red-800"}`}>Profiling Error</h3>
+                      <p className={`text-sm ${darkmode ? "text-red-300" : "text-red-600"}`}>{attributeProfilingError}</p>
+                      <button onClick={fetchAttributeProfilingData} className={`mt-3 px-4 py-2 rounded-lg text-sm transition-colors ${darkmode ? "bg-red-700 hover:bg-red-600 text-red-100" : "bg-red-600 hover:bg-red-700 text-white"}`}>Retry</button>
+                    </div>
+                  </div>
+                </div>
+              ) : attributeProfilingHtml ? (
+                <iframe
+                  srcDoc={attributeProfilingHtml}
+                  className="w-full h-full border-0"
+                  title={`Attribute Profile for ${selectedAttribute}`}
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-top-navigation-by-user-activation"
+                  style={{ backgroundColor: darkmode ? "#1f2937" : "#ffffff", minHeight: 0, height: '100%' }}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className={`p-4 rounded-lg ${darkmode ? "bg-gray-800" : "bg-white"} shadow-lg`}>
+                      <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <h3 className={`text-lg font-semibold mb-2 ${darkmode ? "text-gray-200" : "text-gray-800"}`}>Select an Attribute</h3>
+                      <p className={`text-sm ${darkmode ? "text-gray-400" : "text-gray-600"}`}>Choose an attribute to view its profile</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

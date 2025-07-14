@@ -965,5 +965,25 @@ def download_table_csv(schema, table):
         print(f"Error downloading CSV: {str(e)}")  # For debugging
         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
 
+@app.route("/api/profile/attribute", methods=["POST"])
+def profile_attribute():
+    try:
+        data = request.get_json()
+        schema = data["schema"]
+        table = data["table"]
+        attribute = data["attribute"]
+
+        query = f'SELECT "{attribute}" FROM "{schema}"."{table}"'
+        df = pd.read_sql(query, con=conn)
+
+        if df.empty:
+            return jsonify({"error": "Attribute column is empty"}), 400
+
+        profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}.{attribute}", explorative=True)
+        html_content = profile.to_html()
+        return Response(html_content, mimetype='text/html')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
