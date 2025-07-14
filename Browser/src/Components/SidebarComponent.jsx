@@ -13,6 +13,9 @@ const SidebarComponent = ({
   setNodes,
   setEdges,
   edges,
+  setSelectedPath,
+  setSelectedTable,
+  setActiveTab
 }) => {
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);
@@ -161,7 +164,7 @@ const SidebarComponent = ({
     case "entities":
       return (
         <>
-          <style jsx>{`
+          <style>{`
             /* Light mode custom scrollbar */
             .custom-scrollbar-light::-webkit-scrollbar {
               width: 8px;
@@ -239,39 +242,25 @@ const SidebarComponent = ({
                 data.map((entity) => (
                   <div
                     key={entity.id}
-                    className={`p-4 rounded-xl border shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3 ${
+                    onClick={() => {
+                      setSelectedTable(entity.id);
+                      setSelectedPath(prev => ({
+                        ...prev,
+                        table: entity.name
+                   }));
+                      setActiveTab("overview");
+                  }}
+                  className={`p-4 rounded-xl border shadow hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-3 ${
                       darkmode
                         ? "bg-gradient-to-r from-blue-950 to-blue-950 border-blue-900"
                         : "bg-blue-100 to-white border-blue-100"
                     }`}
-                    tabIndex={0}
-                    aria-label={`Entity: ${entity.name}`}
                   >
                     <Box
                       className={darkmode ? "text-blue-300" : "text-blue-500"}
                       size={20}
                     />
-                    <div
-                      className="flex-1"
-                      onClick={async () => {
-                        const data = await fetchTableInfo(entity.id);
-                        setNodes((prevNodes) => [
-                          ...prevNodes,
-                          {
-                            id: entity.id.toString(),
-                            type: "schemaCard",
-                            data: {
-                              table: data,
-                              darkmode: darkmode,
-                            },
-                            position: {
-                              x: Math.random() * 500,
-                              y: Math.random() * 500,
-                            },
-                          },
-                        ]);
-                      }}
-                    >
+                    <div className="flex-1">
                       <div
                         className={`font-semibold capitalize text-base ${
                           darkmode ? "text-blue-100" : "text-gray-800"
