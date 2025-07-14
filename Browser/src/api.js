@@ -42,6 +42,9 @@ export const endpoints = {
 
   //get ER entities
   getErEntities: (lob_name) => api.get("/get_er_entities/" + lob_name),
+
+  // create ER entities
+  createDiagram: (data) => api.post("/create_er_diagram", data),
 };
 
 export default endpoints;

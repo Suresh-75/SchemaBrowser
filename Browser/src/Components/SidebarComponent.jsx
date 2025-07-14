@@ -779,6 +779,7 @@ const SidebarComponent = ({
         <>
           {selectedPath.lob && selectedPath.subject == null ? (
             <ERentities
+              setCreate={setCreate}
               selectedPath={selectedPath}
               getERdiagram={getERdiagram}
               setSelectedErDiagram={setSelectedErDiagram}

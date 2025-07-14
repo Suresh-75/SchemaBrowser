@@ -22,6 +22,7 @@ import AddEntityComponent from "./Components/AddEntity";
 import AddRel from "./Components/AddRel";
 import { useLocation } from "react-router-dom";
 import { ReactFlowProvider } from "@xyflow/react";
+import AddErDiagram from "./Components/AddErDiagram";
 
 export default function App() {
   const location = useLocation();
@@ -81,6 +82,19 @@ export default function App() {
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
           <AddRel
+            edges={edges}
+            setCreate={setCreate}
+            setNodes={setNodes}
+            setEdges={setEdges}
+            darkmode={darkmode}
+            selectedPath={selectedPath}
+          />
+        </>
+      )}
+      {create == "erdiagram" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
+          <AddErDiagram
             edges={edges}
             setCreate={setCreate}
             setNodes={setNodes}

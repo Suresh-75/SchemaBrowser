@@ -1,23 +1,23 @@
 import { useEffect, useState } from "react";
-import {
-  Loader2,
-  AlertTriangle,
-  Database,
-  ContainerIcon,
-  BluetoothConnected,
-  LucideGitBranchPlus,
-} from "lucide-react";
+import { Loader2, AlertTriangle, Database, X, Plus } from "lucide-react";
 
 import api from "../api";
 
 export default function ErEntities({
   selectedPath,
   getERdiagram,
+  setCreate,
   setSelectedErDiagram,
 }) {
   const [entities, setEntities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [newEntity, setNewEntity] = useState({
+    name: "",
+    table1: "",
+    table2: "",
+    relationship: "one-to-many",
+  });
 
   useEffect(() => {
     if (!selectedPath?.lob) return;
@@ -45,46 +45,66 @@ export default function ErEntities({
   if (!selectedPath?.lob) return null;
 
   return (
-    <section className="bg-white dark:bg-gray-900 rounded-xl shadow-lg px-2 w-full max-w-2xl ">
-      <h3 className="text-2xl font-semibold flex items-center gap-2  text-gray-800 dark:text-white">
-        <LucideGitBranchPlus size={22} />
-        ER Diagrams
-      </h3>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <span className="font-semibold text-gray-800 dark:text-gray-200">
+            ER Diagrams
+          </span>
+        </div>
+      </div>
 
       {loading && (
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 animate-pulse">
-          <Loader2 className="animate-spin" size={18} />
-          Loading entities…
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
+          <span className="ml-2 text-gray-600 dark:text-gray-400">
+            Loading entities...
+          </span>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-          <AlertTriangle size={18} />
-          Could not fetch entities: {error.message}
+        <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg m-4">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400">
+            Could not fetch entities: {error.message}
+          </span>
         </div>
       )}
 
       {!loading && !error && entities.length === 0 && (
-        <p className="text-gray-500 dark:text-gray-400">
-          No entities found for <strong>{selectedPath.lob}</strong>.
-        </p>
+        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+          No entities found for **{selectedPath.lob}**.
+        </div>
       )}
 
-      <div className="grid gap-3 mt-4 ">
-        {entities.map((en) => (
-          <div
-            key={en.id}
-            onClick={() => {
-              getERdiagram(en.id);
-              setSelectedErDiagram(en.id);
-            }}
-            className="bg-gray-100 cursor-pointer py-4 dark:bg-gray-800 px-4 rounded-lg text-gray-800 dark:text-gray-200 shadow-sm hover:shadow-md transition"
-          >
-            {en.entity_name}
-          </div>
-        ))}
+      <div className="flex-1 overflow-auto p-4">
+        <div className="grid gap-3">
+          {entities.map((en) => (
+            <div
+              key={en.id}
+              onClick={() => {
+                getERdiagram(en.id);
+                setSelectedErDiagram(en.id);
+              }}
+              className="bg-gray-100 cursor-pointer py-4 dark:bg-gray-800 px-4 rounded-lg text-gray-800 dark:text-gray-200 shadow-sm hover:shadow-md transition"
+            >
+              {en.entity_name}
+            </div>
+          ))}
+        </div>
       </div>
-    </section>
+
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setCreate("erdiagram")}
+          className="flex items-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add
+        </button>
+      </div>
+    </div>
   );
 }

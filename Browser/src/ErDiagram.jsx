@@ -118,10 +118,9 @@ function ErDiagram({
       throw error;
     }
   }
-  useEffect(() => {
-    createNodesAndEdges();
-    console.log(nodes);
-  }, [selectedTable]);
+  // useEffect(() => {
+  //   createNodesAndEdges();
+  // }, [selectedTable]);
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
