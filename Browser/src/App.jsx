@@ -30,10 +30,12 @@ export default function App() {
   const [create, setCreate] = useState("");
   const [showTables, setShowTables] = useState(false);
   const [darkmode, setDarkmode] = useState(true);
+  const [erLoading, setErLoading] = useState(false);
   const navigate = useNavigate();
   //er diagram state
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [selectedErDiagram, setSelectedErDiagram] = useState("");
   const [selectedTable, setSelectedTable] = useState();
   const [selectedPath, setSelectedPath] = useState({
     lob: null,
@@ -244,6 +246,7 @@ export default function App() {
           </div>
           <div className="flex-1 p-3 overflow-y-auto min-h-0">
             <SidebarComponent
+              setSelectedPath={setSelectedPath}
               edges={edges}
               setEdges={setEdges}
               user={user}
@@ -255,6 +258,10 @@ export default function App() {
               setCreate={setCreate}
               darkmode={darkmode}
               setNodes={setNodes}
+              selectedTable={selectedTable}
+              setSelectedTable={setSelectedTable}
+              setSelectedErDiagram={setSelectedErDiagram}
+              setErLoading={setErLoading}
             />
           </div>
         </div>
@@ -263,7 +270,7 @@ export default function App() {
           <div className="w-full max-w-[1600px] mb-2 shrink-0">
             <SearchBar onSelect={handleSelection} darkmode={darkmode} />
           </div>
-          {selectedPath.database != null ? (
+          {selectedErDiagram ? (
             <div
               className={`w-full flex-1 backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
                 darkmode
@@ -283,6 +290,8 @@ export default function App() {
                   edges={edges}
                   setNodes={setNodes}
                   setEdges={setEdges}
+                  setErLoading={setErLoading}
+                  erLoading={erLoading}
                 />
               </ReactFlowProvider>
             </div>
@@ -295,7 +304,7 @@ export default function App() {
               }`}
               style={{ minHeight: 0, minWidth: 0 }}
             >
-              Select a database to view the ER diagram
+              Select an er diagram to view
             </div>
           )}
         </div>

@@ -72,8 +72,9 @@ function ErDiagram({
   setEdges,
   setSelectedTable,
   selectedTable,
+  setErLoading,
+  erLoading,
 }) {
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   // const [tableData, setTableData] = useState([]);
 
@@ -119,6 +120,7 @@ function ErDiagram({
   }
   useEffect(() => {
     createNodesAndEdges();
+    console.log(nodes);
   }, [selectedTable]);
   async function fetchTableInfo(tableId) {
     try {
@@ -233,12 +235,12 @@ function ErDiagram({
       if (!selectedPath?.database) {
         setNodes([]);
         setEdges([]);
-        setLoading(false);
+        setErLoading(false);
         return;
       }
 
       try {
-        setLoading(true);
+        setErLoading(true);
         const relationships = await fetchRelationships(selectedPath.database);
         if (!relationships) {
           setNodes([]);
@@ -254,7 +256,7 @@ function ErDiagram({
         console.error("Failed to load relationships:", error);
         setError(true);
       } finally {
-        setLoading(false);
+        setErLoading(false);
       }
     };
 
@@ -282,28 +284,28 @@ function ErDiagram({
   }, []);
 
   useEffect(() => {
-    if (!loading && nodes.length > 0) {
+    if (!erLoading && nodes.length > 0) {
       const timeout = setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.3 });
       }, 100);
       return () => clearTimeout(timeout);
     }
-  }, [reactFlowInstance, nodes, edges, loading]);
+  }, [reactFlowInstance, nodes, edges, erLoading]);
 
   useEffect(() => {
     const handleResize = () => {
-      if (!loading) {
+      if (!erLoading) {
         reactFlowInstance.fitView({ padding: 0.3 });
       }
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [reactFlowInstance, loading]);
+  }, [reactFlowInstance, erLoading]);
 
   return (
     <div style={{ position: "relative", height: "100%" }} ref={exportRef}>
-      {loading ? (
+      {erLoading ? (
         <CircleLoader size={48} strokeWidth={5} />
       ) : error ? (
         <div

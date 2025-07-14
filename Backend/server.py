@@ -503,6 +503,49 @@ def get_all_er_relationships():
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
 
+@app.route('/api/er_relationships/<int:er_entity_id>', methods=['GET'])
+def get_all_er_relationships_inERdiag(er_entity_id):
+    """Retrieves all ER Relationships for a specific er_diagram entity with table names."""
+    query = """
+    SELECT 
+        r.id, 
+        r.from_table_id, 
+        ft.name AS from_table_name,
+        r.from_column, 
+        r.to_table_id, 
+        tt.name AS to_table_name,
+        r.to_column, 
+        r.cardinality, 
+        r.relationship_type, 
+        r.created_at, 
+        r.er_entity_id
+    FROM er_relationships r
+    JOIN tables_metadata ft ON r.from_table_id = ft.id
+    JOIN tables_metadata tt ON r.to_table_id = tt.id
+    WHERE r.er_entity_id = %s
+    ORDER BY r.id;
+    """
+    results = execute_query(query, (er_entity_id,), fetch_all=True)
+    if isinstance(results, list):
+        relationships = []
+        for row in results:
+            relationships.append({
+                'id': row[0],
+                'from_table_id': row[1],
+                'from_table_name': row[2],
+                'from_column': row[3],
+                'to_table_id': row[4],
+                'to_table_name': row[5],
+                'to_column': row[6],
+                'cardinality': row[7],
+                'relationship_type': row[8],
+                'created_at': row[9].isoformat() if row[9] else None,
+                'er_entity_id': row[10],
+                'display': f"{row[2]}.{row[3]} → {row[5]}.{row[6]}"
+            })
+        return jsonify(relationships), 200
+    return jsonify(results), results.get('status', 400)
+
 
 @app.route('/api/er_relationships/<string:database_name>', methods=['GET'])
 def get_all_er_relationships_inDB(database_name):

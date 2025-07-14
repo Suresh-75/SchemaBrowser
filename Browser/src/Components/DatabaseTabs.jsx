@@ -14,8 +14,10 @@ const DatabaseTabs = ({
   edges,
   setNodes,
   setEdges,
+  setErLoading,
+  erLoading,
 }) => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("erdiagram");
   const [profilingHtml, setProfilingHtml] = useState("");
   const [profilingLoading, setProfilingLoading] = useState(false);
   const [profilingError, setProfilingError] = useState("");
@@ -222,6 +224,8 @@ const DatabaseTabs = ({
             edges={edges}
             setNodes={setNodes}
             setEdges={setEdges}
+            setErLoading={setErLoading}
+            erLoading={erLoading}
           />
         )}
 
