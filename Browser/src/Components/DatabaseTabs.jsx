@@ -176,6 +176,8 @@ const DatabaseTabs = ({
           <DatabaseOverview
             schemaName={selectedPath.database}
             darkmode={darkmode}
+            setSelectedPath={setSelectedPath}
+            setSelectedTable={setSelectedTable}
           />
         ) : activeTab === "overview" ? (
           <div

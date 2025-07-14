@@ -265,7 +265,9 @@ export default function App() {
               setEdges={setEdges}
               user={user}
               activeTab={activeTab}
-              // setSelectedPath={setSelectedPath}
+              setSelectedPath={setSelectedPath}
+              setSelectedTable={setSelectedTable}
+              setActiveTab={setActiveTab}
               selectedPath={selectedPath}
               create={create}
               setDarkmode={setDarkmode}
