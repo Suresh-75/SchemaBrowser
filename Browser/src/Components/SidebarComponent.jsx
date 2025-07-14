@@ -142,6 +142,7 @@ const SidebarComponent = ({
   async function getERdiagram(diagram_id) {
     setErLoading(true);
     const relationships = await fetchRelationships(diagram_id);
+    console.log(relationships);
     if (!relationships) {
       setNodes([]);
       setEdges([]);

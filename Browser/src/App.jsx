@@ -1,5 +1,5 @@
 App.jsx;
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Database,
   GitBranch,
@@ -44,7 +44,12 @@ export default function App() {
     database: null,
     table: null,
   });
-
+  useEffect(() => {
+    if (selectedPath.table == null) setSelectedTable();
+    if (selectedPath.database == null) {
+      setSelectedErDiagram("");
+    }
+  }, [selectedPath]);
   // Centralized selection logic for both FilterBar and SearchBar
   const handleSelection = (path) => {
     setSelectedPath(path);
@@ -265,7 +270,6 @@ export default function App() {
               setEdges={setEdges}
               user={user}
               activeTab={activeTab}
-              setSelectedPath={setSelectedPath}
               setSelectedTable={setSelectedTable}
               setActiveTab={setActiveTab}
               selectedPath={selectedPath}
@@ -275,7 +279,7 @@ export default function App() {
               darkmode={darkmode}
               setNodes={setNodes}
               selectedTable={selectedTable}
-              setSelectedTable={setSelectedTable}
+              selectedErDiagram={selectedErDiagram}
               setSelectedErDiagram={setSelectedErDiagram}
               setErLoading={setErLoading}
             />
@@ -286,7 +290,7 @@ export default function App() {
           <div className="w-full max-w-[1600px] mb-2 shrink-0">
             <SearchBar onSelect={handleSelection} darkmode={darkmode} />
           </div>
-          {selectedErDiagram ? (
+          {selectedErDiagram || selectedPath.database ? (
             <div
               className={`w-full flex-1 backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
                 darkmode
