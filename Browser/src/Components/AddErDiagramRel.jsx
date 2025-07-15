@@ -108,6 +108,7 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
 
     try {
       const relationshipData = {
+        erDiagramName,
         lob: selectedPath.lob,
         fromTableId,
         fromColumn,

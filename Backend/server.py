@@ -13,8 +13,8 @@ import json
 from datetime import datetime, timedelta
 import time
 import logging
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+# from apscheduler.schedulers.background import BackgroundScheduler
+# from apscheduler.triggers.cron import CronTrigger
 import hashlib
 
 output_dir = tempfile.mkdtemp()
@@ -741,12 +741,12 @@ def create_er_relationship():
             
             # Get or create ER entity
             er_entity_id = get_or_create_er_entity(conn, er_diagram_name, lob_id)
-            database_name = "credit_card_accounts"
-            
+            print(er_entity_id)
             # Check if relationship already exists
+
             cursor.execute("""
                 SELECT id FROM er_relationships 
-                WHERE from_table_id = %s AND from_column = %s 
+                WHERE from_table_id = %s AND from_column = %s
                 AND to_table_id = %s AND to_column = %s 
                 AND er_entity_id = %s
             """, (from_table_id, from_column, to_table_id, to_column, er_entity_id))
@@ -761,12 +761,11 @@ def create_er_relationship():
             # Create the relationship
             cursor.execute("""
                 INSERT INTO er_relationships 
-                (database_name, from_table_id, from_column, to_table_id, to_column, 
+                ( from_table_id, from_column, to_table_id, to_column, 
                 cardinality, relationship_type, created_at, er_entity_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES ( %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, created_at
             """, (
-                database_name,
                 from_table_id,
                 from_column,
                 to_table_id,
@@ -788,7 +787,6 @@ def create_er_relationship():
                 'message': 'ER relationship created successfully',
                 'data': {
                     'id': relationship_id,
-                    'database_name': database_name,
                     'er_entity_id': er_entity_id,
                     'er_diagram_name': er_diagram_name,
                     'from_table_id': from_table_id,
