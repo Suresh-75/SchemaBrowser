@@ -118,6 +118,7 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
         relationshipType,
       };
       const response = await endpoints.createDiagram(relationshipData);
+      console.log(response);
     } catch (err) {
       setError("Failed to create relationship. Please try again.");
       console.error("Error creating relationship:", err);

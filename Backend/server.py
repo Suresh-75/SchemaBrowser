@@ -715,10 +715,24 @@ def get_or_create_er_entity(conn, er_diagram_name, lob_id):
 @app.route('/api/create_er_diagram', methods=['POST'])
 def create_er_relationship():
     """Create a new ER diagram relationship"""
+    conn = None
+    cursor = None
+    
     try:
         # Get JSON data from request
         data = request.get_json()
         print(data)
+        
+        # Validate required fields
+        required_fields = ['erDiagramName', 'lob', 'fromTableId', 'fromColumn', 
+                          'toTableId', 'toColumn', 'cardinality', 'relationshipType']
+        
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
         
         er_diagram_name = data['erDiagramName']
         lob_name = data['lob']
@@ -729,95 +743,106 @@ def create_er_relationship():
         cardinality = data['cardinality']
         relationship_type = data['relationshipType']
         
+        # Get database connection
+        conn = get_db_connection() 
+        cursor = conn.cursor()
         
-        try:
-            # Get LOB ID
-            lob_id = get_lob_id_by_name(conn, lob_name)
-            if not lob_id:
-                return jsonify({
-                    'success': False,
-                    'error': f'LOB not found: {lob_name}'
-                }), 400
-            
-            # Get or create ER entity
-            er_entity_id = get_or_create_er_entity(conn, er_diagram_name, lob_id)
-            print(er_entity_id)
-            # Check if relationship already exists
-
-            cursor.execute("""
-                SELECT id FROM er_relationships 
-                WHERE from_table_id = %s AND from_column = %s
-                AND to_table_id = %s AND to_column = %s 
-                AND er_entity_id = %s
-            """, (from_table_id, from_column, to_table_id, to_column, er_entity_id))
-                
-            existing_relationship = cursor.fetchone()
-            if existing_relationship:
-                return jsonify({
-                    'success': False,
-                    'error': 'Relationship already exists between these tables and columns'
-                }), 409
-            
-            # Create the relationship
-            cursor.execute("""
-                INSERT INTO er_relationships 
-                ( from_table_id, from_column, to_table_id, to_column, 
-                cardinality, relationship_type, created_at, er_entity_id)
-                VALUES ( %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, created_at
-            """, (
-                from_table_id,
-                from_column,
-                to_table_id,
-                to_column,
-                cardinality,
-                relationship_type,
-                datetime.now(),
-                er_entity_id
-            ))
-                
-            result = cursor.fetchone()
-            relationship_id = result[0]
-            created_at = result[1]
-            # Commit transaction
-            conn.commit()
-            # Return success response
-            return jsonify({
-                'success': True,
-                'message': 'ER relationship created successfully',
-                'data': {
-                    'id': relationship_id,
-                    'er_entity_id': er_entity_id,
-                    'er_diagram_name': er_diagram_name,
-                    'from_table_id': from_table_id,
-                    'from_column': from_column,
-                    'to_table_id': to_table_id,
-                    'to_column': to_column,
-                    'cardinality': cardinality,
-                    'relationship_type': relationship_type,
-                    'created_at': created_at.isoformat()
-                }
-            }), 201
-            
-        except psycopg2.Error as e:
-            # Rollback transaction on error
-            conn.rollback()
-            # logger.error(f"Database error: {e}")
+        # Get LOB ID
+        lob_id = get_lob_id_by_name(conn, lob_name)
+        if not lob_id:
             return jsonify({
                 'success': False,
-                'error': 'Database error occurred'
-            }), 500
+                'error': f'LOB not found: {lob_name}'
+            }), 400
+        
+        # Get or create ER entity
+        er_entity_id = get_or_create_er_entity(conn, er_diagram_name, lob_id)
+        print(f"ER Entity ID: {er_entity_id}")
+        
+        # Check if relationship already exists
+        cursor.execute("""
+            SELECT id FROM er_relationships 
+            WHERE from_table_id = %s AND from_column = %s
+            AND to_table_id = %s AND to_column = %s 
+            AND er_entity_id = %s
+        """, (from_table_id, from_column, to_table_id, to_column, er_entity_id))
             
-        finally:
-            conn.close()
+        existing_relationship = cursor.fetchone()
+        if existing_relationship:
+            return jsonify({
+                'success': False,
+                'error': 'Relationship already exists between these tables and columns'
+            }), 409
+        
+        # Create the relationship
+        cursor.execute("""
+            INSERT INTO er_relationships 
+            (from_table_id, from_column, to_table_id, to_column, 
+            cardinality, relationship_type, created_at, er_entity_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, created_at
+        """, (
+            from_table_id,
+            from_column,
+            to_table_id,
+            to_column,
+            cardinality,
+            relationship_type,
+            datetime.now(),
+            er_entity_id
+        ))
             
+        result = cursor.fetchone()
+        relationship_id = result[0]
+        created_at = result[1]
+        
+        # Commit transaction
+        conn.commit()
+        
+        # Return success response
+        return jsonify({
+            'success': True,
+            'message': 'ER relationship created successfully',
+            'data': {
+                'id': relationship_id,
+                'er_entity_id': er_entity_id,
+                'er_diagram_name': er_diagram_name,
+                'from_table_id': from_table_id,
+                'from_column': from_column,
+                'to_table_id': to_table_id,
+                'to_column': to_column,
+                'cardinality': cardinality,
+                'relationship_type': relationship_type,
+                'created_at': created_at.isoformat()
+            }
+        }), 201
+        
+    except psycopg2.Error as e:
+        # Rollback transaction on error
+        if conn:
+            conn.rollback()
+        print(f"Database error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Database error occurred'
+        }), 500
+        
     except Exception as e:
-        # logger.error(f"Unexpected error: {e}")
+        # Rollback transaction on any error
+        if conn:
+            conn.rollback()
+        print(f"Unexpected error: {e}")
         return jsonify({
             'success': False,
             'error': 'An unexpected error occurred'
         }), 500
-
+        
+    finally:
+        # Clean up resources
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 # get er entities
 @app.route('/api/get_er_entities/<string:lob_name>', methods=["GET"])
 def getERentity(lob_name):
