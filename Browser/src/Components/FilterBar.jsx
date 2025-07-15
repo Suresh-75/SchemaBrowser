@@ -196,6 +196,7 @@ const FilterBar = ({
         type: "lob",
         name: selectedPath.lob,
         icon: Building2,
+        onClick: () => handleLobSelect(selectedPath.lob)
       });
     }
 
@@ -204,6 +205,7 @@ const FilterBar = ({
         type: "subject",
         name: selectedPath.subject,
         icon: Target,
+        onClick: () => handleSubjectSelect(selectedPath.lob, selectedPath.subject)
       });
     }
 
@@ -212,6 +214,7 @@ const FilterBar = ({
         type: "database",
         name: selectedPath.database,
         icon: Database,
+        onClick: () => handleDatabaseSelect(selectedPath.lob, selectedPath.subject, selectedPath.database)
       });
     }
 
@@ -219,19 +222,12 @@ const FilterBar = ({
       breadcrumbItems.push({
         type: "table",
         name: selectedPath.table,
-        icon: Table,
+        icon: Table
       });
     }
 
     return breadcrumbItems.length > 0 ? (
       <div className="flex items-center space-x-2 px-4 py-2">
-        {/* <span
-          className={`text-sm font-medium ${
-            darkmode ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
-          Current Path:
-        </span> */}
         {breadcrumbItems.map((item, index) => (
           <React.Fragment key={index}>
             <div
