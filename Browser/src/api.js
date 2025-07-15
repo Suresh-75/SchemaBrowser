@@ -39,6 +39,10 @@ export const endpoints = {
 
   //delete ER
   deleteER: (id) => api.delete(`/er_relationships/${id}`),
+
+  // Logical Database operations for import
+  getLogicalDatabases: () => api.get("/logical-databases"), // GET all logical databases
+  importLogicalDatabase: (data) => api.post("/logical-databases/import", data), // Import logical database to subject area
 };
 
 export default api;
