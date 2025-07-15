@@ -517,21 +517,26 @@ def create_logical_db():
         JOIN lobs l ON sa.lob_id = l.id
         WHERE sa.name = %s AND l.name = %s
     """, (subject_name, lob_name))
-    
     result = cursor.fetchone()
     if not result:
         return jsonify({"error": "Subject Area not found for given LOB"}), 404
-
     subject_area_id = result[0]
 
-    # Insert new logical database
     try:
+        # Insert new logical database
         cursor.execute(
-            "INSERT INTO logical_databases (name, subject_area_id) VALUES (%s, %s) RETURNING id",
-            (data["name"], subject_area_id)
+            "INSERT INTO logical_databases (name) VALUES (%s) RETURNING id",
+            (data["name"],)
         )
         conn.commit()
-        new_id = cursor.fetchone()[0]
+        new_db_id = cursor.fetchone()[0]
+
+        # Associate with subject area
+        cursor.execute(
+            "INSERT INTO subject_area_logical_database (subject_area_id, logical_database_id) VALUES (%s, %s)",
+            (subject_area_id, new_db_id)
+        )
+        conn.commit()
 
         # Create schema in Postgres if not exists
         try:
@@ -541,11 +546,55 @@ def create_logical_db():
             conn.rollback()
             return jsonify({"message": f"Schema creation failed: {str(e)}"}), 400
 
-        return jsonify({"message": "Logical DB created", "id": new_id})
+        return jsonify({"message": "Logical DB created", "id": new_db_id})
     except Exception as e:
         conn.rollback()
         return jsonify({"error": f"Failed to create Logical DB: {str(e)}"}), 400
 
+
+@app.route("/api/logical-databases/import", methods=["POST"])
+def import_logical_db():
+    """Associate an existing logical database with another subject area."""
+    data = request.json
+    logical_db_id = data.get("logical_db_id")
+    subject_name = data.get("subject_name")
+    lob_name = data.get("lob_name")
+    target_subject_area_id = data.get("subject_area_id")
+
+    # If subject_name and lob_name are provided, fetch subject_area_id
+    if subject_name and lob_name:
+        cursor.execute("""
+            SELECT sa.id
+            FROM subject_areas sa
+            JOIN lobs l ON sa.lob_id = l.id
+            WHERE sa.name = %s AND l.name = %s
+        """, (subject_name, lob_name))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": "Subject Area not found for given LOB"}), 404
+        target_subject_area_id = result[0]
+
+    if not logical_db_id or not target_subject_area_id:
+        return jsonify({"error": "logical_db_id and subject_area_id required"}), 400
+
+    try:
+        # Check if association already exists
+        cursor.execute("""
+            SELECT 1 FROM subject_area_logical_database
+            WHERE subject_area_id = %s AND logical_database_id = %s
+        """, (target_subject_area_id, logical_db_id))
+        if cursor.fetchone():
+            return jsonify({"error": "Database already imported to this subject area"}), 409
+
+        cursor.execute("""
+            INSERT INTO subject_area_logical_database (subject_area_id, logical_database_id)
+            VALUES (%s, %s)
+        """, (target_subject_area_id, logical_db_id))
+        conn.commit()
+        return jsonify({"message": "Database imported successfully"}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
 
 # ------------------- 4. Create Table -------------------
 @app.route("/api/tables", methods=["GET"])
@@ -958,8 +1007,9 @@ def get_hierarchy():
                    t.id AS table_id, t.name AS table_name
             FROM lobs l
             LEFT JOIN subject_areas sa ON sa.lob_id = l.id
-            LEFT JOIN logical_databases db ON db.subject_area_id = sa.id
-            LEFT JOIN tables_metadata t ON t.database_id = db.id
+            LEFT JOIN subject_area_logical_database sald ON sald.subject_area_id = sa.id
+            LEFT JOIN logical_databases db ON db.id = sald.logical_database_id
+            LEFT JOIN tables_metadata t ON t.schema_name = db.name
             ORDER BY l.id, sa.id, db.id, t.id;
         """)
 
@@ -1491,7 +1541,7 @@ def table_overview(schema, table):
 
         # Row count (estimate, fallback to COUNT(*) if -1)
         cursor.execute(
-            sql.SQL("SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid WHERE n.nspname = %s AND c.relname = %s"),
+            sql.SQL("SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid WHERE nspname = %s AND relname = %s"),
             (schema, table)
         )
         row_count_row = cursor.fetchone()
@@ -1633,6 +1683,38 @@ def download_table_csv(schema, table):
     except Exception as e:
         print(f"Error downloading CSV: {str(e)}")  # For debugging
         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
+
+@app.route("/api/logical-databases", methods=["GET"])
+def get_logical_databases():
+    """
+    Return all logical databases with their LOB and Subject Area info.
+    Used for import dropdown in frontend.
+    """
+    try:
+        cursor.execute("""
+            SELECT 
+                db.id, db.name, 
+                l.name AS lob_name, 
+                sa.name AS subject_area_name
+            FROM logical_databases db
+            JOIN subject_area_logical_database sald ON db.id = sald.logical_database_id
+            JOIN subject_areas sa ON sald.subject_area_id = sa.id
+            JOIN lobs l ON sa.lob_id = l.id
+            ORDER BY db.id
+        """)
+        rows = cursor.fetchall()
+        result = [
+            {
+                "id": row[0],
+                "name": row[1],
+                "lob_name": row[2],
+                "subject_area_name": row[3]
+            }
+            for row in rows
+        ]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # app.run(debug=True)

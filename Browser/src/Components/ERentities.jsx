@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { Loader2, AlertTriangle, Database, X, Plus } from "lucide-react";
 
 import api from "../api";
+import AddErDiagramRel from "./AddErDiagramRel";
 
 export default function ErEntities({
   selectedPath,
   getERdiagram,
   setCreate,
   setSelectedErDiagram,
+  create,
+  darkmode,
 }) {
   const [entities, setEntities] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -88,9 +91,15 @@ export default function ErEntities({
                 getERdiagram(en.id);
                 setSelectedErDiagram(en.id);
               }}
-              className="bg-gray-100 cursor-pointer py-4 dark:bg-gray-800 px-4 rounded-lg text-gray-800 dark:text-gray-200 shadow-sm hover:shadow-md transition"
+              className="flex items-center justify-between bg-gray-100 cursor-pointer py-4 dark:bg-gray-800 px-4 rounded-lg text-gray-800 dark:text-gray-200 shadow-sm hover:shadow-md transition"
             >
               {en.entity_name}
+              <button
+                onClick={() => setCreate("relationshipDiagram")}
+                className="px-3 py-1 rounded bg-blue-800"
+              >
+                Add
+              </button>
             </div>
           ))}
         </div>

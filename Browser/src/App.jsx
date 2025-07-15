@@ -23,6 +23,7 @@ import AddRel from "./Components/AddRel";
 import { useLocation } from "react-router-dom";
 import { ReactFlowProvider } from "@xyflow/react";
 import AddErDiagram from "./Components/AddErDiagram";
+import AddErDiagramRel from "./Components/AddErDiagramRel";
 
 export default function App() {
   const location = useLocation();
@@ -93,6 +94,16 @@ export default function App() {
             setEdges={setEdges}
             darkmode={darkmode}
             selectedPath={selectedPath}
+          />
+        </>
+      )}
+      {create == "relationshipDiagram" && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
+          <AddErDiagramRel
+            selectedPath={selectedPath}
+            setCreate={setCreate}
+            darkmode={darkmode}
           />
         </>
       )}

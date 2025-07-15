@@ -767,6 +767,8 @@ const SidebarComponent = ({
         <>
           {selectedPath.lob && selectedPath.subject == null ? (
             <ERentities
+              darkmode={darkmode}
+              create={create}
               setCreate={setCreate}
               selectedPath={selectedPath}
               getERdiagram={getERdiagram}
