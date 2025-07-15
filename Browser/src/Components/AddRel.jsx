@@ -65,10 +65,8 @@ const AddRel = ({
 
   const fetchTables = async () => {
     try {
-      console.log("Fetching tables for database:", databaseName);
-      const response = await axios.get(
-        `http://localhost:5000/api/tables/${databaseName}`
-      );
+      // console.log("Fetching tables for database:", databaseName);
+      const response = await axios.get(`http://localhost:5000/api/tables`);
       console.log("tables ", response.data);
       setTables(response.data || []);
     } catch (err) {
@@ -167,7 +165,7 @@ const AddRel = ({
         to_column: toColumn,
         cardinality: cardinality,
         relationship_type: relationshipType,
-        database_name: databaseName,
+        // database_name: databaseName,
       };
 
       // Create the relationship in the backend first

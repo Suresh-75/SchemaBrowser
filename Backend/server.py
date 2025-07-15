@@ -1048,20 +1048,19 @@ def add_er_relationship():
     to_column = data.get('to_column')
     cardinality = data.get('cardinality')
     relationship_type = data.get('relationship_type', 'foreign_key') # Default to 'foreign_key'
-    database_name = data.get('database_name')
     print("Adding ER Relationship with data:", data)
-    required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality, database_name]
+    required_fields = [from_table_id, from_column, to_table_id, to_column, cardinality]
     if not all(required_fields):
-        return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality, database_name) are required'}), 400
+        return jsonify({'error': 'All required fields (from_table_id, from_column, to_table_id, to_column, cardinality) are required'}), 400
 
     if cardinality not in ['one-to-one', 'one-to-many', 'many-to-one']:
         return jsonify({'error': 'Invalid cardinality. Must be one of: one-to-one, one-to-many, many-to-one'}), 400
 
     query = """
-    INSERT INTO er_relationships (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, database_name)
-    VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;
+    INSERT INTO er_relationships (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
+    VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
     """
-    params = (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type, database_name)
+    params = (from_table_id, from_column, to_table_id, to_column, cardinality, relationship_type)
     result = execute_query(query, params, fetch_one=True)
 
     if isinstance(result, tuple) and len(result) == 1:
@@ -1138,40 +1137,42 @@ def get_all_er_relationships_inDB(database_name):
     """Retrieves all ER Relationships for a specific database with table names."""
     query = """
     SELECT 
-        r.id, 
-        r.from_table_id, 
-        ft.name AS from_table_name,
-        r.from_column, 
-        r.to_table_id, 
-        tt.name AS to_table_name,
-        r.to_column, 
-        r.cardinality, 
-        r.relationship_type, 
-        r.created_at, 
-        r.database_name
-    FROM er_relationships r
-    JOIN tables_metadata ft ON r.from_table_id = ft.id
-    JOIN tables_metadata tt ON r.to_table_id = tt.id
-    WHERE r.database_name = %s
-    ORDER BY r.id;
+        er.id,
+        er.from_table_id,
+        er.from_column,
+        er.to_table_id,
+        er.to_column,
+        er.cardinality,
+        er.relationship_type,
+        er.created_at,
+        er.er_entity_id,
+        tm_from.name as from_table_name,
+        tm_to.name as to_table_name
+    FROM er_relationships er
+    JOIN tables_metadata tm_from ON er.from_table_id = tm_from.id
+    JOIN tables_metadata tm_to ON er.to_table_id = tm_to.id
+    WHERE tm_from.schema_name = %s
+       OR tm_to.schema_name = %s;
     """
-    results = execute_query(query, (database_name,), fetch_all=True)
+    results = execute_query(query, (database_name, database_name), fetch_all=True)
+    print(results)
     if isinstance(results, list):
         relationships = []
         for row in results:
             relationships.append({
                 'id': row[0],
                 'from_table_id': row[1],
-                'from_table_name': row[2],
-                'from_column': row[3],
-                'to_table_id': row[4],
-                'to_table_name': row[5],
-                'to_column': row[6],
-                'cardinality': row[7],
-                'relationship_type': row[8],
-                'created_at': row[9].isoformat() if row[9] else None,
-                'database_name': row[10],
-                'display': f"{row[2]}.{row[3]} → {row[5]}.{row[6]}"
+                'from_column': row[2],
+                'to_table_id': row[3],
+                'to_column': row[4],
+                'cardinality': row[5],
+                'relationship_type': row[6],
+                'created_at': row[7].isoformat() if row[7] else None,
+                'er_entity_id': row[8],
+                'from_table_name': row[9],
+                'to_table_name': row[10],
+                'database_name': database_name,
+                'display': f"{row[9]}.{row[2]} → {row[10]}.{row[4]}"
             })
         return jsonify(relationships), 200
     return jsonify(results), results.get('status', 400)
@@ -1189,16 +1190,15 @@ def get_all_er_relationships_inDB_tableid(database_name,table_id):
             r.to_column,
             r.cardinality,
             r.relationship_type,
-            r.created_at,
-            r.database_name
+            r.created_at
         FROM er_relationships r
         JOIN tables_metadata ft ON r.from_table_id = ft.id
         JOIN tables_metadata tt ON r.to_table_id = tt.id
-        WHERE r.database_name = %s
-        AND (r.from_table_id = %s OR r.to_table_id = %s)
+        WHERE (r.from_table_id = %s OR r.to_table_id = %s)
         ORDER BY r.id;
     """
-    results = execute_query(query, (database_name, table_id, table_id), fetch_all=True)
+    results = execute_query(query, (table_id, table_id), fetch_all=True)
+
     if isinstance(results, list):
         relationships = []
         for row in results:
@@ -1213,7 +1213,6 @@ def get_all_er_relationships_inDB_tableid(database_name,table_id):
                 'cardinality': row[7],
                 'relationship_type': row[8],
                 'created_at': row[9].isoformat() if row[9] else None,
-                'database_name': row[10],
                 'display': f"{row[2]}.{row[3]} → {row[5]}.{row[6]}"
             })
         return jsonify(relationships), 200
@@ -1718,15 +1717,15 @@ def get_logical_databases():
 
 if __name__ == "__main__":
     # app.run(debug=True)
-    scheduler = BackgroundScheduler()
+    # scheduler = BackgroundScheduler()
     
     # Schedule profiling job to run every week (Monday at 2 AM)
-    scheduler.add_job(
-        func=auto_profiler.run_scheduled_profiling,
-        trigger=CronTrigger(day_of_week='mon', hour=2, minute=0),
-        id='weekly_profiling',
-        replace_existing=True
-    )
+    # scheduler.add_job(
+    #     func=auto_profiler.run_scheduled_profiling,
+    #     trigger=CronTrigger(day_of_week='mon', hour=2, minute=0),
+    #     id='weekly_profiling',
+    #     replace_existing=True
+    # )
     
     # # Run initial profiling immediately when server starts (after 10 seconds)
     # scheduler.add_job(
@@ -1743,4 +1742,4 @@ if __name__ == "__main__":
         app.run(debug=True, host='0.0.0.0', port=5000)
     except (KeyboardInterrupt, SystemExit):
         logger.info("Shutting down scheduler...")
-        scheduler.shutdown()
+        # scheduler.shutdown()

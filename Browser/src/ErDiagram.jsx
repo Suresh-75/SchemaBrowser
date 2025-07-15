@@ -192,17 +192,19 @@ function ErDiagram({
       }));
 
       const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
-        const [fromId, toId] = key.split('-');
+        const [fromId, toId] = key.split("-");
         return {
           id: `e${key}`,
           source: fromId.toString(),
           target: toId.toString(),
-          type: 'custom', // Use our custom edge
-          label: rels.map(rel =>
-
-            `${rel.from_table_name}.${rel.from_column} → ${rel.to_table_name}.${rel.to_column} (${rel.cardinality})`
-          ).join('\n'),
-          style: { stroke: '#666', strokeWidth: 1 },
+          type: "custom", // Use our custom edge
+          label: rels
+            .map(
+              (rel) =>
+                `${rel.from_table_name}.${rel.from_column} → ${rel.to_table_name}.${rel.to_column} (${rel.cardinality})`
+            )
+            .join("\n"),
+          style: { stroke: "#666", strokeWidth: 1 },
           labelStyle: {
             fontSize: "16px",
             fontFamily: "monospace",
