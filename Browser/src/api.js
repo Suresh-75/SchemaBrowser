@@ -40,17 +40,14 @@ export const endpoints = {
   //delete ER
   deleteER: (id) => api.delete(`/er_relationships/${id}`),
 
-<<<<<<< HEAD
   //get ER entities
   getErEntities: (lob_name) => api.get("/get_er_entities/" + lob_name),
 
   // create ER entities
   createDiagram: (data) => api.post("/create_er_diagram", data),
-=======
   // Logical Database operations for import
   getLogicalDatabases: () => api.get("/logical-databases"), // GET all logical databases
   importLogicalDatabase: (data) => api.post("/logical-databases/import", data), // Import logical database to subject area
->>>>>>> 22a2d7a536445c0810e9fedcdf69f0374c00e02a
 };
 
 export default endpoints;
