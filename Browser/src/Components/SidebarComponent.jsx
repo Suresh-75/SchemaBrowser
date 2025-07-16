@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Box, Eye, Network, Plus, Settings, Zap, Trash2 } from "lucide-react";
 import { endpoints } from "../api";
-import ERentities from "./ERentities";
+
 import axios from "axios";
 const SidebarComponent = ({
   user,
@@ -140,22 +140,7 @@ const SidebarComponent = ({
       throw error;
     }
   }
-  async function getERdiagram(diagram_id) {
-    setErLoading(true);
-    const relationships = await fetchRelationships(diagram_id);
-    console.log(relationships);
-    if (!relationships) {
-      setNodes([]);
-      setEdges([]);
-      return;
-    }
-    const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
-      relationships
-    );
-    setErLoading(false);
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }
+
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);
   async function fetchTableInfo(tableId) {
@@ -565,34 +550,30 @@ const SidebarComponent = ({
                 </div>
               )}
             </div>
-            {/* {user === "admin" ? (
-              selectedPath?.database ? (
-                <button
-                  onClick={() => setCreate("Relationship")}
-                  className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
-                    darkmode
-                      ? "bg-blue-800 text-white hover:bg-blue-900"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
-                  aria-label="Add Relationship"
-                >
-                  <Plus size={16} />
-                  Add Relationship
-                </button>
-              ) : (
-                <div
-                  className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
-                    darkmode
-                      ? "text-blue-200 bg-blue-950 border-blue-900"
-                      : "text-blue-700 bg-blue-50 border-blue-100"
-                  }`}
-                >
-                  Choose a database to add relationships
-                </div>
-              )
+            {selectedPath?.database ? (
+              <button
+                onClick={() => setCreate("Relationship")}
+                className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
+                  darkmode
+                    ? "bg-blue-800 text-white hover:bg-blue-900"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+                aria-label="Add Relationship"
+              >
+                <Plus size={16} />
+                Add Relationship
+              </button>
             ) : (
-              <></>
-            )} */}
+              <div
+                className={`text-center w-full rounded-lg py-2 mt-2 text-sm font-medium border ${
+                  darkmode
+                    ? "text-blue-200 bg-blue-950 border-blue-900"
+                    : "text-blue-700 bg-blue-50 border-blue-100"
+                }`}
+              >
+                Choose a database to see relationships
+              </div>
+            )}
           </div>
 
           <style jsx>{`
@@ -763,127 +744,114 @@ const SidebarComponent = ({
             </div>
           </div>
         );
-      }
-      return (
-        <>
-          {selectedPath.lob && selectedPath.subject == null ? (
-            <ERentities
-              selectedErDiagram={selectedErDiagram}
-              darkmode={darkmode}
-              create={create}
-              setCreate={setCreate}
-              selectedPath={selectedPath}
-              getERdiagram={getERdiagram}
-              setSelectedErDiagram={setSelectedErDiagram}
-            />
-          ) : (
-            <div className="space-y-4" aria-label="Overview Panel">
-              <h3
-                className={`font-semibold flex items-center gap-2 ${
-                  darkmode ? "text-blue-200" : "text-gray-800"
+      } else if (selectedPath.database) {
+        return (
+          <div className="space-y-4" aria-label="Overview Panel">
+            <h3
+              className={`font-semibold flex items-center gap-2 ${
+                darkmode ? "text-blue-200" : "text-gray-800"
+              }`}
+            >
+              <Eye
+                className={darkmode ? "text-indigo-400" : "text-indigo-600"}
+                size={20}
+              />
+              Overview
+            </h3>
+            <div className="space-y-3">
+              <div
+                className={`p-4 rounded-lg border ${
+                  darkmode
+                    ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
+                    : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
                 }`}
               >
-                <Eye
-                  className={darkmode ? "text-indigo-400" : "text-indigo-600"}
-                  size={20}
-                />
-                Overview
-              </h3>
-              <div className="space-y-3">
-                <div
-                  className={`p-4 rounded-lg border ${
-                    darkmode
-                      ? "bg-gradient-to-r from-blue-950 to-blue-850 border-blue-900"
-                      : "bg-gradient-to-r from-blue-50 to-purple-50 border-blue-100"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap
-                      className={darkmode ? "text-blue-400" : "text-blue-600"}
-                      size={16}
-                    />
-                    <span
-                      className={`font-medium ${
-                        darkmode ? "text-blue-200" : "text-blue-800"
-                      }`}
-                    >
-                      Quick Stats
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div
-                        className={darkmode ? "text-blue-200" : "text-gray-600"}
-                      >
-                        Entities
-                      </div>
-                      {data.length}
-                    </div>
-                    <div>
-                      <div
-                        className={darkmode ? "text-blue-200" : "text-gray-600"}
-                      >
-                        Relationships
-                      </div>
-                      <div
-                        className={`font-semibold ${
-                          darkmode ? "text-blue-100" : "text-gray-800"
-                        }`}
-                      >
-                        {rels.length}
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <div
-                        className={darkmode ? "text-blue-200" : "text-gray-600"}
-                      >
-                        Source Lineage
-                      </div>
-                      <div
-                        className={`font-semibold ${
-                          darkmode ? "text-blue-100" : "text-gray-800"
-                        }`}
-                      >
-                        {lineage.join(" > ")}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`mt-2 text-xs space-y-1 ${
-                      darkmode ? "text-blue-300" : "text-gray-500"
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap
+                    className={darkmode ? "text-blue-400" : "text-blue-600"}
+                    size={16}
+                  />
+                  <span
+                    className={`font-medium ${
+                      darkmode ? "text-blue-200" : "text-blue-800"
                     }`}
                   >
-                    {selectedPath?.lob && (
-                      <div>
-                        <span className="font-semibold">LOB:</span>{" "}
-                        {selectedPath.lob}
-                      </div>
-                    )}
-                    {selectedPath?.subject && (
-                      <div>
-                        <span className="font-semibold">Subject:</span>{" "}
-                        {selectedPath.subject}
-                      </div>
-                    )}
-                    {selectedPath?.database && (
-                      <div>
-                        <span className="font-semibold">Database:</span>{" "}
-                        {selectedPath.database}
-                      </div>
-                    )}
-                    {selectedPath?.table && (
-                      <div>
-                        <span className="font-semibold">Table:</span>{" "}
-                        {selectedPath.table}
-                      </div>
-                    )}
+                    Quick Stats
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <div
+                      className={darkmode ? "text-blue-200" : "text-gray-600"}
+                    >
+                      Entities
+                    </div>
+                    {data.length}
                   </div>
+                  <div>
+                    <div
+                      className={darkmode ? "text-blue-200" : "text-gray-600"}
+                    >
+                      Relationships
+                    </div>
+                    <div
+                      className={`font-semibold ${
+                        darkmode ? "text-blue-100" : "text-gray-800"
+                      }`}
+                    >
+                      {rels.length}
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div
+                      className={darkmode ? "text-blue-200" : "text-gray-600"}
+                    >
+                      Source Lineage
+                    </div>
+                    <div
+                      className={`font-semibold ${
+                        darkmode ? "text-blue-100" : "text-gray-800"
+                      }`}
+                    >
+                      {lineage.join(" > ")}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className={`mt-2 text-xs space-y-1 ${
+                    darkmode ? "text-blue-300" : "text-gray-500"
+                  }`}
+                >
+                  {selectedPath?.lob && (
+                    <div>
+                      <span className="font-semibold">LOB:</span>{" "}
+                      {selectedPath.lob}
+                    </div>
+                  )}
+                  {selectedPath?.subject && (
+                    <div>
+                      <span className="font-semibold">Subject:</span>{" "}
+                      {selectedPath.subject}
+                    </div>
+                  )}
+                  {selectedPath?.database && (
+                    <div>
+                      <span className="font-semibold">Database:</span>{" "}
+                      {selectedPath.database}
+                    </div>
+                  )}
+                  {selectedPath?.table && (
+                    <div>
+                      <span className="font-semibold">Table:</span>{" "}
+                      {selectedPath.table}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          )}
-        </>
-      );
+          </div>
+        );
+      }
   }
 };
 

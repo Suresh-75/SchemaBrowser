@@ -171,7 +171,16 @@ function ErDiagram({
         if (!edgeGroups[key]) {
           edgeGroups[key] = [];
         }
-        edgeGroups[key].push(rel);
+        console.log(edgeGroups[key]);
+
+        const exists = edgeGroups[key].some(
+          (r) =>
+            r.from_column === rel.from_column && r.to_column === rel.to_column
+        );
+
+        if (!exists) {
+          edgeGroups[key].push(rel);
+        }
       });
 
       const newNodes = tableIds.map((tableId, index) => ({

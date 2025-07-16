@@ -1,5 +1,5 @@
 App.jsx;
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Database,
   GitBranch,
@@ -12,7 +12,9 @@ import {
   Table,
   ArrowBigLeft,
   LogOutIcon,
+  Zap,
 } from "lucide-react";
+import ERentities from "./Components/ERentities";
 import DatabaseTabs from "./Components/DatabaseTabs";
 import { useNavigate } from "react-router-dom";
 import SidebarComponent from "./Components/SidebarComponent";
@@ -24,6 +26,7 @@ import { useLocation } from "react-router-dom";
 import { ReactFlowProvider } from "@xyflow/react";
 import AddErDiagram from "./Components/AddErDiagram";
 import AddErDiagramRel from "./Components/AddErDiagramRel";
+import axios from "axios";
 
 export default function App() {
   const location = useLocation();
@@ -56,7 +59,140 @@ export default function App() {
     setSelectedPath(path);
     setActiveTab("overview");
   };
+  async function fetchTableInfo(tableId) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tables/${tableId}/attributes`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching table info for table ${tableId}:`, error);
+      return null;
+    }
+  }
+  const createNodesAndEdges = useCallback(
+    async (relationships = []) => {
+      // Add default empty array
+      if (!relationships || relationships.length === 0) {
+        return { nodes: [], edges: [] };
+      }
 
+      const tableIds = Array.from(
+        new Set(
+          relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
+        )
+      );
+
+      // Fetch all table info in parallel
+      const tableInfos = [];
+      for (const tableId of tableIds) {
+        const info = await fetchTableInfo(tableId);
+        tableInfos.push(info);
+      }
+      const tableMap = {};
+      tableIds.forEach((tableId, index) => {
+        tableMap[tableId] = tableInfos[index];
+      });
+
+      // Group relationships by source-target pair
+      const edgeGroups = {};
+      relationships.forEach((rel) => {
+        const key = `${rel.from_table_id}-${rel.to_table_id}`;
+        if (!edgeGroups[key]) {
+          edgeGroups[key] = [];
+        }
+        edgeGroups[key].push(rel);
+      });
+
+      const newNodes = tableIds.map((tableId, index) => ({
+        id: tableId.toString(),
+        type: "schemaCard",
+        data: {
+          label: tableMap[tableId]?.name || `Table ${tableId}`,
+          table: tableMap[tableId],
+          darkmode: darkmode,
+          setSelectedTable: setSelectedTable,
+          setSelectedPath: setSelectedPath,
+        },
+        position: {
+          x: (index % 3) * 600,
+          y: Math.floor(index / 3) * 700,
+        },
+      }));
+
+      const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
+        const [fromId, toId] = key.split("-");
+        return {
+          id: `e${key}`,
+          source: fromId.toString(),
+          target: toId.toString(),
+          type: "custom", // Use our custom edge
+          label: rels
+            .map(
+              (rel) =>
+                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
+            )
+            .join("\n"),
+          style: { stroke: "#666", strokeWidth: 1 },
+          labelStyle: {
+            fontSize: "16px",
+            fontFamily: "monospace",
+            fill: darkmode ? "#E5E7EB" : "#374151",
+            lineHeight: "1.5em",
+            whiteSpace: "pre",
+          },
+          labelBgStyle: {
+            fill: darkmode ? "#374151" : "#FFFFFF",
+            fillOpacity: 0.95,
+            stroke: darkmode ? "#4B5563" : "#E5E7EB",
+            strokeWidth: 1,
+          },
+          data: {
+            relationships: rels,
+          },
+        };
+      });
+
+      return { nodes: newNodes, edges: newEdges };
+    },
+    [darkmode, selectedPath?.database]
+  );
+  async function fetchRelationships(er_entity_id) {
+    try {
+      setEdges([]);
+      setNodes([]);
+      if (selectedTable == null) {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${er_entity_id}`
+        );
+        return response.data;
+      } else {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${er_entity_id}/${selectedTable}`
+        );
+        return response.data;
+      }
+    } catch (error) {
+      console.error("Error fetching relationships:", error);
+      throw error;
+    }
+  }
+  async function getERdiagram(diagram_id) {
+    setErLoading(true);
+    const relationships = await fetchRelationships(diagram_id);
+    console.log(relationships);
+    if (!relationships) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+    const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+      relationships
+    );
+    setErLoading(false);
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }
   const sidebarItems = [
     { id: "overview", label: "Overview", icon: Eye },
     { id: "entities", label: "Entities", icon: Box },
@@ -217,36 +353,50 @@ export default function App() {
               darkmode ? "border-gray-800" : "border-gray-200"
             }`}
           >
-            <div
-              className={`grid grid-cols-3 gap-1 rounded-lg p-1 ${
-                darkmode ? "bg-slate-800" : "bg-gray-100"
-              }`}
-            >
-              {sidebarItems.slice(0, 3).map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${
-                      activeTab === item.id
-                        ? darkmode
-                          ? "bg-slate-900 text-blue-300 shadow-sm"
-                          : "bg-white text-blue-700 shadow-sm"
-                        : darkmode
-                        ? "text-gray-300 hover:text-white"
-                        : "text-gray-600 hover:text-gray-800"
-                    }`}
-                    style={{ minWidth: 0 }}
-                  >
-                    <Icon size={16} />
-                    <span className="max-w-[4.5rem]">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              {selectedPath.lob && selectedPath.subject == null ? (
+                <ERentities
+                  selectedErDiagram={selectedErDiagram}
+                  darkmode={darkmode}
+                  create={create}
+                  setCreate={setCreate}
+                  selectedPath={selectedPath}
+                  getERdiagram={getERdiagram}
+                  setSelectedErDiagram={setSelectedErDiagram}
+                />
+              ) : (
+                <div
+                  className={`grid grid-cols-3 gap-1 rounded-lg p-1 ${
+                    darkmode ? "bg-slate-800" : "bg-gray-100"
+                  }`}
+                >
+                  {sidebarItems.slice(0, 3).map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`px-2 py-2 rounded-md text-xs font-medium transition-all flex flex-col items-center justify-center gap-1 ${
+                          activeTab === item.id
+                            ? darkmode
+                              ? "bg-slate-900 text-blue-300 shadow-sm"
+                              : "bg-white text-blue-700 shadow-sm"
+                            : darkmode
+                            ? "text-gray-300 hover:text-white"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        style={{ minWidth: 0 }}
+                      >
+                        <Icon size={16} />
+                        <span className="max-w-[4.5rem]">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           </div>
-          <div
+          {/* <div
             className={`px-3 py-2 border-b ${
               darkmode ? "border-gray-800" : "border-gray-200"
             }`}
@@ -274,7 +424,7 @@ export default function App() {
                 );
               })}
             </div>
-          </div>
+          </div> */}
           <div className="flex-1 p-3 overflow-y-auto min-h-0">
             <SidebarComponent
               setSelectedPath={setSelectedPath}
