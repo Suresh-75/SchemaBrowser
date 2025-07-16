@@ -1,12 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, Database, Link, AlertCircle, CheckCircle } from "lucide-react";
-import endpoints from "../api";
+import {
+  X,
+  Database,
+  Link,
+  AlertCircle,
+  CheckCircle,
+  Loader,
+} from "lucide-react";
 import axios from "axios";
+import endpoints from "../api";
 
-export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
+export default function AddErDiagramRel({
+  setCreate,
+  selectedPath,
+  darkmode,
+  selectedErDiagram,
+}) {
   const [tables, setTables] = useState([]);
   const [fromTableId, setFromTableId] = useState("");
-  // const [erDiagramName, setErDiagramName] = useState("");
   const [fromColumn, setFromColumn] = useState("");
   const [toTableId, setToTableId] = useState("");
   const [toColumn, setToColumn] = useState("");
@@ -19,8 +30,39 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
     from: false,
     to: false,
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  // Enhanced state management for messages
+  const [notification, setNotification] = useState({
+    type: "", // 'success', 'error', 'info'
+    message: "",
+    isVisible: false,
+    autoClose: true,
+  });
+
+  // Clear notification after timeout
+  useEffect(() => {
+    if (notification.isVisible && notification.autoClose) {
+      const timer = setTimeout(() => {
+        setNotification((prev) => ({ ...prev, isVisible: false }));
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification.isVisible, notification.autoClose]);
+
+  // Helper function to show notifications
+  const showNotification = (type, message, autoClose = true) => {
+    setNotification({
+      type,
+      message,
+      isVisible: true,
+      autoClose,
+    });
+  };
+
+  // Clear notification
+  const clearNotification = () => {
+    setNotification((prev) => ({ ...prev, isVisible: false }));
+  };
 
   // Fetch tables on component mount
   useEffect(() => {
@@ -30,11 +72,11 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
   const fetchTables = async () => {
     try {
       setIsLoading(true);
-      setError("");
+      // setError("");
       const response = await axios.get(`http://localhost:5000/api/tables`);
       setTables(response.data || []);
     } catch (err) {
-      setError("Failed to fetch tables. Please try again.");
+      showNotification("error", "Failed to fetch tables. Please try again.");
       console.error("Error fetching tables:", err);
     } finally {
       setIsLoading(false);
@@ -59,7 +101,7 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
       }
     } catch (err) {
       console.error(`Error fetching ${type} table columns:`, err);
-      setError(`Failed to fetch columns for selected table`);
+      showNotification("error", `Failed to fetch columns for selected table`);
     } finally {
       setIsLoadingColumns((prev) => ({ ...prev, [type]: false }));
     }
@@ -96,19 +138,25 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
     );
   };
 
-  // Handle form submission
+  // Enhanced form submission with better error handling
   const handleSubmit = async () => {
+    // Clear any existing notifications
+    clearNotification();
+
+    // Validate form
     if (!isFormValid()) {
-      setError("Please fill in all fields correctly");
+      showNotification(
+        "error",
+        "Please fill in all fields correctly and ensure different tables are selected."
+      );
       return;
     }
 
-    setError("");
     setIsLoading(true);
 
     try {
       const relationshipData = {
-        erDiagramName,
+        er_entity_id: selectedErDiagram,
         lob: selectedPath.lob,
         fromTableId,
         fromColumn,
@@ -117,34 +165,76 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
         cardinality,
         relationshipType,
       };
-      const response = await endpoints.createDiagram(relationshipData);
-      console.log(response);
+
+      const response = await endpoints.createER(relationshipData);
+      if (response.data.success)
+        showNotification("success", "ER relationship created successfully!");
+
+      setTimeout(() => {
+        resetForm();
+        setCreate("");
+      }, 2000);
     } catch (err) {
-      setError("Failed to create relationship. Please try again.");
+      // Enhanced error handling
+      let errorMessage = "An unexpected error occurred. Please try again.";
+
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.status === 409) {
+        errorMessage =
+          "A relationship already exists between these tables and columns.";
+      } else if (err.response?.status === 400) {
+        errorMessage = "Invalid data provided. Please check your inputs.";
+      } else if (err.response?.status >= 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      showNotification("error", errorMessage, false); // Don't auto-close error messages
       console.error("Error creating relationship:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Reset form function
+  const resetForm = () => {
+    setFromTableId("");
+    setFromColumn("");
+    setToTableId("");
+    setToColumn("");
+    setCardinality("one-to-many");
+    setRelationshipType("foreign_key");
+    setFromTableColumns([]);
+    setToTableColumns([]);
+  };
+
   // Handle table selection with validation
   const handleTableSelection = (tableId, type) => {
+    clearNotification(); // Clear any existing notifications
+
     if (type === "from") {
       if (tableId === toTableId) {
-        setError("Cannot select the same table for both sides");
+        showNotification(
+          "error",
+          "Cannot select the same table for both sides"
+        );
         return;
       }
       setFromTableId(tableId);
       setFromColumn("");
     } else {
       if (tableId === fromTableId) {
-        setError("Cannot select the same table for both sides");
+        showNotification(
+          "error",
+          "Cannot select the same table for both sides"
+        );
         return;
       }
       setToTableId(tableId);
       setToColumn("");
     }
-    setError("");
   };
 
   const themeClasses = {
@@ -164,8 +254,62 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
       : "text-gray-500 hover:text-gray-700",
   };
 
+  // Notification component
+  const NotificationBanner = () => {
+    if (!notification.isVisible) return null;
+
+    const notificationStyles = {
+      success: {
+        bg: darkmode
+          ? "bg-green-900/20 border-green-800"
+          : "bg-green-50 border-green-200",
+        text: "text-green-600",
+        icon: CheckCircle,
+      },
+      error: {
+        bg: darkmode
+          ? "bg-red-900/20 border-red-800"
+          : "bg-red-50 border-red-200",
+        text: "text-red-600",
+        icon: AlertCircle,
+      },
+      info: {
+        bg: darkmode
+          ? "bg-blue-900/20 border-blue-800"
+          : "bg-blue-50 border-blue-200",
+        text: "text-blue-600",
+        icon: AlertCircle,
+      },
+    };
+
+    const style =
+      notificationStyles[notification.type] || notificationStyles.info;
+    const IconComponent = style.icon;
+
+    return (
+      <div className={`p-4 border-b border-gray-200 dark:border-gray-700`}>
+        <div
+          className={`flex items-center justify-between p-3 rounded-lg border ${style.bg} ${style.text}`}
+        >
+          <div className="flex items-center gap-2">
+            <IconComponent className="h-5 w-5 flex-shrink-0" />
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+          {!notification.autoClose && (
+            <button
+              onClick={clearNotification}
+              className={`ml-4 p-1 rounded-full hover:bg-opacity-20 hover:bg-gray-500 ${style.text}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div
         className={`w-full max-w-4xl mx-auto rounded-lg border shadow-lg ${themeClasses.container} max-h-[90vh] overflow-y-auto`}
       >
@@ -175,18 +319,13 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
             <Database className="h-6 w-6 text-blue-500" />
             <div>
               <h2 className={`text-xl font-semibold ${themeClasses.text}`}>
-                Create relationship
+                Create ER Relationship
               </h2>
               {selectedPath?.lob && (
                 <p className={`text-sm ${themeClasses.subText}`}>
                   LOB: {selectedPath.lob}
                 </p>
               )}
-              {/* {erDiagram && (
-                <p className={`text-sm ${themeClasses.subText}`}>
-                  ER Diagram: {erDiagram}
-                </p>
-              )} */}
             </div>
           </div>
           <button
@@ -197,45 +336,15 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
           </button>
         </div>
 
-        {/* Error/Success Messages */}
-        {(error || success) && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            {error && (
-              <div className="flex items-center gap-2 text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
-                <AlertCircle className="h-5 w-5" />
-                <span>{error}</span>
-              </div>
-            )}
-            {success && (
-              <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                <CheckCircle className="h-5 w-5" />
-                <span>{success}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Notification Banner */}
+        <NotificationBanner />
 
         <div className="p-6 space-y-8">
-          {/* <div>
-            <label className={`block text-md font-medium mb-2`}>Name</label>
-            <input
-              placeholder="ER diagram name"
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${themeClasses.input}`}
-              type="text"
-              value={erDiagramName}
-              onChange={(e) => setErDiagramName(e.target.value)}
-            />
-          </div> */}
           {/* Table Selection Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* From Table */}
             <div className="space-y-4">
-              <h3
-                className={`text-lg font-semibold ${themeClasses.text} flex items-center gap-2`}
-              >
-                {/* <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">
-                  1
-                </span> */}
+              <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
                 From Table
               </h3>
 
@@ -294,12 +403,7 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
 
             {/* To Table */}
             <div className="space-y-4">
-              <h3
-                className={`text-lg font-semibold ${themeClasses.text} flex items-center gap-2`}
-              >
-                {/* <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm">
-                  2
-                </span> */}
+              <h3 className={`text-lg font-semibold ${themeClasses.text}`}>
                 To Table
               </h3>
 
@@ -423,9 +527,10 @@ export default function AddErDiagramRel({ setCreate, selectedPath, darkmode }) {
               type="button"
               onClick={handleSubmit}
               disabled={!isFormValid() || isLoading}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.button}`}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.button} flex items-center gap-2`}
             >
-              {isLoading ? "Creating..." : "Create ER diagram"}
+              {isLoading && <Loader className="h-4 w-4 animate-spin" />}
+              {isLoading ? "Creating..." : "Create ER Relationship"}
             </button>
           </div>
         </div>

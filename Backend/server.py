@@ -712,6 +712,32 @@ def get_or_create_er_entity(conn, er_diagram_name, lob_id):
         # logger.error(f"Error in get_or_create_er_entity: {e}")
         raise
 
+@app.route("/api/delete_er_diagram/<int:entityId>", methods=['DELETE'])
+def deleteERdiagram(entityId):
+    """Deletes an ER Relationship by entityId."""
+    try:
+        print(entityId)
+        relationships_deleted_count = execute_query(
+            "DELETE FROM er_relationships WHERE er_entity_id = %s;",
+            (entityId,),
+        )
+        print(relationships_deleted_count)
+        # Then delete the entity
+        entity_deleted_count = execute_query(
+            "DELETE FROM er_entities WHERE id = %s;",
+            (entityId,),
+        )
+
+        if entity_deleted_count > 0:
+            return {"message": f"ER Diagram with ID {entityId} deleted successfully."}, 200
+        else:
+            return {"message": f"ER Diagram with ID {entityId} not found or already deleted."}, 404
+
+    except Exception as e:
+        print(f"Error deleting ER Diagram {entityId}: {e}") # Log the error
+        return {"error": "An internal server error occurred during deletion."}, 500
+
+
 @app.route('/api/create_er_diagram', methods=['POST'])
 def create_er_relationship():
     """Create a new ER diagram relationship"""
@@ -843,6 +869,120 @@ def create_er_relationship():
             cursor.close()
         if conn:
             conn.close()
+
+@app.route("/api/createER", methods=["POST"])
+def createER():
+    conn = None
+    cursor = None
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['er_entity_id', 'lob', 'fromTableId', 'fromColumn', 
+                          'toTableId', 'toColumn', 'cardinality', 'relationshipType']
+        
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        er_entity_id = data['er_entity_id']
+        lob_name = data['lob']
+        from_table_id = data['fromTableId']
+        from_column = data['fromColumn']
+        to_table_id = data['toTableId']
+        to_column = data['toColumn']
+        cardinality = data['cardinality']
+        relationship_type = data['relationshipType']
+        
+        # Get database connection
+        conn = get_db_connection() 
+        cursor = conn.cursor()
+        
+        # Check if relationship already exists
+        cursor.execute("""
+            SELECT id FROM er_relationships 
+            WHERE from_table_id = %s AND from_column = %s
+            AND to_table_id = %s AND to_column = %s 
+            AND er_entity_id = %s
+        """, (from_table_id, from_column, to_table_id, to_column, er_entity_id))
+        
+        existing_relationship = cursor.fetchone()
+        if existing_relationship:
+            return jsonify({
+                'success': False,
+                'error': 'Relationship already exists between these tables and columns'
+            }), 409
+        
+        # Create the relationship
+        cursor.execute("""
+            INSERT INTO er_relationships 
+            (from_table_id, from_column, to_table_id, to_column, 
+            cardinality, relationship_type, created_at, er_entity_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, created_at
+        """, (
+            from_table_id,
+            from_column,
+            to_table_id,
+            to_column,
+            cardinality,
+            relationship_type,
+            datetime.now(),
+            er_entity_id
+        ))
+        result = cursor.fetchone()
+        print(result)
+        relationship_id = result[0]
+        created_at = result[1]
+        
+        # Commit transaction
+        conn.commit()
+        
+        # Return success response
+        return jsonify({
+            'success': True,
+            'message': 'ER relationship created successfully',
+            # 'data': {
+            #     'id': relationship_id,
+            #     'er_entity_id': er_entity_id,
+            #     'from_table_id': from_table_id,
+            #     'from_column': from_column,
+            #     'to_table_id': to_table_id,
+            #     'to_column': to_column,
+            #     'cardinality': cardinality,
+            #     'relationship_type': relationship_type,
+            #     'created_at': created_at.isoformat()
+            # }
+        }), 201
+        
+    except psycopg2.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Database error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Database error occurred'
+        }), 500
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Unexpected error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }), 500
+        
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 # get er entities
 @app.route('/api/get_er_entities/<string:lob_name>', methods=["GET"])
 def getERentity(lob_name):

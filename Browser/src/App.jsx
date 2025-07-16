@@ -101,6 +101,7 @@ export default function App() {
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
           <AddErDiagramRel
+            selectedErDiagram={selectedErDiagram}
             selectedPath={selectedPath}
             setCreate={setCreate}
             darkmode={darkmode}

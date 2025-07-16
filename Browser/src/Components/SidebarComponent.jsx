@@ -17,6 +17,7 @@ const SidebarComponent = ({
   selectedTable,
   setSelectedTable,
   setSelectedPath,
+  selectedErDiagram,
   setSelectedErDiagram,
   setErLoading,
   setActiveTab,
@@ -564,7 +565,7 @@ const SidebarComponent = ({
                 </div>
               )}
             </div>
-            {user === "admin" ? (
+            {/* {user === "admin" ? (
               selectedPath?.database ? (
                 <button
                   onClick={() => setCreate("Relationship")}
@@ -591,7 +592,7 @@ const SidebarComponent = ({
               )
             ) : (
               <></>
-            )}
+            )} */}
           </div>
 
           <style jsx>{`

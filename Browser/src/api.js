@@ -44,7 +44,10 @@ export const endpoints = {
   getErEntities: (lob_name) => api.get("/get_er_entities/" + lob_name),
 
   // create ER entities
+
   createDiagram: (data) => api.post("/create_er_diagram", data),
+  deleteERdiagram: (entityId) => api.delete("/delete_er_diagram/" + entityId),
+  createER: (data) => api.post("/createER", data),
   // Logical Database operations for import
   getLogicalDatabases: () => api.get("/logical-databases"), // GET all logical databases
   importLogicalDatabase: (data) => api.post("/logical-databases/import", data), // Import logical database to subject area
