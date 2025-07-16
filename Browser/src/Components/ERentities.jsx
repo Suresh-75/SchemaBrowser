@@ -14,6 +14,7 @@ export default function ErEntities({
   getERdiagram,
   setCreate,
   setSelectedErDiagram,
+  selectedErDiagram,
   create,
   darkmode,
 }) {
@@ -86,7 +87,6 @@ export default function ErEntities({
         )}
       </div>
 
-      {/* Content Area */}
       <div className="flex-1 overflow-hidden">
         {/* Loading State */}
         {loading && (
@@ -145,9 +145,13 @@ export default function ErEntities({
                 <div
                   key={entity.id}
                   onClick={() => handleEntityClick(entity)}
-                  className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm"
+                  className={`group flex items-center justify-between ${
+                    selectedErDiagram == entity.id
+                      ? "dark:bg-blue-800"
+                      : "dark:bg-gray-800"
+                  } p-4  in-active:bg-blue-400 bg-gray-50  hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ">
                     <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
                     <span className="font-medium text-gray-800 dark:text-gray-200">
                       {entity.entity_name}

@@ -319,7 +319,7 @@ export default function AddErDiagramRel({
             <Database className="h-6 w-6 text-blue-500" />
             <div>
               <h2 className={`text-xl font-semibold ${themeClasses.text}`}>
-                Create ER Relationship
+                Add relationship
               </h2>
               {selectedPath?.lob && (
                 <p className={`text-sm ${themeClasses.subText}`}>
