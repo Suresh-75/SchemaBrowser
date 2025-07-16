@@ -14,144 +14,13 @@ const SidebarComponent = ({
   setNodes,
   setEdges,
   edges,
-  selectedTable,
   setSelectedTable,
   setSelectedPath,
-  selectedErDiagram,
-  setSelectedErDiagram,
-  setErLoading,
   setActiveTab,
 }) => {
-  const createNodesAndEdges = useCallback(
-    async (relationships = []) => {
-      // Add default empty array
-      if (!relationships || relationships.length === 0) {
-        return { nodes: [], edges: [] };
-      }
-
-      const tableIds = Array.from(
-        new Set(
-          relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
-        )
-      );
-
-      // Fetch all table info in parallel
-      const tableInfos = [];
-      for (const tableId of tableIds) {
-        const info = await fetchTableInfo(tableId);
-        tableInfos.push(info);
-      }
-      const tableMap = {};
-      tableIds.forEach((tableId, index) => {
-        tableMap[tableId] = tableInfos[index];
-      });
-
-      // Group relationships by source-target pair
-      const edgeGroups = {};
-      relationships.forEach((rel) => {
-        const key = `${rel.from_table_id}-${rel.to_table_id}`;
-        if (!edgeGroups[key]) {
-          edgeGroups[key] = [];
-        }
-        edgeGroups[key].push(rel);
-      });
-
-      const newNodes = tableIds.map((tableId, index) => ({
-        id: tableId.toString(),
-        type: "schemaCard",
-        data: {
-          label: tableMap[tableId]?.name || `Table ${tableId}`,
-          table: tableMap[tableId],
-          darkmode: darkmode,
-          setSelectedTable: setSelectedTable,
-          setSelectedPath: setSelectedPath,
-        },
-        position: {
-          x: (index % 3) * 600,
-          y: Math.floor(index / 3) * 700,
-        },
-      }));
-
-      const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
-        const [fromId, toId] = key.split("-");
-        return {
-          id: `e${key}`,
-          source: fromId.toString(),
-          target: toId.toString(),
-          type: "custom", // Use our custom edge
-          label: rels
-            .map(
-              (rel) =>
-                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
-            )
-            .join("\n"),
-          style: { stroke: "#666", strokeWidth: 1 },
-          labelStyle: {
-            fontSize: "16px",
-            fontFamily: "monospace",
-            fill: darkmode ? "#E5E7EB" : "#374151",
-            lineHeight: "1.5em",
-            whiteSpace: "pre",
-          },
-          labelBgStyle: {
-            fill: darkmode ? "#374151" : "#FFFFFF",
-            fillOpacity: 0.95,
-            stroke: darkmode ? "#4B5563" : "#E5E7EB",
-            strokeWidth: 1,
-          },
-          data: {
-            relationships: rels,
-          },
-        };
-      });
-
-      return { nodes: newNodes, edges: newEdges };
-    },
-    [darkmode, selectedPath?.database]
-  );
-  async function fetchTableInfo(tableId) {
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/tables/${tableId}/attributes`
-      );
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching table info for table ${tableId}:`, error);
-      return null;
-    }
-  }
-  async function fetchRelationships(er_entity_id) {
-    try {
-      setEdges([]);
-      setNodes([]);
-      if (selectedTable == null) {
-        const response = await axios.get(
-          `http://localhost:5000/api/er_relationships/${er_entity_id}`
-        );
-        return response.data;
-      } else {
-        const response = await axios.get(
-          `http://localhost:5000/api/er_relationships/${er_entity_id}/${selectedTable}`
-        );
-        return response.data;
-      }
-    } catch (error) {
-      console.error("Error fetching relationships:", error);
-      throw error;
-    }
-  }
-
   const [data, setData] = useState([]);
   const [rels, setRels] = useState([]);
-  async function fetchTableInfo(tableId) {
-    try {
-      const response = await endpoints.getTableAttributes(tableId);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching table info for table ${tableId}:`, error);
-      return null;
-    }
-  }
+
   const deleteERfunc = async (
     id,
     from_column,
@@ -218,6 +87,7 @@ const SidebarComponent = ({
         selectedPath.database
       );
       const relsData = relationshipsResponse.data;
+      console.log("hereree");
       console.log(relsData);
       const processedRels = relsData.map((rel) => ({
         id: rel.id,
@@ -227,7 +97,9 @@ const SidebarComponent = ({
         to_table_id: rel.to_table_id,
         from_table_id: rel.from_table_id,
       }));
-      setRels(processedRels);
+      const rells = removeDuplicates(processedRels);
+      console.log(rells);
+      setRels(rells);
     } catch (error) {
       setData([]);
       setRels([]);
@@ -237,7 +109,20 @@ const SidebarComponent = ({
       );
     }
   };
+  function removeDuplicates(arr) {
+    const seen = new Map();
+    const uniqueRels = [];
 
+    for (const rel of arr) {
+      const key = rel.display;
+
+      if (!seen.has(key)) {
+        seen.set(key, true);
+        uniqueRels.push(rel);
+      }
+    }
+    return uniqueRels;
+  }
   useEffect(() => {
     fetchAllData();
   }, [selectedPath, create]);
@@ -550,7 +435,7 @@ const SidebarComponent = ({
                 </div>
               )}
             </div>
-            {selectedPath?.database ? (
+            {/* {selectedPath?.database ? (
               <button
                 onClick={() => setCreate("Relationship")}
                 className={`w-full mt-4 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 shadow ${
@@ -573,7 +458,7 @@ const SidebarComponent = ({
               >
                 Choose a database to see relationships
               </div>
-            )}
+            )} */}
           </div>
 
           <style jsx>{`

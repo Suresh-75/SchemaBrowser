@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Loader2,
   AlertTriangle,
@@ -8,20 +8,160 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+import axios from "axios";
 import endpoints from "../api";
 export default function ErEntities({
+  // getERdiagram,
+  selectedTable,
+  setSelectedTable,
   selectedPath,
-  getERdiagram,
+  setSelectedPath,
   setCreate,
+  setEdges,
+  setNodes,
   setSelectedErDiagram,
   selectedErDiagram,
+  setErLoading,
   create,
   darkmode,
 }) {
   const [entities, setEntities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  async function fetchTableInfo(tableId) {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/tables/${tableId}/attributes`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching table info for table ${tableId}:`, error);
+      return null;
+    }
+  }
+  const createNodesAndEdges = useCallback(
+    async (relationships = []) => {
+      // Add default empty array
+      if (!relationships || relationships.length === 0) {
+        return { nodes: [], edges: [] };
+      }
 
+      const tableIds = Array.from(
+        new Set(
+          relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
+        )
+      );
+
+      // Fetch all table info in parallel
+      const tableInfos = [];
+      for (const tableId of tableIds) {
+        const info = await fetchTableInfo(tableId);
+        tableInfos.push(info);
+      }
+      const tableMap = {};
+      tableIds.forEach((tableId, index) => {
+        tableMap[tableId] = tableInfos[index];
+      });
+
+      // Group relationships by source-target pair
+      const edgeGroups = {};
+      relationships.forEach((rel) => {
+        const key = `${rel.from_table_id}-${rel.to_table_id}`;
+        if (!edgeGroups[key]) {
+          edgeGroups[key] = [];
+        }
+        edgeGroups[key].push(rel);
+      });
+
+      const newNodes = tableIds.map((tableId, index) => ({
+        id: tableId.toString(),
+        type: "schemaCard",
+        data: {
+          label: tableMap[tableId]?.name || `Table ${tableId}`,
+          table: tableMap[tableId],
+          darkmode: darkmode,
+          setSelectedTable: setSelectedTable,
+          setSelectedPath: setSelectedPath,
+        },
+        position: {
+          x: (index % 3) * 600,
+          y: Math.floor(index / 3) * 700,
+        },
+      }));
+
+      const newEdges = Object.entries(edgeGroups).map(([key, rels]) => {
+        const [fromId, toId] = key.split("-");
+        return {
+          id: `e${key}`,
+          source: fromId.toString(),
+          target: toId.toString(),
+          type: "custom", // Use our custom edge
+          label: rels
+            .map(
+              (rel) =>
+                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
+            )
+            .join("\n"),
+          style: { stroke: "#666", strokeWidth: 1 },
+          labelStyle: {
+            fontSize: "16px",
+            fontFamily: "monospace",
+            fill: darkmode ? "#E5E7EB" : "#374151",
+            lineHeight: "1.5em",
+            whiteSpace: "pre",
+          },
+          labelBgStyle: {
+            fill: darkmode ? "#374151" : "#FFFFFF",
+            fillOpacity: 0.95,
+            stroke: darkmode ? "#4B5563" : "#E5E7EB",
+            strokeWidth: 1,
+          },
+          data: {
+            relationships: rels,
+          },
+        };
+      });
+
+      return { nodes: newNodes, edges: newEdges };
+    },
+    [darkmode, selectedPath?.database]
+  );
+  async function fetchRelationships(er_entity_id) {
+    try {
+      setEdges([]);
+      setNodes([]);
+      if (selectedTable == null) {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${er_entity_id}`
+        );
+        return response.data;
+      } else {
+        const response = await axios.get(
+          `http://localhost:5000/api/er_relationships/${er_entity_id}/${selectedTable}`
+        );
+        return response.data;
+      }
+    } catch (error) {
+      console.error("Error fetching relationships:", error);
+      throw error;
+    }
+  }
+  async function getERdiagram(diagram_id) {
+    setErLoading(true);
+    const relationships = await fetchRelationships(diagram_id);
+    console.log(relationships);
+    if (!relationships) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+    const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
+      relationships
+    );
+    setErLoading(false);
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }
   useEffect(() => {
     if (!selectedPath?.lob) return;
 
