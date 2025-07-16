@@ -28,9 +28,6 @@ const FilterBar = ({
   const [newSubjectName, setNewSubjectName] = useState("");
   const [showDatabaseModal, setShowDatabaseModal] = useState(null);
   const [newDatabaseName, setNewDatabaseName] = useState("");
-  const [importMode, setImportMode] = useState(false);
-  const [allDatabases, setAllDatabases] = useState([]);
-  const [selectedImportDb, setSelectedImportDb] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -121,32 +118,6 @@ const FilterBar = ({
   };
 
   const handleAddDatabase = async (lobName, subjectName) => {
-    if (importMode) {
-      if (!selectedImportDb) return;
-      try {
-        const payload = {
-          logical_db_id: selectedImportDb.id,
-          subject_name: subjectName, // pass subject name
-          lob_name: lobName, // pass lob name for uniqueness
-        };
-        console.log("Import Logical Database payload:", payload);
-        await endpoints.importLogicalDatabase(payload);
-        setShowDatabaseModal(null);
-        setImportMode(false);
-        setSelectedImportDb(null);
-        showMessage("Database imported successfully.");
-        window.location.reload();
-      } catch (error) {
-        setShowDatabaseModal(null);
-        setImportMode(false);
-        setSelectedImportDb(null);
-        showMessage(
-          error.response?.data?.error || "Failed to import Logical Database.",
-          "error"
-        );
-      }
-      return;
-    }
     if (!newDatabaseName.trim()) return;
     try {
       await endpoints.createLogicalDatabase({
@@ -168,7 +139,6 @@ const FilterBar = ({
   };
 
   const handleLobSelect = (lob) => {
-    // setSelectedTable(null);
     onSelect({ lob, subject: null, database: null, table: null });
   };
 
@@ -197,7 +167,6 @@ const FilterBar = ({
         type: "lob",
         name: selectedPath.lob,
         icon: Building2,
-        onClick: () => handleLobSelect(selectedPath.lob),
       });
     }
 
@@ -206,8 +175,6 @@ const FilterBar = ({
         type: "subject",
         name: selectedPath.subject,
         icon: Target,
-        onClick: () =>
-          handleSubjectSelect(selectedPath.lob, selectedPath.subject),
       });
     }
 
@@ -216,12 +183,6 @@ const FilterBar = ({
         type: "database",
         name: selectedPath.database,
         icon: Database,
-        onClick: () =>
-          handleDatabaseSelect(
-            selectedPath.lob,
-            selectedPath.subject,
-            selectedPath.database
-          ),
       });
     }
 
@@ -235,32 +196,28 @@ const FilterBar = ({
 
     return breadcrumbItems.length > 0 ? (
       <div className="flex items-center space-x-2 px-4 py-2">
+        {/* <span
+          className={`text-sm font-medium ${
+            darkmode ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
+          Current Path:
+        </span> */}
         {breadcrumbItems.map((item, index) => (
           <React.Fragment key={index}>
-            <button
-              onClick={item.onClick}
-              className={`flex items-center px-2 py-1 rounded transition-colors ${
-                darkmode
-                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              } ${!item.onClick ? "cursor-default" : "cursor-pointer"}`}
-            >
-              <div
-                className={`flex items-center px-2 py-1 rounded ${
-                  darkmode
-                    ? "bg-gray-700 text-gray-200"
-                    : "bg-gray-200 text-gray-700"
+            <div
+              className={`flex items-center px-2 py-1 rounded ${darkmode
+                ? "bg-gray-700 text-gray-200"
+                : "bg-gray-200 text-gray-700"
                 }`}
-              >
-                <item.icon className="w-3 h-3 mr-1" />
-                <span className="text-sm">{item.name}</span>
-              </div>
-            </button>
+            >
+              <item.icon className="w-3 h-3 mr-1" />
+              <span className="text-sm">{item.name}</span>
+            </div>
             {index < breadcrumbItems.length - 1 && (
               <ChevronRight
-                className={`w-4 h-4 ${
-                  darkmode ? "text-gray-400" : "text-gray-500"
-                }`}
+                className={`w-4 h-4 ${darkmode ? "text-gray-400" : "text-gray-500"
+                  }`}
               />
             )}
           </React.Fragment>
@@ -268,19 +225,6 @@ const FilterBar = ({
       </div>
     ) : null;
   };
-
-  useEffect(() => {
-    // Fetch all logical databases for import dropdown
-    const fetchAllDatabases = async () => {
-      try {
-        const res = await endpoints.getLogicalDatabases(); // Should return all logical databases with subject_area info
-        setAllDatabases(res.data);
-      } catch (e) {
-        setAllDatabases([]);
-      }
-    };
-    fetchAllDatabases();
-  }, []);
 
   return (
     <div className={`w-full `}>
@@ -298,11 +242,10 @@ const FilterBar = ({
       {/* Main navigation */}
       <div
         // className={``}
-        className={`flex items-center px-6 py-3 space-x-8 flex-wrap  rounded-2xl ${
-          darkmode
-            ? "bg-gradient-to-r from-slate-900 to-blue-950"
-            : "bg-gray-50 border-gray-200"
-        }`}
+        className={`flex items-center px-6 py-3 space-x-8  rounded-2xl ${darkmode
+          ? "bg-gradient-to-r from-slate-900 to-blue-950"
+          : "bg-gray-50 border-gray-200"
+          }`}
       >
         {Object.keys(businessData).map((lob) => (
           <div
@@ -317,36 +260,33 @@ const FilterBar = ({
           >
             <button
               onClick={() => handleLobSelect(lob)}
-              className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                selectedPath.lob === lob
-                  ? "bg-blue-600 text-white shadow-md"
-                  : hoveredLob === lob
+              className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedPath.lob === lob
+                ? "bg-blue-600 text-white shadow-md"
+                : hoveredLob === lob
                   ? darkmode
                     ? "bg-blue-900 text-blue-200"
                     : "bg-blue-100 text-blue-700"
                   : darkmode
-                  ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700"
-                  : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-              }`}
+                    ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700"
+                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                }`}
             >
-              <Building2 className="w-4 h-4 mr-2" />
-              {lob}
-              <ChevronDown className="w-4 h-4 ml-2" />
+              <Building2 className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">{lob}</span>
+              <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
             </button>
 
             {hoveredLob === lob && (
               <div
-                className={`absolute top-full left-0 w-64 rounded-lg shadow-xl border z-50 ${
-                  darkmode
-                    ? "bg-gray-800 border-gray-600"
-                    : "bg-white border-gray-200"
-                }`}
+                className={`absolute top-full left-0 w-64 rounded-lg shadow-xl border z-50 ${darkmode
+                  ? "bg-gray-800 border-gray-600"
+                  : "bg-white border-gray-200"
+                  }`}
               >
                 <div className="py-2">
                   <div
-                    className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                      darkmode ? "text-gray-400" : "text-gray-500"
-                    }`}
+                    className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${darkmode ? "text-gray-400" : "text-gray-500"
+                      }`}
                   >
                     Subject Areas
                   </div>
@@ -354,52 +294,47 @@ const FilterBar = ({
                     <div key={subject} className="relative">
                       <button
                         onClick={() => handleSubjectSelect(lob, subject)}
-                        className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
-                          selectedPath.subject === subject
-                            ? darkmode
-                              ? "bg-blue-900 text-blue-200 border-r-2 border-blue-400"
-                              : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-                            : hoveredSubject === subject
+                        className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${selectedPath.subject === subject
+                          ? darkmode
+                            ? "bg-blue-900 text-blue-200 border-r-2 border-blue-400"
+                            : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                          : hoveredSubject === subject
                             ? darkmode
                               ? "bg-gray-700 text-gray-200"
                               : "bg-gray-50 text-gray-900"
                             : darkmode
-                            ? "text-gray-300 hover:bg-gray-700"
-                            : "text-gray-700 hover:bg-gray-50"
-                        }`}
+                              ? "text-gray-300 hover:bg-gray-700"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
                         onMouseEnter={() => setHoveredSubject(subject)}
                       >
                         <div className="flex items-center">
                           <Target
-                            className={`w-4 h-4 mr-3 ${
-                              darkmode ? "text-gray-500" : "text-gray-400"
-                            }`}
+                            className={`w-4 h-4 mr-3 flex-shrink-0 ${darkmode ? "text-gray-500" : "text-gray-400"
+                              }`}
                           />
-                          {subject}
+                          <span className="truncate">{subject}</span>
                         </div>
                         <ChevronRight
-                          className={`w-4 h-4 ${
-                            darkmode ? "text-gray-500" : "text-gray-400"
-                          }`}
+                          className={`w-4 h-4 flex-shrink-0 ${darkmode ? "text-gray-500" : "text-gray-400"
+                            }`}
                         />
                       </button>
 
                       {/* Database dropdown */}
                       {hoveredSubject === subject && (
                         <div
-                          className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
-                            darkmode
-                              ? "bg-gray-800 border-gray-600"
-                              : "bg-white border-gray-200"
-                          }`}
+                          className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${darkmode
+                            ? "bg-gray-800 border-gray-600"
+                            : "bg-white border-gray-200"
+                            }`}
                           onMouseEnter={() => setHoveredSubject(subject)}
                           onMouseLeave={() => setHoveredSubject(null)}
                         >
                           <div className="py-2">
                             <div
-                              className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                                darkmode ? "text-gray-400" : "text-gray-500"
-                              }`}
+                              className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${darkmode ? "text-gray-400" : "text-gray-500"
+                                }`}
                             >
                               Databases
                             </div>
@@ -418,44 +353,39 @@ const FilterBar = ({
                                   onClick={() =>
                                     handleDatabaseSelect(lob, subject, database)
                                   }
-                                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
-                                    selectedPath.database === database
-                                      ? darkmode
-                                        ? "bg-blue-900 text-blue-200 shadow-md"
-                                        : "bg-blue-50 text-blue-700 shadow-md"
-                                      : darkmode
+                                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${selectedPath.database === database
+                                    ? darkmode
+                                      ? "bg-blue-900 text-blue-200 shadow-md"
+                                      : "bg-blue-50 text-blue-700 shadow-md"
+                                    : darkmode
                                       ? "text-gray-300 hover:bg-gray-700"
                                       : "text-gray-700 hover:bg-gray-50"
-                                  }`}
+                                    }`}
                                 >
-                                  <div className="flex items-center break-words w-full max-w-full">
+                                  <div className="flex items-center">
                                     <Database
-                                      className={`w-4 h-4 mr-3 ${
-                                        darkmode
-                                          ? "text-gray-500"
-                                          : "text-gray-400"
-                                      }`}
-                                    />
-                                    <span className="truncate block w-full">
-                                      {database}
-                                    </span>
-                                  </div>
-                                  <ChevronRight
-                                    className={`w-4 h-4 ${
-                                      darkmode
+                                      className={`w-4 h-4 mr-3 flex-shrink-0 ${darkmode
                                         ? "text-gray-500"
                                         : "text-gray-400"
-                                    }`}
+                                        }`}
+                                    />
+                                    <span className="truncate max-w-[10rem] block">{database}</span>
+
+                                  </div>
+                                  <ChevronRight
+                                    className={`w-4 h-4 flex-shrink-0 ${darkmode
+                                      ? "text-gray-500"
+                                      : "text-gray-400"
+                                      }`}
                                   />
                                 </button>
 
                                 {hoveredDatabase === database && (
                                   <div
-                                    className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${
-                                      darkmode
-                                        ? "bg-gray-800 border-gray-600"
-                                        : "bg-white border-gray-200"
-                                    }`}
+                                    className={`absolute left-full -top-10 w-56 rounded-lg shadow-xl border z-50 ${darkmode
+                                      ? "bg-gray-800 border-gray-600"
+                                      : "bg-white border-gray-200"
+                                      }`}
                                     onMouseEnter={() => {
                                       console.log(
                                         businessData[lob].subjects[subject]
@@ -469,11 +399,10 @@ const FilterBar = ({
                                   >
                                     <div className="py-2">
                                       <div
-                                        className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                                          darkmode
-                                            ? "text-gray-400"
-                                            : "text-gray-500"
-                                        }`}
+                                        className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide ${darkmode
+                                          ? "text-gray-400"
+                                          : "text-gray-500"
+                                          }`}
                                       >
                                         Tables
                                       </div>
@@ -493,24 +422,22 @@ const FilterBar = ({
                                               obj.name
                                             );
                                           }}
-                                          className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${
-                                            selectedPath.table === obj.name
-                                              ? darkmode
-                                                ? "bg-blue-900 text-blue-200"
-                                                : "bg-blue-50 text-blue-700"
-                                              : darkmode
+                                          className={`w-full flex items-center px-4 py-2 text-sm text-left transition-colors ${selectedPath.table === obj.name
+                                            ? darkmode
+                                              ? "bg-blue-900 text-blue-200"
+                                              : "bg-blue-50 text-blue-700"
+                                            : darkmode
                                               ? "text-gray-400 hover:bg-gray-700"
                                               : "text-gray-600 hover:bg-gray-50"
-                                          }`}
+                                            }`}
                                         >
                                           <Table
-                                            className={`w-4 h-4 mr-3 ${
-                                              darkmode
-                                                ? "text-gray-500"
-                                                : "text-gray-400"
-                                            }`}
+                                            className={`w-4 h-4 mr-3 flex-shrink-0 ${darkmode
+                                              ? "text-gray-500"
+                                              : "text-gray-400"
+                                              }`}
                                           />
-                                          {obj.name}
+                                          <span className="truncate">{obj.name}</span>
                                         </button>
                                       ))}
                                     </div>
@@ -521,11 +448,10 @@ const FilterBar = ({
                             {user == "admin" && (
                               <div className="px-4 mt-2">
                                 <button
-                                  className={`text-sm transition-colors ${
-                                    darkmode
-                                      ? "text-blue-400 hover:text-blue-300"
-                                      : "text-blue-600 hover:text-blue-800"
-                                  }`}
+                                  className={`text-sm transition-colors ${darkmode
+                                    ? "text-blue-400 hover:text-blue-300"
+                                    : "text-blue-600 hover:text-blue-800"
+                                    }`}
                                   onClick={() =>
                                     setShowDatabaseModal({ lob, subject })
                                   }
@@ -542,11 +468,10 @@ const FilterBar = ({
                   {user == "admin" && (
                     <div className="px-4 mt-2">
                       <button
-                        className={`text-sm transition-colors ${
-                          darkmode
-                            ? "text-blue-400 hover:text-blue-300"
-                            : "text-blue-600 hover:text-blue-800"
-                        }`}
+                        className={`text-sm transition-colors ${darkmode
+                          ? "text-blue-400 hover:text-blue-300"
+                          : "text-blue-600 hover:text-blue-800"
+                          }`}
                         onClick={() => setShowSubjectModal(lob)}
                       >
                         + Add Subject Area
@@ -560,11 +485,10 @@ const FilterBar = ({
         ))}
         {user == "admin" && (
           <button
-            className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors mt-2 ${
-              darkmode
-                ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
-                : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
-            }`}
+            className={`text-sm flex items-center border-2 border-dashed rounded px-3 py-2 transition-colors ${darkmode
+              ? "text-gray-300 hover:text-gray-100 hover:bg-gray-700 border-gray-500"
+              : "text-gray-600 hover:text-blue-700 hover:bg-gray-100 border-gray-400"
+              }`}
             onClick={() => setShowAddModal(true)}
           >
             <Plus className="w-4 h-4 mr-1" />
@@ -601,138 +525,57 @@ const FilterBar = ({
           title="Add New Database"
           value={newDatabaseName}
           onChange={setNewDatabaseName}
-          onClose={() => {
-            setShowDatabaseModal(null);
-            setImportMode(false);
-            setSelectedImportDb(null);
-          }}
+          onClose={() => setShowDatabaseModal(null)}
           onSubmit={() =>
             handleAddDatabase(showDatabaseModal.lob, showDatabaseModal.subject)
           }
           darkmode={darkmode}
-          importMode={importMode}
-          setImportMode={setImportMode}
-          allDatabases={allDatabases}
-          selectedImportDb={selectedImportDb}
-          setSelectedImportDb={setSelectedImportDb}
         />
       )}
     </div>
   );
 };
 
-const Modal = ({
-  title,
-  value,
-  onChange,
-  onClose,
-  onSubmit,
-  darkmode,
-  importMode,
-  setImportMode,
-  allDatabases,
-  selectedImportDb,
-  setSelectedImportDb,
-}) => (
+const Modal = ({ title, value, onChange, onClose, onSubmit, darkmode }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-sm">
     <div
-      className={`rounded-lg shadow-xl p-6 w-96 ${
-        darkmode ? "bg-gray-800" : "bg-white"
-      }`}
+      className={`rounded-lg shadow-xl p-6 w-96 ${darkmode ? "bg-gray-800" : "bg-white"
+        }`}
     >
       <h2
-        className={`text-lg font-semibold mb-4 text-center ${
-          darkmode ? "text-gray-100" : "text-gray-900"
-        }`}
+        className={`text-lg font-semibold mb-4 text-center ${darkmode ? "text-gray-100" : "text-gray-900"
+          }`}
       >
         {title}
       </h2>
-      <div className="mb-4 flex space-x-2">
-        <button
-          className={`px-3 py-1 rounded border ${
-            !importMode
-              ? darkmode
-                ? "bg-blue-700 text-white"
-                : "bg-blue-100 text-blue-700"
-              : darkmode
-              ? "bg-gray-700 text-gray-300"
-              : "bg-gray-200 text-gray-700"
+      <input
+        type="text"
+        placeholder="Name"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring transition-colors ${darkmode
+          ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500"
+          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"
           }`}
-          onClick={() => setImportMode(false)}
-        >
-          Create New
-        </button>
-        <button
-          className={`px-3 py-1 rounded border ${
-            importMode
-              ? darkmode
-                ? "bg-blue-700 text-white"
-                : "bg-blue-100 text-blue-700"
-              : darkmode
-              ? "bg-gray-700 text-gray-300"
-              : "bg-gray-200 text-gray-700"
-          }`}
-          onClick={() => setImportMode(true)}
-        >
-          Import Existing
-        </button>
-      </div>
-      {!importMode ? (
-        <input
-          type="text"
-          placeholder="Database Name"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring transition-colors ${
-            darkmode
-              ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-blue-500"
-              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-200"
-          }`}
-        />
-      ) : (
-        <select
-          className={`w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring transition-colors ${
-            darkmode
-              ? "bg-gray-700 border-gray-600 text-gray-100"
-              : "bg-white border-gray-300 text-gray-900"
-          }`}
-          value={selectedImportDb?.id || ""}
-          onChange={(e) => {
-            const db = allDatabases.find(
-              (d) => d.id === Number(e.target.value)
-            );
-            setSelectedImportDb(db);
-          }}
-        >
-          <option value="">Select a database to import</option>
-          {allDatabases.map((db) => (
-            <option key={db.id} value={db.id}>
-              {db.name} ({db.lob_name} / {db.subject_area_name})
-            </option>
-          ))}
-        </select>
-      )}
+      />
       <div className="flex justify-end space-x-2">
         <button
           onClick={onClose}
-          className={`px-4 py-2 rounded transition-colors ${
-            darkmode
-              ? "bg-gray-600 hover:bg-gray-500 text-gray-100"
-              : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-          }`}
+          className={`px-4 py-2 rounded transition-colors ${darkmode
+            ? "bg-gray-600 hover:bg-gray-500 text-gray-100"
+            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+            }`}
         >
           Cancel
         </button>
         <button
           onClick={onSubmit}
-          className={`px-4 py-2 rounded border-2 border-dashed transition-colors ${
-            darkmode
-              ? "border-gray-500 text-gray-200 hover:border-gray-400"
-              : "border-gray-400 text-gray-700 hover:border-gray-500"
-          }`}
-          disabled={importMode && !selectedImportDb}
+          className={`px-4 py-2 rounded border-2 border-dashed transition-colors ${darkmode
+            ? "border-gray-500 text-gray-200 hover:border-gray-400"
+            : "border-gray-400 text-gray-700 hover:border-gray-500"
+            }`}
         >
-          {importMode ? "Import" : "Add"}
+          Add
         </button>
       </div>
     </div>
