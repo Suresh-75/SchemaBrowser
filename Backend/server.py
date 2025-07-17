@@ -1007,6 +1007,40 @@ def getERentity(lob_name):
         if 'cursor' in locals():
             cursor.close()
 
+@app.route("/api/addTM", methods=["POST"])
+def add_table():
+    data = request.json
+    table_name = data['table_name']
+    schema_name = data['schema_name'] 
+
+    try:
+        # Get database_id from logical_databases
+        cursor.execute("""
+            SELECT id FROM logical_databases WHERE name = %s
+        """, (schema_name,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": f"No database found for schema '{schema_name}'"}), 404
+        database_id = result[0]
+
+        # Insert metadata
+        insert_meta = """
+            INSERT INTO tables_metadata (name, schema_name, database_id)
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(insert_meta, (table_name, schema_name, database_id))
+        conn.commit()
+
+        return jsonify({"message": f"Table {table_name} imported."})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": str(e)}), 400
+
 @app.route("/api/tables", methods=["POST"])
 def create_table():
     data = request.json

@@ -30,6 +30,10 @@ const FilterBar = ({
   const [newDatabaseName, setNewDatabaseName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showImportTableModal, setShowImportTableModal] = useState(null); // { database }
+  const [allTables, setAllTables] = useState([]);
+  const [selectedImportTable, setSelectedImportTable] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
 
   useEffect(() => {
     const fetchHierarchy = async () => {
@@ -157,6 +161,46 @@ const FilterBar = ({
       database,
       table,
     });
+  };
+
+  // Fetch all tables when import modal opens
+  useEffect(() => {
+    if (!showImportTableModal) return;
+    const fetchTables = async () => {
+      setImportLoading(true);
+      try {
+        const resp = await endpoints.getTables();
+        setAllTables(resp.data || []);
+        setSelectedImportTable("");
+      } catch {
+        setAllTables([]);
+        setSelectedImportTable("");
+      }
+      setImportLoading(false);
+    };
+    fetchTables();
+  }, [showImportTableModal]);
+
+  const handleImportTable = async () => {
+    if (!selectedImportTable || !showImportTableModal?.database) return;
+    setImportLoading(true);
+    try {
+      await endpoints.addTable({
+        table_name: selectedImportTable,
+        schema_name: showImportTableModal.database,
+      });
+      setShowImportTableModal(null);
+      setSelectedImportTable("");
+      showMessage("Table imported successfully.");
+      window.location.reload();
+    } catch (e) {
+      setShowImportTableModal(null);
+      showMessage(
+        e.response?.data?.error || e.message || "Failed to import table.",
+        "error"
+      );
+    }
+    setImportLoading(false);
   };
 
   const renderBreadcrumb = () => {
@@ -440,6 +484,23 @@ const FilterBar = ({
                                           <span className="truncate">{obj.name}</span>
                                         </button>
                                       ))}
+                                      {/* Import Table Button for admin */}
+                                      {user === "admin" && (
+                                        <div className="px-4 mt-2">
+                                          <button
+                                            className={`text-sm transition-colors flex items-center ${darkmode
+                                              ? "text-blue-400 hover:text-blue-300"
+                                              : "text-blue-600 hover:text-blue-800"
+                                              }`}
+                                            onClick={() =>
+                                              setShowImportTableModal({ database })
+                                            }
+                                          >
+                                            <Plus className="w-4 h-4 mr-1" />
+                                            Import Table
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -532,6 +593,23 @@ const FilterBar = ({
           darkmode={darkmode}
         />
       )}
+
+      {/* Import Table Modal */}
+      {showImportTableModal && (
+        <ImportTableModal
+          title={`Import Table into "${showImportTableModal.database}"`}
+          tables={allTables}
+          value={selectedImportTable}
+          onChange={setSelectedImportTable}
+          onClose={() => {
+            setShowImportTableModal(null);
+            setSelectedImportTable("");
+          }}
+          onSubmit={handleImportTable}
+          loading={importLoading}
+          darkmode={darkmode}
+        />
+      )}
     </div>
   );
 };
@@ -576,6 +654,75 @@ const Modal = ({ title, value, onChange, onClose, onSubmit, darkmode }) => (
             }`}
         >
           Add
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ImportTableModal component
+const ImportTableModal = ({
+  title,
+  tables,
+  value,
+  onChange,
+  onClose,
+  onSubmit,
+  loading,
+  darkmode,
+}) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-sm">
+    <div
+      className={`rounded-lg shadow-xl p-6 w-96 ${darkmode ? "bg-gray-800" : "bg-white"
+        }`}
+    >
+      <h2
+        className={`text-lg font-semibold mb-4 text-center ${darkmode ? "text-gray-100" : "text-gray-900"
+          }`}
+      >
+        {title}
+      </h2>
+      {loading ? (
+        <div className={`text-center py-4 ${darkmode ? "text-gray-300" : "text-gray-700"}`}>Loading...</div>
+      ) : tables.length === 0 ? (
+        <div className={`text-center py-4 ${darkmode ? "text-gray-400" : "text-gray-500"}`}>No tables available to import.</div>
+      ) : (
+        <select
+          className={`w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring transition-colors ${darkmode
+            ? "bg-gray-700 border-gray-600 text-gray-100"
+            : "bg-white border-gray-300 text-gray-900"
+            }`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">Select a table</option>
+          {tables.map((t) => (
+            <option key={typeof t === "string" ? t : t.name} value={typeof t === "string" ? t : t.name}>
+              {typeof t === "string" ? t : t.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={onClose}
+          className={`px-4 py-2 rounded transition-colors ${darkmode
+            ? "bg-gray-600 hover:bg-gray-500 text-gray-100"
+            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+            }`}
+          disabled={loading}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSubmit}
+          className={`px-4 py-2 rounded border-2 border-dashed transition-colors ${darkmode
+            ? "border-gray-500 text-gray-200 hover:border-gray-400"
+            : "border-gray-400 text-gray-700 hover:border-gray-500"
+            }`}
+          disabled={!value || loading}
+        >
+          Import
         </button>
       </div>
     </div>

@@ -11,6 +11,7 @@ export const endpoints = {
   getTableAttributes: (tableId) => api.get(`/tables/${tableId}/attributes`),
   createTable: (data) => api.post("/tables", data),
   deleteTable: (tableId) => api.delete(`/tables/${tableId}`),
+  addTable: (data) => api.post("/addTM", data), // New endpoint for adding table
 
   // Overview and profiles
   getTableOverview: (schema, table) =>
