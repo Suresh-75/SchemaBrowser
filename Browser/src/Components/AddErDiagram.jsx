@@ -3,7 +3,12 @@ import { X, Database, Link, AlertCircle, CheckCircle } from "lucide-react";
 import endpoints from "../api";
 import axios from "axios";
 
-export default function AddErDiagram({ setCreate, selectedPath, darkmode }) {
+export default function AddErDiagram({
+  setCreate,
+  selectedPath,
+  darkmode,
+  setEntities,
+}) {
   const [tables, setTables] = useState([]);
   const [fromTableId, setFromTableId] = useState("");
   const [erDiagramName, setErDiagramName] = useState("");
@@ -119,6 +124,15 @@ export default function AddErDiagram({ setCreate, selectedPath, darkmode }) {
         relationshipType,
       };
       const response = await endpoints.createDiagram(relationshipData);
+      setEntities((entities) => {
+        const newEntity = {
+          created_at: response.data.created_at,
+          id: response.data.id,
+          lob_name: selectedPath.lob,
+          entity_name: erDiagramName,
+        };
+        return [...entities, newEntity];
+      });
     } catch (err) {
       setError("Failed to create relationship. Please try again.");
       console.error("Error creating relationship:", err);

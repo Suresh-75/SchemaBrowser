@@ -385,7 +385,7 @@ function ErDiagram({
         /> */}
         <Controls className="text-black" />
       </ReactFlow>
-      <Legend darkmode={darkmode} setSelectedTable={setSelectedTable} />
+      {/* <Legend darkmode={darkmode} setSelectedTable={setSelectedTable} /> */}
       <button
         onClick={handleExport}
         style={{

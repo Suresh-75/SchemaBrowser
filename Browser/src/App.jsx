@@ -36,6 +36,7 @@ export default function App() {
   const [showTables, setShowTables] = useState(false);
   const [darkmode, setDarkmode] = useState(true);
   const [erLoading, setErLoading] = useState(false);
+  const [entities, setEntities] = useState([]);
   const navigate = useNavigate();
   //er diagram state
   const [nodes, setNodes] = useState([]);
@@ -115,6 +116,7 @@ export default function App() {
         <>
           <div className="fixed inset-0 bg-black/40 z-20 pointer-events-auto"></div>
           <AddErDiagram
+            setEntities={setEntities}
             edges={edges}
             setCreate={setCreate}
             setNodes={setNodes}
@@ -223,6 +225,9 @@ export default function App() {
             <>
               {selectedPath.lob && selectedPath.subject == null ? (
                 <ERentities
+                  user={user}
+                  setEntities={setEntities}
+                  entities={entities}
                   setSelectedPath={selectedPath}
                   selectedTable={selectedTable}
                   setSelectedTable={setSelectedTable}

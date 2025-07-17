@@ -1454,15 +1454,32 @@ def update_er_relationship(rel_id):
 @app.route('/api/er_relationships/<int:rel_id>', methods=['DELETE'])
 def delete_er_relationship(rel_id):
     """Deletes an ER Relationship by ID."""
-    query = "DELETE FROM er_relationships WHERE id = %s RETURNING id;"
-    result = execute_query(query, (rel_id,), fetch_one=True)
-
-    if result is not None and not isinstance(result, dict):
+    try:
+        # First check if the relationship exists
+        check_query = "SELECT id FROM er_relationships WHERE id = %s;"
+        existing = execute_query(check_query, (rel_id,), fetch_one=True)
+        
+        if isinstance(existing, dict) and 'error' in existing:
+            logger.error(f"Error checking relationship existence: {existing}")
+            return jsonify({'error': 'Database error occurred'}), 500
+        
+        if not existing:
+            return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
+        
+        # Delete the relationship
+        delete_query = "DELETE FROM er_relationships WHERE id = %s;"
+        result = execute_query(delete_query, (rel_id,))
+        
+        if isinstance(result, dict) and 'error' in result:
+            logger.error(f"Error deleting relationship {rel_id}: {result}")
+            return jsonify({'error': 'Failed to delete relationship'}), result.get('status', 500)
+        
+        logger.info(f"Successfully deleted ER relationship with ID {rel_id}")
         return jsonify({'message': f'ER Relationship with ID {rel_id} deleted successfully'}), 200
-    elif isinstance(result, dict) and 'error' in result:
-        return jsonify(result), result.get('status', 400)
-    return jsonify({'error': f'ER Relationship with ID {rel_id} not found or could not be deleted'}), 404
-
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in delete_er_relationship: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/search')
 def search():
@@ -1686,10 +1703,19 @@ def schema_overview(schema_name):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/table-overview/<string:schema>/<string:table>", methods=["GET"])
-def table_overview(schema, table):
+@app.route("/api/table-overview/<string:tableID>", methods=["GET"])
+def table_overview( tableID):
     """Return detailed info about a table."""
     try:
+        cursor.execute("""
+            SELECT schema_name,
+                    name
+            FROM tables_metadata
+            WHERE tables_metadata.id=%s
+        """,(tableID,))
+        data = cursor.fetchone()
+        schema = data[0]
+        table = data[1]
         # Table owner
         cursor.execute("""
             SELECT r.rolname
