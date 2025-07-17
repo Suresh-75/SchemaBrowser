@@ -14,7 +14,7 @@ export const endpoints = {
 
   // Overview and profiles
   getTableOverview: (schema, table) =>
-    api.get(`/table-overview/${schema}/${table}`),
+    api.get(`/table-overview/${table}`),
   getSchemaOverview: (schema) => api.get(`/schema-overview/${schema}`),
   getTableProfile: (data) => api.post("/profile", data),
   downloadCsv: (schema, table) =>
@@ -50,7 +50,6 @@ export const endpoints = {
   createER: (data) => api.post("/createER", data),
   // Logical Database operations for import
   getLogicalDatabases: () => api.get("/logical-databases"), // GET all logical databases
-  importLogicalDatabase: (data) => api.post("/logical-databases/import", data), // Import logical database to subject area
 };
 
 export default endpoints;

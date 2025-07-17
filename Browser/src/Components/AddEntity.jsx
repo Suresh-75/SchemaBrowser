@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Plus, Save, X, Database } from "lucide-react";
-
+import endpoints from "../api";
 const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [entityName, setEntityName] = useState("");
@@ -92,7 +92,6 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
       return;
     }
 
-
     // Validate that all fields have names
     const hasEmptyFields = fields.some((field) => !field.name.trim());
     if (hasEmptyFields) {
@@ -107,21 +106,16 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
     try {
       const payload = {
         table_name: entityName,
-        schema_name: schemaName,
         database_id: databaseId,
+        schema_name: schemaName,
         columns: fields.map(mapFieldToBackend),
       };
 
-      const response = await fetch("http://localhost:5000/api/tables", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json();
+      // Use the imported endpoint (axios)
+      const response = await endpoints.createTable(payload);
+      const result = response.data;
       console.log(result);
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         setSuccess(
           result.message || `Table "${entityName}" created successfully!`
         );
@@ -137,7 +131,11 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
         setError(result.message || "Failed to create table");
       }
     } catch (err) {
-      setError(`Network error: ${err.message}`);
+      setError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        `Network error: ${err.message}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -174,14 +172,12 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
 
   return (
     <div
-      className={`max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50 ${
-        darkmode ? "text-gray-100" : "text-gray-900"
-      }`}
+      className={`max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50 ${darkmode ? "text-gray-100" : "text-gray-900"
+        }`}
     >
       <div
-        className={`rounded-lg shadow-xl border ${
-          darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-        }`}
+        className={`rounded-lg shadow-xl border ${darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          }`}
       >
         <div
           className={`p-6 rounded-t-lg
@@ -220,9 +216,8 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
           {/* Entity Name */}
           <div className="mb-6">
             <label
-              className={`block text-sm font-medium mb-2 ${
-                darkmode ? "text-gray-300" : "text-gray-700"
-              }`}
+              className={`block text-sm font-medium mb-2 ${darkmode ? "text-gray-300" : "text-gray-700"
+                }`}
             >
               Entity/Table Name
             </label>
@@ -230,11 +225,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
               type="text"
               value={entityName}
               onChange={(e) => setEntityName(e.target.value)}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                darkmode
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkmode
                   ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-              }`}
+                }`}
               placeholder="e.g., users, products, orders"
               required
             />
@@ -244,20 +238,18 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <label
-                className={`block text-sm font-medium ${
-                  darkmode ? "text-gray-300" : "text-gray-700"
-                }`}
+                className={`block text-sm font-medium ${darkmode ? "text-gray-300" : "text-gray-700"
+                  }`}
               >
                 Fields/Columns
               </label>
               <button
                 type="button"
                 onClick={addField}
-                className={`inline-flex items-center gap-1 font-medium text-sm ${
-                  darkmode
+                className={`inline-flex items-center gap-1 font-medium text-sm ${darkmode
                     ? "text-blue-400 hover:text-blue-300"
                     : "text-blue-600 hover:text-blue-700"
-                }`}
+                  }`}
               >
                 <Plus size={16} />
                 Add Field
@@ -268,9 +260,8 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
               {fields.map((field, index) => (
                 <div
                   key={index}
-                  className={`grid grid-cols-12 gap-3 items-center p-4 rounded-lg ${
-                    darkmode ? "bg-gray-700" : "bg-gray-50"
-                  }`}
+                  className={`grid grid-cols-12 gap-3 items-center p-4 rounded-lg ${darkmode ? "bg-gray-700" : "bg-gray-50"
+                    }`}
                 >
                   {/* Field Name */}
                   <div className="col-span-3">
@@ -280,11 +271,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                       onChange={(e) =>
                         updateField(index, "name", e.target.value)
                       }
-                      className={`w-full p-2 border rounded text-sm ${
-                        darkmode
+                      className={`w-full p-2 border rounded text-sm ${darkmode
                           ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400"
                           : "bg-white border-gray-300 text-gray-900"
-                      }`}
+                        }`}
                       placeholder="Field name"
                       required
                     />
@@ -297,11 +287,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                       onChange={(e) =>
                         updateField(index, "type", e.target.value)
                       }
-                      className={`w-full p-2 border rounded text-sm ${
-                        darkmode
+                      className={`w-full p-2 border rounded text-sm ${darkmode
                           ? "bg-gray-600 border-gray-500 text-white"
                           : "bg-white border-gray-300 text-gray-900"
-                      }`}
+                        }`}
                     >
                       {dataTypes.map((type) => (
                         <option key={type} value={type}>
@@ -314,9 +303,8 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                   {/* Checkboxes */}
                   <div className="col-span-5 flex gap-4">
                     <label
-                      className={`flex items-center text-sm ${
-                        darkmode ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -324,18 +312,16 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                         onChange={(e) =>
                           updateField(index, "isPrimary", e.target.checked)
                         }
-                        className={`mr-1 ${
-                          darkmode
+                        className={`mr-1 ${darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
                             : "form-checkbox text-blue-600"
-                        }`}
+                          }`}
                       />
                       Primary
                     </label>
                     <label
-                      className={`flex items-center text-sm ${
-                        darkmode ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -343,18 +329,16 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                         onChange={(e) =>
                           updateField(index, "isRequired", e.target.checked)
                         }
-                        className={`mr-1 ${
-                          darkmode
+                        className={`mr-1 ${darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
                             : "form-checkbox text-blue-600"
-                        }`}
+                          }`}
                       />
                       Required
                     </label>
                     <label
-                      className={`flex items-center text-sm ${
-                        darkmode ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -365,11 +349,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                         disabled={
                           field.type !== "INTEGER" && field.type !== "BIGINT"
                         }
-                        className={`mr-1 ${
-                          darkmode
+                        className={`mr-1 ${darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500 disabled:opacity-50"
                             : "form-checkbox text-blue-600 disabled:opacity-50"
-                        }`}
+                          }`}
                       />
                       Auto Inc
                     </label>
@@ -381,11 +364,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
                       <button
                         type="button"
                         onClick={() => removeField(index)}
-                        className={`p-1 ${
-                          darkmode
+                        className={`p-1 ${darkmode
                             ? "text-red-400 hover:text-red-300"
                             : "text-red-500 hover:text-red-700"
-                        }`}
+                          }`}
                       >
                         <X size={16} />
                       </button>
@@ -401,11 +383,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
             <button
               type="button"
               onClick={handleClose}
-              className={`px-6 py-2 border rounded-lg transition-colors ${
-                darkmode
+              className={`px-6 py-2 border rounded-lg transition-colors ${darkmode
                   ? "border-gray-600 text-gray-300 hover:bg-gray-700"
                   : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
+                }`}
               disabled={isLoading}
             >
               Cancel
@@ -413,11 +394,10 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
             <button
               onClick={handleSubmit}
               disabled={isLoading || !entityName.trim()}
-              className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${
-                isLoading || !entityName.trim()
+              className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${isLoading || !entityName.trim()
                   ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700 text-white"
-              }`}
+                }`}
             >
               {isLoading ? (
                 <>

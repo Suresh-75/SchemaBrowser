@@ -119,6 +119,12 @@ export default function AddErDiagram({ setCreate, selectedPath, darkmode }) {
         relationshipType,
       };
       const response = await endpoints.createDiagram(relationshipData);
+      setSuccess("ER diagram created successfully!");
+      setTimeout(() => {
+        setSuccess("");
+        setCreate("");
+        window.location.reload(); // Reload to update ER Diagrams in the LOB tab
+      }, 1200);
     } catch (err) {
       setError("Failed to create relationship. Please try again.");
       console.error("Error creating relationship:", err);
@@ -404,11 +410,10 @@ export default function AddErDiagram({ setCreate, selectedPath, darkmode }) {
             <button
               type="button"
               onClick={() => setCreate("")}
-              className={`px-6 py-3 border rounded-lg font-medium transition-colors ${
-                darkmode
-                  ? "border-gray-600 text-gray-300 hover:bg-gray-700"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`px-6 py-3 border rounded-lg font-medium transition-colors ${darkmode
+                ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
               disabled={isLoading}
             >
               Cancel

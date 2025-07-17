@@ -538,63 +538,11 @@ def create_logical_db():
         )
         conn.commit()
 
-        # Create schema in Postgres if not exists
-        try:
-            cursor.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(data['name'])))
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            return jsonify({"message": f"Schema creation failed: {str(e)}"}), 400
-
         return jsonify({"message": "Logical DB created", "id": new_db_id})
     except Exception as e:
         conn.rollback()
         return jsonify({"error": f"Failed to create Logical DB: {str(e)}"}), 400
 
-
-@app.route("/api/logical-databases/import", methods=["POST"])
-def import_logical_db():
-    """Associate an existing logical database with another subject area."""
-    data = request.json
-    logical_db_id = data.get("logical_db_id")
-    subject_name = data.get("subject_name")
-    lob_name = data.get("lob_name")
-    target_subject_area_id = data.get("subject_area_id")
-
-    # If subject_name and lob_name are provided, fetch subject_area_id
-    if subject_name and lob_name:
-        cursor.execute("""
-            SELECT sa.id
-            FROM subject_areas sa
-            JOIN lobs l ON sa.lob_id = l.id
-            WHERE sa.name = %s AND l.name = %s
-        """, (subject_name, lob_name))
-        result = cursor.fetchone()
-        if not result:
-            return jsonify({"error": "Subject Area not found for given LOB"}), 404
-        target_subject_area_id = result[0]
-
-    if not logical_db_id or not target_subject_area_id:
-        return jsonify({"error": "logical_db_id and subject_area_id required"}), 400
-
-    try:
-        # Check if association already exists
-        cursor.execute("""
-            SELECT 1 FROM subject_area_logical_database
-            WHERE subject_area_id = %s AND logical_database_id = %s
-        """, (target_subject_area_id, logical_db_id))
-        if cursor.fetchone():
-            return jsonify({"error": "Database already imported to this subject area"}), 409
-
-        cursor.execute("""
-            INSERT INTO subject_area_logical_database (subject_area_id, logical_database_id)
-            VALUES (%s, %s)
-        """, (target_subject_area_id, logical_db_id))
-        conn.commit()
-        return jsonify({"message": "Database imported successfully"}), 201
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
 
 # ------------------- 4. Create Table -------------------
 @app.route("/api/tables", methods=["GET"])
@@ -1063,8 +1011,8 @@ def getERentity(lob_name):
 def create_table():
     data = request.json
     table_name = data['table_name']
-    schema_name = data['schema_name']
     columns = data['columns']
+    schema_name = data['schema_name']  # Always use public schema
 
     try:
         # Get database_id from logical_databases
@@ -1075,6 +1023,29 @@ def create_table():
         if not result:
             return jsonify({"error": f"No database found for schema '{schema_name}'"}), 404
         database_id = result[0]
+
+        # Check if table already exists in public schema
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = %s AND table_name = %s
+            );
+        """, (schema_name, table_name))
+        exists = cursor.fetchone()[0]
+
+        if exists:
+            # Table exists, just add to tables_metadata if not already present
+            cursor.execute("""
+                SELECT id FROM tables_metadata WHERE name = %s AND schema_name = %s AND database_id = %s
+            """, (table_name, schema_name, database_id))
+            if cursor.fetchone():
+                return jsonify({"message": f"Table {schema_name}.{table_name} already registered."}), 200
+            cursor.execute("""
+                INSERT INTO tables_metadata (name, schema_name, database_id)
+                VALUES (%s, %s, %s)
+            """, (table_name, schema_name, database_id))
+            conn.commit()
+            return jsonify({"message": f"Table {schema_name}.{table_name} registered in metadata."}), 201
 
         col_defs = []
         pk_col = None
@@ -1094,7 +1065,7 @@ def create_table():
         # Add created_at column
         col_defs.append("created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
-        create_sql = f'CREATE TABLE {schema_name}.{table_name} (\n  ' + ",\n  ".join(col_defs) + "\n);"
+        create_sql = f'CREATE TABLE {table_name} (\n  ' + ",\n  ".join(col_defs) + "\n);"
         cursor.execute(create_sql)
 
         # Insert metadata
@@ -1131,9 +1102,8 @@ def get_table_attributes(table_id):
         if not row:
             return jsonify({"error": "Table not found in metadata"}), 404
 
-        table_name, schema_name = row
-        print(table_name)
-        print(schema_name)
+        table_name = row[0]
+        schema_name = "public"
 
         # Fetch column names from information_schema
         cursor.execute("""
@@ -1141,7 +1111,7 @@ def get_table_attributes(table_id):
             FROM information_schema.columns
             WHERE table_schema = %s AND table_name = %s
             ORDER BY ordinal_position;
-        """, (schema_name, table_name))
+        """, ("public", table_name))
         columns = [r[0] for r in cursor.fetchall()]
         print(f"Attribute names: {columns}")
         if not columns:
@@ -1525,43 +1495,21 @@ def search():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# @app.route("/api/profile", methods=["POST"])
-# def profile_table():
-#     try:
-#         data = request.get_json()
-#         schema = data["schema"]
-#         table = data["table"]
-
-#         query = f'SELECT * FROM "{schema}"."{table}"'
-#         df = pd.read_sql(query, con=conn)
-
-#         if df.empty:
-#             return jsonify({"error": "Table is empty"}), 400
-
-#         profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
-        
-#         # Get HTML content directly instead of saving to file
-#         html_content = profile.to_html()
-        
-#         # Return HTML content with proper content type
-#         return Response(html_content, mimetype='text/html')
-
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
 @app.route("/api/tables/<int:table_id>", methods=["DELETE"])
 def delete_table(table_id):
     """Delete a table, its metadata, and all associated ER relationships."""
     try:
         # Step 1: Get table metadata
         cursor.execute("""
-            SELECT name, schema_name FROM tables_metadata WHERE id = %s
+            SELECT name FROM tables_metadata WHERE id = %s
         """, (table_id,))
         table_row = cursor.fetchone()
         
         if not table_row:
             return jsonify({"error": "Table not found in metadata"}), 404
         
-        table_name, schema_name = table_row
+        table_name = table_row[0]
+        schema_name = "public"  # Always use public schema
         
         # Step 2: Delete all ER relationships involving this table
         cursor.execute("""
@@ -1601,119 +1549,115 @@ def delete_table(table_id):
         conn.rollback()
         return jsonify({"error": f"Failed to delete table: {str(e)}"}), 500
 
-@app.route("/api/schema-overview/<string:schema_name>", methods=["GET"])
-def schema_overview(schema_name):
-    """Return detailed info about a schema (database) and its tables."""
+@app.route("/api/schema-overview/<string:database_name>", methods=["GET"])
+def schema_overview(database_name):
+    """
+    Return detailed info about a logical database (database_name) and its tables in the public schema.
+    """
     try:
-        # Check schema existence
+        # Get the logical database id
         cursor.execute("""
-            SELECT schema_name
-            FROM information_schema.schemata
-            WHERE schema_name = %s
-        """, (schema_name,))
-        schema_row = cursor.fetchone()
-        if not schema_row:
-            return jsonify({"error": f"Schema '{schema_name}' not found"}), 404
+            SELECT id FROM logical_databases WHERE name = %s
+        """, (database_name,))
+        db_row = cursor.fetchone()
+        if not db_row:
+            return jsonify({"error": f"Logical database '{database_name}' not found"}), 404
+        database_id = db_row[0]
 
-        # Get tables, owners, and sizes
-        cursor.execute("""
-            SELECT
-                c.relname AS table_name,
-                r.rolname AS owner,
-                COALESCE(pg_total_relation_size(c.oid), 0) AS total_bytes
-            FROM pg_class c
-            JOIN pg_roles r ON c.relowner = r.oid
-            JOIN pg_namespace n ON c.relnamespace = n.oid
-            WHERE c.relkind = 'r' AND n.nspname = %s
-            ORDER BY c.relname
-        """, (schema_name,))
+        # Get all tables in public schema for this logical database
+        cursor.execute(f"""
+            SELECT t.id, t.name
+            FROM tables_metadata t
+            WHERE t.schema_name = '{database_name}'  AND t.database_id = %s
+            ORDER BY t.name
+        """, (database_id,))
         table_rows = cursor.fetchall()
 
         tables = []
+        total_size = 0
         for row in table_rows:
-            table_name, owner, total_bytes = row
-            # Get row count
+            table_id, table_name = row
+            # Get row count and size for each table
             try:
                 cursor.execute(
-                    sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
-                        sql.Identifier(schema_name), sql.Identifier(table_name)
+                    sql.SQL("SELECT COUNT(*) FROM public.{}").format(
+                        sql.Identifier(table_name)
                     )
                 )
                 count = cursor.fetchone()[0]
             except Exception:
                 count = None
+            try:
+                cursor.execute(
+                    "SELECT COALESCE(pg_total_relation_size(%s::regclass), 0)",
+                    (f'public.{table_name}',)
+                )
+                size_bytes = cursor.fetchone()[0]
+            except Exception:
+                size_bytes = 0
+            
+            # Get table owner
+            try:
+                cursor.execute("""
+                    SELECT r.rolname
+                    FROM pg_class c
+                    JOIN pg_roles r ON c.relowner = r.oid
+                    JOIN pg_namespace n ON c.relnamespace = n.oid
+                    WHERE n.nspname = 'public' AND c.relname = %s AND c.relkind = 'r'
+                """, (table_name,))
+                owner_row = cursor.fetchone()
+                table_owner = owner_row[0] if owner_row else None
+            except Exception:
+                table_owner = None
+            
+            total_size += size_bytes
             tables.append({
                 "table": table_name,
-                "owner": owner,
                 "row_count": count,
-                "size_bytes": total_bytes if total_bytes is not None else 0,
+                "size_bytes": size_bytes,
+                "table_owner": table_owner,
             })
 
-        # Get total schema size (use COALESCE to avoid NULL)
-        cursor.execute("""
-            SELECT
-                pg_size_pretty(COALESCE(SUM(pg_total_relation_size(c.oid)),0)) AS total_size_pretty,
-                COALESCE(SUM(pg_total_relation_size(c.oid)),0) AS total_size_bytes
-            FROM pg_class c
-            JOIN pg_namespace n ON c.relnamespace = n.oid
-            WHERE n.nspname = %s AND c.relkind = 'r'
-        """, (schema_name,))
-        size_row = cursor.fetchone()
-        schema_size_pretty = size_row[0] if size_row else "0 bytes"
-        schema_size_bytes = size_row[1] if size_row else 0
-
-        # Get tablespace (location)
-        cursor.execute("""
-            SELECT
-                n.nspname AS schema_name,
-                COALESCE(ts.spcname, 'pg_default') AS tablespace
-            FROM pg_namespace n
-            LEFT JOIN pg_tablespace ts ON nspacl IS NOT NULL AND ts.oid = (SELECT dattablespace FROM pg_database WHERE datname = current_database())
-            WHERE n.nspname = %s
-            LIMIT 1
-        """, (schema_name,))
-        ts_row = cursor.fetchone()
-        tablespace = ts_row[1] if ts_row else "pg_default"
-
         return jsonify({
-            "schema": schema_name,
-            "tables": tables,
+            "database": database_name,
             "table_count": len(tables),
-            "schema_size_pretty": schema_size_pretty,
-            "schema_size_bytes": schema_size_bytes,
-            "tablespace": tablespace
+            "tables": tables,
+            "database_size_bytes": total_size,
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/table-overview/<string:schema>/<string:table>", methods=["GET"])
-def table_overview(schema, table):
+
+@app.route("/api/table-overview/<string:table>", methods=["GET"])
+def table_overview(table):
     """Return detailed info about a table."""
     try:
-        # Table owner
+        # Table owner - Using hardcoded 'public' schema
         cursor.execute("""
             SELECT r.rolname
             FROM pg_class c
             JOIN pg_roles r ON c.relowner = r.oid
             JOIN pg_namespace n ON c.relnamespace = n.oid
-            WHERE n.nspname = %s AND c.relname = %s AND c.relkind = 'r'
-        """, (schema, table))
+            WHERE n.nspname = 'public' AND c.relname = %s AND c.relkind = 'r'
+        """, (table,))
         owner_row = cursor.fetchone()
         owner = owner_row[0] if owner_row else None
 
         # Row count (estimate, fallback to COUNT(*) if -1)
-        cursor.execute(
-            sql.SQL("SELECT reltuples::bigint FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid WHERE nspname = %s AND relname = %s"),
-            (schema, table)
-        )
+        cursor.execute("""
+            SELECT reltuples::bigint 
+            FROM pg_class c 
+            JOIN pg_namespace n ON c.relnamespace = n.oid 
+            WHERE n.nspname = 'public' AND c.relname = %s
+        """, (table,))
         row_count_row = cursor.fetchone()
         row_count = int(row_count_row[0]) if row_count_row else None
 
         if row_count == -1:
             try:
                 cursor.execute(
-                    sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
-                        sql.Identifier(schema), sql.Identifier(table)
+                    sql.SQL("SELECT COUNT(*) FROM {}").format(
+                        sql.Identifier(table)
                     )
                 )
                 row_count = cursor.fetchone()[0]
@@ -1723,8 +1667,8 @@ def table_overview(schema, table):
         # Column count
         cursor.execute("""
             SELECT COUNT(*) FROM information_schema.columns
-            WHERE table_schema = %s AND table_name = %s
-        """, (schema, table))
+            WHERE table_schema = 'public' AND table_name = %s
+        """, (table,))
         col_count_row = cursor.fetchone()
         column_count = col_count_row[0] if col_count_row else None
 
@@ -1732,8 +1676,8 @@ def table_overview(schema, table):
         cursor.execute("""
             SELECT relispartition FROM pg_class c
             JOIN pg_namespace n ON c.relnamespace = n.oid
-            WHERE n.nspname = %s AND c.relname = %s
-        """, (schema, table))
+            WHERE n.nspname = 'public' AND c.relname = %s
+        """, (table,))
         part_row = cursor.fetchone()
         is_partition = bool(part_row[0]) if part_row else False
 
@@ -1746,8 +1690,8 @@ def table_overview(schema, table):
                 COALESCE(last_autoanalyze, 'epoch')
             ) AS last_modified
             FROM pg_stat_all_tables
-            WHERE schemaname = %s AND relname = %s
-        """, (schema, table))
+            WHERE schemaname = 'public' AND relname = %s
+        """, (table,))
         mod_row = cursor.fetchone()
         last_modified = mod_row[0].isoformat() if mod_row and mod_row[0] else None
 
@@ -1769,13 +1713,13 @@ def table_overview(schema, table):
                     AND tc.table_schema = ku.table_schema
                     AND tc.table_name = ku.table_name
                 WHERE tc.constraint_type = 'PRIMARY KEY'
-                    AND tc.table_schema = %s
+                    AND tc.table_schema = 'public'
                     AND tc.table_name = %s
             ) pk ON c.column_name = pk.column_name
-            WHERE c.table_schema = %s 
+            WHERE c.table_schema = 'public' 
                 AND c.table_name = %s
             ORDER BY c.ordinal_position
-        """, (schema, table, schema, table))
+        """, (table, table))
         
         columns = [
             {
@@ -1790,7 +1734,7 @@ def table_overview(schema, table):
         ]
 
         return jsonify({
-            "schema": schema,
+            "schema": "public",
             "table": table,
             "owner": owner,
             "row_count": row_count,
@@ -1879,7 +1823,7 @@ def get_logical_databases():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    # app.run(debug=True)
+    app.run(debug=True)
     # scheduler = BackgroundScheduler()
     
     # Schedule profiling job to run every week (Monday at 2 AM)

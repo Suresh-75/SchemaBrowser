@@ -77,7 +77,7 @@ const TableOverview = ({ schema, table, darkmode }) => {
         <div className={`p-6 ${darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"} rounded-lg shadow`}>
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
-                    Table: <span className="font-mono">{info.schema}.{info.table}</span>
+                    Table: <span className="font-mono">{info.table}</span>
                 </h2>
                 <button
                     onClick={handleDownloadCSV}

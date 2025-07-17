@@ -56,11 +56,13 @@ export default function ErEntities({
     console.log("Edit entity:", entityId);
   };
 
-  const handleDeleteEntity = (e, entityId) => {
+  const handleDeleteEntity = async (e, entityId) => {
     e.stopPropagation();
     try {
-      const response = endpoints.deleteERdiagram(entityId);
-    } catch {}
+      await endpoints.deleteERdiagram(entityId);
+      // Instead of reload, trigger a state update to refresh the list
+      setEntities((prev) => prev.filter((entity) => entity.id !== entityId));
+    } catch { }
   };
 
   if (!selectedPath?.lob) return null;
@@ -145,11 +147,11 @@ export default function ErEntities({
                 <div
                   key={entity.id}
                   onClick={() => handleEntityClick(entity)}
-                  className={`group flex items-center justify-between ${
-                    selectedErDiagram == entity.id
-                      ? "dark:bg-blue-800"
-                      : "dark:bg-gray-800"
-                  } p-4  in-active:bg-blue-400 bg-gray-50  hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm`}
+                  className={`group flex items-center justify-between ${selectedErDiagram == entity.id
+                    ? "dark:bg-blue-800"
+                    : "dark:bg-gray-800"
+                    } p-4  in-active:bg-blue-400 bg-gray-50  hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm`}
+                  style={{ cursor: "pointer" }}
                 >
                   <div className="flex items-center gap-3 ">
                     <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
