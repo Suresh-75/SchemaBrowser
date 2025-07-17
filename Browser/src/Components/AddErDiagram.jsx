@@ -133,6 +133,12 @@ export default function AddErDiagram({
         };
         return [...entities, newEntity];
       });
+      setSuccess("ER diagram created successfully!");
+      setTimeout(() => {
+        setSuccess("");
+        setCreate("");
+        window.location.reload(); // Reload to update ER Diagrams in the LOB tab
+      }, 1200);
     } catch (err) {
       setError("Failed to create relationship. Please try again.");
       console.error("Error creating relationship:", err);

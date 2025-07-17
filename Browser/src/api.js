@@ -11,6 +11,7 @@ export const endpoints = {
   getTableAttributes: (tableId) => api.get(`/tables/${tableId}/attributes`),
   createTable: (data) => api.post("/tables", data),
   deleteTable: (tableId) => api.delete(`/tables/${tableId}`),
+  addTable: (data) => api.post("/addTM", data), // New endpoint for adding table
 
   // Overview and profiles
   getTableOverview: (table) => api.get(`/table-overview/${table}`),
@@ -49,7 +50,6 @@ export const endpoints = {
   createER: (data) => api.post("/createER", data),
   // Logical Database operations for import
   getLogicalDatabases: () => api.get("/logical-databases"), // GET all logical databases
-  importLogicalDatabase: (data) => api.post("/logical-databases/import", data), // Import logical database to subject area
 };
 
 export default endpoints;

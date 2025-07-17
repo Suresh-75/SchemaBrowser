@@ -481,7 +481,7 @@ export default function ErEntities({
         </div>
       ) : (
         // </div>
-        <div className="flex flex-col h-[40rem] bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-lg">
             <div className="flex items-center gap-2">

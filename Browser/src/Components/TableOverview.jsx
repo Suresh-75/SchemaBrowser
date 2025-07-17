@@ -25,7 +25,6 @@ const TableOverview = ({ table, darkmode }) => {
   const handleDownloadCSV = () => {
     if (!info || !info.columns) return;
 
-    // Convert columns data to CSV format
     const headers = [
       "S.No",
       "Column Name",
@@ -34,42 +33,61 @@ const TableOverview = ({ table, darkmode }) => {
       "Default",
       "Primary Key",
     ];
+
+    const escapeCSV = (val) =>
+      typeof val === "string" ? `"${val.replace(/"/g, '""')}"` : val;
+
     const rows = info.columns.map((col) => [
       col.ordinal_position,
-      col.name,
-      col.type,
-      col.nullable,
-      col.default !== null ? col.default : "-",
+      escapeCSV(col.name),
+      escapeCSV(col.type),
+      escapeCSV(col.nullable),
+      escapeCSV(col.default ?? "-"),
       col.is_primary_key ? "Yes" : "No",
     ]);
 
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
 
-    // Create and trigger download
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `${info.table}_overview.csv`);
+    link.setAttribute(
+      "download",
+      `${info.schema || "schema"}_${info.table || "table"}_overview.csv`
+    );
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
   };
 
-  if (loading) {
+  if (!table) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <span className={darkmode ? "text-blue-200" : "text-blue-700"}>
-          Loading table overview...
-        </span>
+      <div
+        className={`p-4 text-center italic ${
+          darkmode ? "text-gray-400 bg-gray-900" : "text-gray-600 bg-gray-100"
+        } rounded`}
+      >
+        No table selected.
       </div>
     );
   }
+
+  if (loading) {
+    return (
+      <div
+        className={`p-6 rounded-lg shadow ${
+          darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"
+        }`}
+      >
+        <p>Loading table info...</p>
+      </div>
+    );
+  }
+
   if (err) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -79,13 +97,12 @@ const TableOverview = ({ table, darkmode }) => {
       </div>
     );
   }
-  if (!info) return null;
 
   return (
     <div
-      className={`p-6 ${
+      className={`p-6 rounded-lg shadow ${
         darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"
-      } rounded-lg shadow`}
+      }`}
     >
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">
@@ -105,39 +122,37 @@ const TableOverview = ({ table, darkmode }) => {
           Download CSV
         </button>
       </div>
-      <div className="mb-2">
-        <span className="font-semibold">Owner:</span>{" "}
-        {info.owner || <span className="italic text-gray-400">N/A</span>}
+
+      <div className="space-y-2 mb-4">
+        <div>
+          <span className="font-semibold">Owner:</span>{" "}
+          {info.owner || <span className="italic text-gray-400">N/A</span>}
+        </div>
+        <div>
+          <span className="font-semibold">Row Count (estimate):</span>{" "}
+          {info.row_count ?? <span className="italic text-gray-400">N/A</span>}
+        </div>
+        <div>
+          <span className="font-semibold">Column Count:</span>{" "}
+          {info.column_count ?? (
+            <span className="italic text-gray-400">N/A</span>
+          )}
+        </div>
+        <div>
+          <span className="font-semibold">Partitioned:</span>{" "}
+          {info.is_partition ? "Yes" : "No"}
+        </div>
+        <div>
+          <span className="font-semibold">Last Modified:</span>{" "}
+          {info.last_modified ? (
+            new Date(info.last_modified).toLocaleString()
+          ) : (
+            <span className="italic text-gray-400">N/A</span>
+          )}
+        </div>
       </div>
-      <div className="mb-2">
-        <span className="font-semibold">Row Count (estimate):</span>{" "}
-        {info.row_count !== null ? (
-          info.row_count
-        ) : (
-          <span className="italic text-gray-400">N/A</span>
-        )}
-      </div>
-      <div className="mb-2">
-        <span className="font-semibold">Column Count:</span>{" "}
-        {info.column_count !== null ? (
-          info.column_count
-        ) : (
-          <span className="italic text-gray-400">N/A</span>
-        )}
-      </div>
-      <div className="mb-2">
-        <span className="font-semibold">Partitioned:</span>{" "}
-        {info.is_partition ? "Yes" : "No"}
-      </div>
-      <div className="mb-2">
-        <span className="font-semibold">Last Modified:</span>{" "}
-        {info.last_modified ? (
-          new Date(info.last_modified).toLocaleString()
-        ) : (
-          <span className="italic text-gray-400">N/A</span>
-        )}
-      </div>
-      <div className="mb-4">
+
+      <div>
         <span className="font-semibold">Columns:</span>
         {info.columns && info.columns.length > 0 ? (
           <div className="overflow-x-auto mt-2">
@@ -153,7 +168,7 @@ const TableOverview = ({ table, darkmode }) => {
                 </tr>
               </thead>
               <tbody>
-                {info.columns.map((col, idx) => (
+                {info.columns.map((col) => (
                   <tr
                     key={col.name}
                     className={

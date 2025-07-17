@@ -55,24 +55,22 @@ const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedP
             </div>
         );
     }
+    console.log("Database Overview Data:", overview);
     if (!overview) return null;
 
     return (
         <div className={`p-6 ${darkmode ? "bg-gray-900 text-blue-100" : "bg-white text-gray-800"} rounded-lg shadow`}>
             <h2 className="text-xl font-bold mb-2">
-                Database: <span className="font-mono">{overview.schema}</span>
+                Database: <span className="font-mono">{overview.database}</span>
             </h2>
             <div className="mb-2">
                 <span className="font-semibold">Total Tables:</span> {overview.table_count}
             </div>
             <div className="mb-2">
                 <span className="font-semibold">Schema Size:</span>{" "}
-                <span title={overview.schema_size_bytes ? `${overview.schema_size_bytes} bytes` : ""}>
-                    {overview.schema_size_pretty || "N/A"}
+                <span title={overview.database_size_bytes ? `${overview.database_size_bytes} bytes` : ""}>
+                    {formatBytes(overview.database_size_bytes) || "N/A"}
                 </span>
-            </div>
-            <div className="mb-4">
-                <span className="font-semibold">Tablespace:</span> {overview.tablespace || "N/A"}
             </div>
             <div>
                 <h3 className="font-semibold mb-2">Tables</h3>
@@ -98,7 +96,7 @@ const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedP
                                     }`}
                                 >
                                     <td className="px-3 py-2 font-mono">{t.table}</td>
-                                    <td className="px-3 py-2">{t.owner}</td>
+                                    <td className="px-3 py-2">{t.table_owner}</td>
                                     <td className="px-3 py-2">
                                         {t.row_count !== null 
                                             ? t.row_count 
