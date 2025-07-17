@@ -1526,8 +1526,7 @@ def delete_table(table_id):
         
         # Step 3: Drop the actual table from PostgreSQL
         try:
-            cursor.execute(sql.SQL("DROP TABLE IF EXISTS {}.{}").format(
-                sql.Identifier(schema_name), 
+            cursor.execute(sql.SQL("DROP TABLE IF EXISTS {}").format(
                 sql.Identifier(table_name)
             ))
         except Exception as e:
@@ -1546,7 +1545,7 @@ def delete_table(table_id):
         conn.commit()
         
         return jsonify({
-            "message": f"Table {schema_name}.{table_name} deleted successfully",
+            "message": f"Table {table_name} deleted successfully",
             "table_id": table_id,
             "relationships_deleted": relationships_deleted
         }), 200
