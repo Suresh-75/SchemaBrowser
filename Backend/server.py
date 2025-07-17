@@ -349,7 +349,7 @@ def profile_table():
         if not data:
             return jsonify({"error": "No data provided"}), 400
             
-        schema = data.get("schema")
+        schema = "public"
         table = data.get("table")
         
         if not schema or not table:
@@ -1269,23 +1269,29 @@ def get_all_er_relationships_inERdiag(er_entity_id):
 def get_all_er_relationships_inDB(database_name):
     """Retrieves all ER Relationships for a specific database with table names."""
     query = """
-    SELECT 
-        er.id,
-        er.from_table_id,
-        er.from_column,
-        er.to_table_id,
-        er.to_column,
-        er.cardinality,
-        er.relationship_type,
-        er.created_at,
-        er.er_entity_id,
-        tm_from.name as from_table_name,
-        tm_to.name as to_table_name
-    FROM er_relationships er
-    JOIN tables_metadata tm_from ON er.from_table_id = tm_from.id
-    JOIN tables_metadata tm_to ON er.to_table_id = tm_to.id
-    WHERE tm_from.schema_name = %s
-       OR tm_to.schema_name = %s;
+    SELECT DISTINCT
+    er.id,
+    er.from_table_id,
+    er.from_column,
+    er.to_table_id,
+    er.to_column,
+    er.cardinality,
+    er.relationship_type,
+    er.created_at,
+    er.er_entity_id,
+    tm_from.name as from_table_name,
+    tm_to.name as to_table_name,
+    tm_from.schema_name as from_schema_name,
+    tm_to.schema_name as to_schema_name
+FROM er_relationships er
+JOIN tables_metadata tm_from ON er.from_table_id = tm_from.id
+JOIN tables_metadata tm_to ON er.to_table_id = tm_to.id
+WHERE tm_from.name IN (
+    SELECT name FROM tables_metadata WHERE schema_name = %s
+)
+OR tm_to.name IN (
+    SELECT name FROM tables_metadata WHERE schema_name = %s
+);
     """
     results = execute_query(query, (database_name, database_name), fetch_all=True)
     print(results)
