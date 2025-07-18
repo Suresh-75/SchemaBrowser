@@ -25,7 +25,7 @@ useEffect(() => {
   if (selectedPath?.database) {
     setSchemaName(selectedPath.database.toUpperCase());
     // Fetch database ID based on database name
-    fetch(`http://localhost:5000/api/logical-databases/${selectedPath.database}`)
+    fetch(`http://localhost:5000/api/logical-databases/${selectedPath.database.toUpperCase()}`)
       .then(res => res.json())
       .then(data => {
         if (data.id) {
@@ -105,12 +105,8 @@ useEffect(() => {
       setError("Entity name is required");
       return;
     }
-    if (!databaseId) {
-      setError("Database information not loaded yet");
-      return;
-    }
-
-    if (!selectedPath?.databaseId) {
+    // console.log('Selected Path:', selectedPath);
+    if (!selectedPath?.database) {
       setError("Please select a database first");
       return;
     }
@@ -141,7 +137,7 @@ useEffect(() => {
       const payload = {
         table_name: entityName.toUpperCase(),
         schema_name: schemaName,
-        database_id: parseInt(selectedPath.databaseId, 10),
+        database_id: parseInt(databaseId, 10),
         columns: mappedFields
       };
 

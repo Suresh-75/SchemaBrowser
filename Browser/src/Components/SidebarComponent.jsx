@@ -81,11 +81,13 @@ const SidebarComponent = ({
       const tablesResponse = await endpoints.getTablesByDatabase(
         selectedPath.database
       );
+      console.log("Tables Response:", tablesResponse);
       setData(tablesResponse.data);
 
       const relationshipsResponse = await endpoints.getRelationships(
         selectedPath.database
       );
+      console.log("Relationships Response:", relationshipsResponse);
       const relsData = relationshipsResponse.data;
       console.log("hereree");
       const relationships = relsData?.relationships || [];
