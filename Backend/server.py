@@ -825,7 +825,7 @@ def createER():
     
     try:
         data = request.get_json()
-        
+        print(data)
         # Validate required fields
         required_fields = ['er_entity_id', 'lob', 'fromTableId', 'fromColumn', 
                           'toTableId', 'toColumn', 'cardinality', 'relationshipType']

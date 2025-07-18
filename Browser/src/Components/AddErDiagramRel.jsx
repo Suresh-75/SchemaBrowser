@@ -165,7 +165,7 @@ export default function AddErDiagramRel({
         cardinality,
         relationshipType,
       };
-
+      console.log("Submitting relationship data:", relationshipData);
       const response = await endpoints.createER(relationshipData);
       if (response.data.success)
         showNotification("success", "ER relationship created successfully!");

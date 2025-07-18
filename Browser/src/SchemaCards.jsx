@@ -283,7 +283,7 @@ const SchemaCards = ({
       </div>
 
       {/* Metadata Section */}
-      {(table.schema_name || table.table_id) && (
+      {/* {(table.schema_name || table.table_id) && (
         <div
           className={`px-6 py-5 border-t ${
             darkmode
@@ -388,7 +388,7 @@ const SchemaCards = ({
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

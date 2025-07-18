@@ -399,7 +399,7 @@ const SidebarComponent = ({
                           />
                           <span>Foreign Key</span>
                         </div>
-                        {user === "admin" && (
+                        {/* {user === "admin" && (
                           <button
                             onClick={() => {
                               deleteERfunc(
@@ -420,7 +420,7 @@ const SidebarComponent = ({
                           >
                             <Trash2 size={16} />
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>
