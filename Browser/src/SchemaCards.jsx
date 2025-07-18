@@ -230,7 +230,7 @@ const SchemaCards = ({
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
             </div>
-          ) : table.attributes.length > 0 ? (
+          ) : table?.attributes.length > 0 ? (
             <div className="p-2 max-w-md mx-auto">
               <div className="space-y-2">
                 {visibleColumns.map((columnName, index) => (
