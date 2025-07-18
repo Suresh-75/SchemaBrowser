@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Handle, Position } from "@xyflow/react";
+import { ChevronDown, ChevronsDown, ChevronUp } from "lucide-react";
 
 const SchemaCards = ({
   table,
@@ -10,7 +11,12 @@ const SchemaCards = ({
 }) => {
   const [relationshipColumns, setRelationshipColumns] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const [isExpanded, setIsExpanded] = useState(false);
+  const visibleColumns = isExpanded
+    ? table.attributes
+    : table.attributes.slice(0, 5);
+  const hasMoreColumns = table.attributes.length > 5;
+  console.log(table.attributes);
   useEffect(() => {
     if (table && table.table_id && selectedDatabase) {
       fetchRelationshipColumns();
@@ -120,7 +126,7 @@ const SchemaCards = ({
     <div
       onClick={() => {
         setSelectedPath((path) => {
-          console.log({ ...path, table: table.table_name });
+          // console.log({ ...path, table: table.table_name });
           return { ...path, table: table.table_name };
         });
         setSelectedTable(table.table_id);
@@ -215,45 +221,89 @@ const SchemaCards = ({
                 : "bg-gray-100 text-gray-600"
             }`}
           >
-            {loading ? "..." : relationshipColumns.length}
+            {/* {loading ? "..." : relationshipColumns.length} */}
           </span>
         </div>
 
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-80 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
             </div>
-          ) : relationshipColumns.length > 0 ? (
-            <div className="space-y-2">
-              {relationshipColumns.map((columnName, index) => (
-                <div
-                  key={index}
-                  className={`p-3 rounded-lg ${
-                    darkmode
-                      ? "bg-gray-800 border border-gray-700"
-                      : "bg-slate-50 border border-slate-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        darkmode ? "bg-emerald-400" : "bg-emerald-500"
-                      }`}
-                    />
-                    <span className="font-medium text-sm">{columnName}</span>
-                    <div
-                      className={`ml-auto px-2 py-1 text-xs rounded-full ${
-                        darkmode
-                          ? "bg-indigo-600 text-indigo-200"
-                          : "bg-indigo-100 text-indigo-700"
-                      }`}
-                    >
-                      FK/PK
+          ) : table.attributes.length > 0 ? (
+            <div className="p-2 max-w-md mx-auto">
+              <div className="space-y-2">
+                {visibleColumns.map((columnName, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg ${
+                      darkmode
+                        ? "bg-gray-800 border border-gray-700"
+                        : "bg-slate-50 border border-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          darkmode ? "bg-emerald-400" : "bg-emerald-500"
+                        }`}
+                      />
+                      <span className="font-medium text-sm">{columnName}</span>
+                      {/* <div
+                        className={`ml-auto px-2 py-1 text-xs rounded-full ${
+                          darkmode
+                            ? "bg-indigo-600 text-indigo-200"
+                            : "bg-indigo-100 text-indigo-700"
+                        }`}
+                      >
+                        FK/PK
+                      </div> */}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+
+                {hasMoreColumns && (
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className={`w-full p-3 rounded-lg border-2 border-dashed transition-colors ${
+                      darkmode
+                        ? "border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300"
+                        : "border-slate-300 hover:border-slate-400 text-slate-600 hover:text-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="w-4 h-4" />
+                          <span className="text-sm font-medium">Show Less</span>
+                          {/* <button>Download CSV</button> */}
+                        </>
+                      ) : (
+                        <>
+                          <ChevronsDown className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            Show {table.attributes.length - 5} More Columns
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                )}
+                {isExpanded && (
+                  <div className=" flex justify-center">
+                    <button
+                      // onClick={handleDownloadCSV}
+                      className={`px-4 py-2 rounded  ${
+                        darkmode
+                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-blue-500 hover:bg-blue-600 text-white"
+                      } transition-colors`}
+                    >
+                      Download CSV
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div

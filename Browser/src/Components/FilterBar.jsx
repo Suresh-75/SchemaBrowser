@@ -431,10 +431,10 @@ const FilterBar = ({
                                       : "bg-white border-gray-200"
                                       }`}
                                     onMouseEnter={() => {
-                                      console.log(
-                                        businessData[lob].subjects[subject]
-                                          .databases[database]
-                                      );
+                                      // console.log(
+                                      //   businessData[lob].subjects[subject]
+                                      //     .databases[database]
+                                      // );
                                       setHoveredDatabase(database);
                                     }}
                                     onMouseLeave={() =>
@@ -457,7 +457,7 @@ const FilterBar = ({
                                         <button
                                           key={obj.id}
                                           onClick={() => {
-                                            console.log(obj.id);
+                                            // console.log(obj.id);
                                             setSelectedTable(Number(obj.id)); // store the ID
                                             handleTableSelect(
                                               lob,

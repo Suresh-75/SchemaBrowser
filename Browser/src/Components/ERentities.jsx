@@ -35,11 +35,13 @@ export default function ErEntities({
   const [error, setError] = useState(null);
   const [rels, setRels] = useState([]);
   const [erDiagramName, setErDiagramName] = useState("");
+
   async function fetchTableInfo(tableId) {
     try {
       const response = await axios.get(
         `http://localhost:5000/api/tables/${tableId}/attributes`
       );
+      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching table info for table ${tableId}:`, error);
@@ -66,7 +68,7 @@ export default function ErEntities({
       .map((edge) => {
         if (edge.source == from_table_id && edge.target == to_table_id) {
           const relationships = edge.label.split("\n");
-          console.log(relationships);
+          // console.log(relationships);
           const updatedRelationships = relationships.filter((rel) => {
             const parts = rel.split(" → ");
             if (parts.length === 2) {
@@ -76,7 +78,7 @@ export default function ErEntities({
             }
             return true;
           });
-          console.log(updatedRelationships);
+          // console.log(updatedRelationships);
           if (updatedRelationships.length === 0) {
             return null;
           }
@@ -126,7 +128,16 @@ export default function ErEntities({
         if (!edgeGroups[key]) {
           edgeGroups[key] = [];
         }
-        edgeGroups[key].push(rel);
+        // console.log(edgeGroups[key]);
+
+        const exists = edgeGroups[key].some(
+          (r) =>
+            r.from_column === rel.from_column && r.to_column === rel.to_column
+        );
+
+        if (!exists) {
+          edgeGroups[key].push(rel);
+        }
       });
 
       const newNodes = tableIds.map((tableId, index) => ({
@@ -136,6 +147,7 @@ export default function ErEntities({
           label: tableMap[tableId]?.name || `Table ${tableId}`,
           table: tableMap[tableId],
           darkmode: darkmode,
+          selectedDatabase: selectedPath?.database,
           setSelectedTable: setSelectedTable,
           setSelectedPath: setSelectedPath,
         },
@@ -155,7 +167,7 @@ export default function ErEntities({
           label: rels
             .map(
               (rel) =>
-                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
+                `${rel.from_table_name}.${rel.from_column} → ${rel.to_table_name}.${rel.to_column} (${rel.cardinality})`
             )
             .join("\n"),
           style: { stroke: "#666", strokeWidth: 1 },
@@ -182,6 +194,7 @@ export default function ErEntities({
     },
     [darkmode, selectedPath?.database]
   );
+
   async function fetchRelationships(er_entity_id) {
     try {
       setEdges([]);
@@ -205,7 +218,7 @@ export default function ErEntities({
   async function getERdiagram(diagram_id) {
     setErLoading(true);
     const relationships = await fetchRelationships(diagram_id);
-    console.log(relationships);
+    // console.log(relationships);
     setRels(relationships);
     if (!relationships) {
       setNodes([]);
@@ -251,12 +264,12 @@ export default function ErEntities({
   const handleEditEntity = (e, entityId) => {
     e.stopPropagation();
     setCreate("relationshipDiagram");
-    console.log("Edit entity:", entityId);
+    // console.log("Edit entity:", entityId);
   };
 
   const handleDeleteEntity = (e, entityId) => {
     e.stopPropagation();
-    console.log("delete");
+    // console.log("delete");
     try {
       if (confirm("Do you want to delete this ER diagram") == true) {
         setEntities((entities) => {

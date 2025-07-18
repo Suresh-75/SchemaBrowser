@@ -67,7 +67,7 @@ const AddRel = ({
     try {
       // console.log("Fetching tables for database:", databaseName);
       const response = await axios.get(`http://localhost:5000/api/tables`);
-      console.log("tables ", response.data);
+      // console.log("tables ", response.data);
       setTables(response.data || []);
     } catch (err) {
       setError("Error fetching tables: " + err.message);
@@ -80,7 +80,7 @@ const AddRel = ({
       const response = await fetchTableInfo(tableId);
       if (response) {
         const { attributes } = response;
-        console.log("Columns for table:", tableId, attributes);
+        // console.log("Columns for table:", tableId, attributes);
         if (type === "from") {
           setFromTableColumns(attributes || []);
         } else {
@@ -97,7 +97,7 @@ const AddRel = ({
       const response = await axios.get(
         `http://localhost:5000/api/er_relationships/${databaseName}`
       );
-      console.log(response.data);
+      // console.log(response.data);
       if (response?.data) {
         const existingRelationships = response.data || [];
 
@@ -174,7 +174,7 @@ const AddRel = ({
         relationshipData
       );
 
-      console.log("Response from server:", response);
+      // console.log("Response from server:", response);
 
       if (response.status === 200 || response.status === 201) {
         // Get the created relationship ID from the response
@@ -223,7 +223,7 @@ const AddRel = ({
 
           if (isMatchingEdge) {
             existingEdge = edge;
-            console.log("Found existing edge:", edge);
+            // console.log("Found existing edge:", edge);
             return null;
           }
           return edge;
@@ -232,7 +232,7 @@ const AddRel = ({
         if (existingEdge?.label) {
           newEdge.label = [existingEdge.label, newEdge.label].join("\n");
         }
-        console.log(remEdges);
+        // console.log(remEdges);
         setEdges([...remEdges, newEdge]);
         setNodes((prevNodes) => {
           const existingNodeIds = new Set(prevNodes.map((node) => node.id));

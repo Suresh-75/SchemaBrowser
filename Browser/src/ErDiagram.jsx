@@ -126,6 +126,7 @@ function ErDiagram({
       const response = await axios.get(
         `http://localhost:5000/api/tables/${tableId}/attributes`
       );
+      console.log(response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching table info for table ${tableId}:`, error);
@@ -171,7 +172,7 @@ function ErDiagram({
         if (!edgeGroups[key]) {
           edgeGroups[key] = [];
         }
-        console.log(edgeGroups[key]);
+        // console.log(edgeGroups[key]);
 
         const exists = edgeGroups[key].some(
           (r) =>
