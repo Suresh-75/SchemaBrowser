@@ -88,8 +88,9 @@ const SidebarComponent = ({
       );
       const relsData = relationshipsResponse.data;
       console.log("hereree");
+      const relationships = relsData?.relationships || [];
       console.log(relsData);
-      const processedRels = relsData.map((rel) => ({
+      const processedRels = relsData.relationships.map((rel) => ({
         id: rel.id,
         display: rel.display,
         from_column: rel.from_column,

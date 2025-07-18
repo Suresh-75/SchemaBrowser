@@ -524,7 +524,128 @@ def create_subject_area():
             cursor.close()
         if conn:
             conn.close()
+@app.route("/api/logical-databases", methods=["POST"])
+def create_logical_db():
+    """Create a new logical database and associate it with a subject area"""
+    conn = None
+    cursor = None
+    try:
+        data = request.json
+        lob_name = data["lob_name"]
+        subject_name = data["subject_name"]
+        db_name = data["name"]
 
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get subject_area_id from lob_name + subject_name
+        cursor.execute("""
+            SELECT sa.id 
+            FROM subject_areas sa
+            JOIN lobs l ON sa.lob_id = l.id
+            WHERE sa.name = :1 AND l.name = :2
+        """, [subject_name, lob_name])
+        
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({"error": "Subject Area not found for given LOB"}), 404
+        
+        subject_area_id = result[0]
+
+        # Insert new logical database with RETURNING clause
+        db_id_var = cursor.var(oracledb.NUMBER)
+        cursor.execute("""
+            INSERT INTO logical_databases (name, created_at) 
+            VALUES (:1, SYSTIMESTAMP)
+            RETURNING id INTO :2
+        """, [db_name, db_id_var])
+        
+        new_db_id = db_id_var.getvalue()
+
+        # Create mapping in subject_area_logical_database
+        cursor.execute("""
+            INSERT INTO subject_area_logical_database 
+            (subject_area_id, logical_database_id, created_at) 
+            VALUES (:1, :2, SYSTIMESTAMP)
+        """, [subject_area_id, new_db_id])
+
+        conn.commit()
+
+        # Return same format as before
+        return jsonify({
+            "message": "Logical DB created", 
+            "id": new_db_id
+        }), 201
+
+    except oracledb.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database integrity error: {e}")
+        return jsonify({
+            "error": f"Database constraint violated: {str(e)}"
+        }), 409
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Error creating logical database: {e}")
+        return jsonify({
+            "error": f"Failed to create Logical DB: {str(e)}"
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+@app.route('/api/logical-databases/<string:database_name>', methods=['GET'])
+def get_database_by_name(database_name):
+    """Get logical database details by name."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                db.id, 
+                db.name, 
+                l.name AS lob_name, 
+                sa.name AS subject_area_name
+            FROM logical_databases db
+            JOIN subject_area_logical_database sald ON db.id = sald.logical_database_id
+            JOIN subject_areas sa ON sald.subject_area_id = sa.id
+            JOIN lobs l ON sa.lob_id = l.id
+            WHERE UPPER(db.name) = UPPER(:1)
+        """, [database_name])
+        
+        row = cursor.fetchone()
+        if row:
+            return jsonify({
+                "id": row[0],
+                "name": row[1],
+                "lob_name": row[2],
+                "subject_area_name": row[3]
+            }), 200
+        else:
+            return jsonify({
+                "error": f"Database '{database_name}' not found"
+            }), 404
+            
+    except oracledb.Error as e:
+        logger.error(f"Database error in get_database_by_name: {e}")
+        return jsonify({
+            "error": f"Database error: {str(e)}"
+        }), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in get_database_by_name: {e}")
+        return jsonify({
+            "error": str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # ------------------- 4. Create Table -------------------
 @app.route("/api/tables", methods=["GET"])
@@ -545,20 +666,25 @@ def get_tables():
         tables = [dict(zip(columns, row)) for row in rows]
         return jsonify(tables)
     except oracledb.Error as e:
+        logger.error(f"Database error in get_tables: {e}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in get_tables: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
-
 @app.route("/api/tables/<string:database_name>", methods=["GET"])
 def get_tables_inDB(database_name):
+    """Get all tables for a specific database"""
     conn = None
     cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
         cursor.execute("""
             SELECT t.id, t.name, t.schema_name, d.name AS database_name
             FROM tables_metadata t
@@ -566,11 +692,18 @@ def get_tables_inDB(database_name):
             WHERE d.name = :1
             ORDER BY t.id
         """, [database_name])
+        
         columns = [desc[0].lower() for desc in cursor.description]
         rows = cursor.fetchall()
         tables = [dict(zip(columns, row)) for row in rows]
+        
         return jsonify(tables)
+        
     except oracledb.Error as e:
+        logger.error(f"Database error getting tables for {database_name}: {e}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error getting tables for {database_name}: {e}")
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor:
@@ -608,18 +741,16 @@ def get_or_create_er_entity(conn, er_diagram_name, lob_id):
         if result:
             return result[0]
             
-        # Create new entity with Oracle sequence
+        # Create new entity with both created_at and updated_at
+        entity_id_var = cursor.var(oracledb.NUMBER)
         cursor.execute("""
-            INSERT INTO er_entities (name, lob_id, created_at) 
-            VALUES (:1, :2, SYSTIMESTAMP)
+            INSERT INTO er_entities 
+            (name, lob_id, created_at, updated_at) 
+            VALUES (:1, :2, SYSTIMESTAMP, SYSTIMESTAMP)
             RETURNING id INTO :3
-        """, [
-            er_diagram_name,
-            lob_id,
-            cursor.var(oracledb.NUMBER)
-        ])
+        """, [er_diagram_name, lob_id, entity_id_var])
         
-        entity_id = cursor.var.getvalue()
+        entity_id = entity_id_var.getvalue()
         conn.commit()
         return entity_id
             
@@ -644,21 +775,25 @@ def deleteERdiagram(entityId):
             DELETE FROM er_relationships 
             WHERE er_entity_id = :1
         """, [entityId])
+        relationships_deleted = cursor.rowcount
+        logger.info(f"Deleted {relationships_deleted} relationships for ER diagram {entityId}")
         
         # Delete the entity
         cursor.execute("""
             DELETE FROM er_entities 
             WHERE id = :1
         """, [entityId])
+        entity_deleted = cursor.rowcount
         
-        deleted_count = cursor.rowcount
-        conn.commit()
-
-        if deleted_count > 0:
+        if entity_deleted > 0:
+            conn.commit()
+            logger.info(f"Successfully deleted ER diagram {entityId}")
             return jsonify({
-                "message": f"ER Diagram with ID {entityId} deleted successfully."
+                "message": f"ER Diagram with ID {entityId} deleted successfully.",
+                "relationships_deleted": relationships_deleted
             }), 200
         else:
+            logger.warning(f"ER diagram {entityId} not found")
             return jsonify({
                 "message": f"ER Diagram with ID {entityId} not found or already deleted."
             }), 404
@@ -666,7 +801,14 @@ def deleteERdiagram(entityId):
     except oracledb.Error as e:
         if conn:
             conn.rollback()
-        logger.error(f"Error deleting ER Diagram {entityId}: {e}")
+        logger.error(f"Database error deleting ER Diagram {entityId}: {e}")
+        return jsonify({
+            "error": "Database error occurred during deletion."
+        }), 500
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Unexpected error deleting ER Diagram {entityId}: {e}")
         return jsonify({
             "error": "An internal server error occurred during deletion."
         }), 500
@@ -675,7 +817,6 @@ def deleteERdiagram(entityId):
             cursor.close()
         if conn:
             conn.close()
-
 
 @app.route('/api/create_er_diagram', methods=['POST'])
 def create_er_relationship():
@@ -817,7 +958,6 @@ def create_er_relationship():
             cursor.close()
         if conn:
             conn.close()
-
 @app.route("/api/createER", methods=["POST"])
 def createER():
     """Create a new ER relationship with existing entity ID"""
@@ -868,8 +1008,8 @@ def createER():
             }), 409
         
         # Create the relationship
-        created_at_var = cursor.var(oracledb.TIMESTAMP)
         relationship_id_var = cursor.var(oracledb.NUMBER)
+        created_at_var = cursor.var(oracledb.TIMESTAMP)
         
         cursor.execute("""
             INSERT INTO er_relationships 
@@ -888,12 +1028,13 @@ def createER():
             relationship_id_var,
             created_at_var
         ])
-            
+        
         relationship_id = relationship_id_var.getvalue()
         created_at = created_at_var.getvalue()
         
         # Commit transaction
         conn.commit()
+        logger.info(f"Created ER relationship with ID: {relationship_id}")
         
         # Return success response
         return jsonify({
@@ -944,9 +1085,293 @@ def createER():
             cursor.close()
         if conn:
             conn.close()
-
 # get er entities
+@app.route('/api/get_er_entities/<string:lob_name>', methods=["GET"])
+def getERentity(lob_name):
+    """Get all ER entities for a specific LOB"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
+        # Query to get ER entities for a specific LOB
+        cursor.execute("""
+            SELECT 
+                ee.id,
+                ee.name,
+                ee.created_at,
+                ee.updated_at,
+                l.name as lob_name,
+                COUNT(er.id) as relationship_count
+            FROM er_entities ee
+            JOIN lobs l ON ee.lob_id = l.id
+            LEFT JOIN er_relationships er ON ee.id = er.er_entity_id
+            WHERE UPPER(l.name) = UPPER(:1)
+            GROUP BY ee.id, ee.name, ee.created_at, ee.updated_at, l.name
+            ORDER BY ee.name
+        """, [lob_name])
+        
+        results = cursor.fetchall()
+        
+        # Check if LOB exists if no results found
+        if not results:
+            cursor.execute("""
+                SELECT id FROM lobs 
+                WHERE UPPER(name) = UPPER(:1)
+            """, [lob_name])
+            
+            lob_exists = cursor.fetchone()
+            
+            if not lob_exists:
+                return jsonify({
+                    "success": False,
+                    "error": f"LOB '{lob_name}' not found",
+                    "data": []
+                }), 404
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": f"No ER entities found for LOB '{lob_name}'",
+                    "data": []
+                }), 200
+        
+        # Format results
+        er_entities = []
+        for row in results:
+            er_entities.append({
+                "id": row[0],
+                "name": row[1],
+                "created_at": row[2].isoformat() if row[2] else None,
+                "updated_at": row[3].isoformat() if row[3] else None,
+                "lob_name": row[4],
+                "relationship_count": row[5]
+            })
+        
+        return jsonify({
+            "success": True,
+            "lob_name": lob_name,
+            "total_entities": len(er_entities),
+            "data": er_entities
+        }), 200
+        
+    except oracledb.Error as e:
+        logger.error(f"Database error in getERentity: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Database error: {str(e)}",
+            "data": []
+        }), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in getERentity: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "data": []
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+@app.route("/api/addTM", methods=["POST"])
+def add_table():
+    """Add a table to the metadata repository"""
+    conn = None
+    cursor = None
+    try:
+        data = request.json
+        table_name = data['table_name']
+        schema_name = data['schema_name']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get database_id from logical_databases
+        cursor.execute("""
+            SELECT id FROM logical_databases 
+            WHERE name = :1
+        """, [schema_name])
+        
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({
+                "error": f"No database found for schema '{schema_name}'"
+            }), 404
+            
+        database_id = result[0]
+
+        # Insert metadata with RETURNING clause
+        table_id_var = cursor.var(oracledb.NUMBER)
+        cursor.execute("""
+            INSERT INTO tables_metadata 
+            (name, schema_name, database_id, created_at) 
+            VALUES (:1, :2, :3, SYSTIMESTAMP)
+            RETURNING id INTO :4
+        """, [table_name, schema_name, database_id, table_id_var])
+
+        table_id = table_id_var.getvalue()
+        conn.commit()
+
+        return jsonify({
+            "message": f"Table {table_name} imported successfully.",
+            "id": table_id
+        }), 201
+
+    except oracledb.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database integrity error: {e}")
+        return jsonify({
+            "error": f"Database constraint violated: {str(e)}"
+        }), 409
+    except oracledb.Error as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database error: {e}")
+        return jsonify({
+            "error": f"Database error: {str(e)}"
+        }), 500
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Unexpected error: {e}")
+        return jsonify({
+            "error": str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+@app.route("/api/tables", methods=["POST"])
+def create_table():
+    """Create a new table and register it in metadata"""
+    conn = None
+    cursor = None
+    try:
+        data = request.json
+        table_name = data['table_name']
+        columns = data['columns']
+        schema_name = data['schema_name']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get database_id from logical_databases
+        cursor.execute("""
+            SELECT id FROM logical_databases 
+            WHERE name = :1
+        """, [schema_name])
+        
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({
+                "error": f"No database found for schema '{schema_name}'"
+            }), 404
+            
+        database_id = result[0]
+
+        # Check if table already exists
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM all_tables 
+            WHERE owner = :1 AND table_name = :2
+        """, [schema_name.upper(), table_name.upper()])
+        
+        exists = cursor.fetchone()[0] > 0
+
+        if exists:
+            # Check if table is already in metadata
+            cursor.execute("""
+                SELECT id FROM tables_metadata 
+                WHERE name = :1 AND schema_name = :2 AND database_id = :3
+            """, [table_name, schema_name, database_id])
+            
+            if cursor.fetchone():
+                return jsonify({
+                    "message": f"Table {schema_name}.{table_name} already registered."
+                }), 200
+
+            # Add to metadata if not present
+            table_id_var = cursor.var(oracledb.NUMBER)
+            cursor.execute("""
+                INSERT INTO tables_metadata 
+                (name, schema_name, database_id, created_at) 
+                VALUES (:1, :2, :3, SYSTIMESTAMP)
+                RETURNING id INTO :4
+            """, [table_name, schema_name, database_id, table_id_var])
+            
+            conn.commit()
+            return jsonify({
+                "message": f"Table {schema_name}.{table_name} registered in metadata."
+            }), 201
+
+        # Create new table
+        col_defs = []
+        pk_col = None
+        for col in columns:
+            line = f"{col['name']} {col['type']}"
+            if col.get("default"):
+                line += f" DEFAULT {col['default']}"
+            if col.get("references"):
+                line += f" REFERENCES {schema_name}.{col['references']}"
+            col_defs.append(line)
+            if col.get("primary"):
+                pk_col = col['name']
+
+        if pk_col:
+            col_defs.append(f"CONSTRAINT {table_name}_pk PRIMARY KEY ({pk_col})")
+
+        # Add created_at column
+        col_defs.append("created_at TIMESTAMP DEFAULT SYSTIMESTAMP")
+
+        create_sql = f'CREATE TABLE "{schema_name}"."{table_name}" (\n  ' + ",\n  ".join(col_defs) + "\n)"
+        cursor.execute(create_sql)
+
+        # Insert into metadata
+        table_id_var = cursor.var(oracledb.NUMBER)
+        cursor.execute("""
+            INSERT INTO tables_metadata 
+            (name, schema_name, database_id, created_at) 
+            VALUES (:1, :2, :3, SYSTIMESTAMP)
+            RETURNING id INTO :4
+        """, [table_name, schema_name, database_id, table_id_var])
+
+        table_id = table_id_var.getvalue()
+        conn.commit()
+
+        return jsonify({
+            "message": f"Table {schema_name}.{table_name} created and registered.",
+            "id": table_id
+        }), 201
+
+    except oracledb.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database integrity error: {e}")
+        return jsonify({
+            "error": f"Database constraint violated: {str(e)}"
+        }), 409
+    except oracledb.Error as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database error: {e}")
+        return jsonify({
+            "error": f"Database error: {str(e)}"
+        }), 500
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Unexpected error: {e}")
+        return jsonify({
+            "error": str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 # # table attributes
 # @app.route('/api/tables/<int:table_id>/attributes', methods=['GET'])
 # def get_table_attributes(table_id):
@@ -992,45 +1417,82 @@ def createER():
 #         return jsonify({"error": str(e)}), 500
 
 # # ------------------- 5. View Hierarchy -------------------
-# @app.route("/api/hierarchy", methods=["GET"])
-# def get_hierarchy():
-#     try:
-#         cursor.execute("""
-#             SELECT l.id AS lob_id, l.name AS lob_name,
-#                    sa.id AS subject_area_id, sa.name AS subject_area_name,
-#                    db.id AS db_id, db.name AS db_name,
-#                    t.id AS table_id, t.name AS table_name
-#             FROM lobs l
-#             LEFT JOIN subject_areas sa ON sa.lob_id = l.id
-#             LEFT JOIN subject_area_logical_database sald ON sald.subject_area_id = sa.id
-#             LEFT JOIN logical_databases db ON db.id = sald.logical_database_id
-#             LEFT JOIN tables_metadata t ON t.schema_name = db.name
-#             ORDER BY l.id, sa.id, db.id, t.id;
-#         """)
+@app.route("/api/hierarchy", methods=["GET"])
+def get_hierarchy():
+    """Get complete hierarchy of LOBs, Subject Areas, Databases, and Tables"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-#         rows = cursor.fetchall()
-#         hierarchy = {}
+        cursor.execute("""
+            SELECT 
+                l.id AS lob_id, 
+                l.name AS lob_name,
+                sa.id AS subject_area_id, 
+                sa.name AS subject_area_name,
+                db.id AS db_id, 
+                db.name AS db_name,
+                t.id AS table_id, 
+                t.name AS table_name
+            FROM lobs l
+            LEFT JOIN subject_areas sa ON sa.lob_id = l.id
+            LEFT JOIN subject_area_logical_database sald ON sald.subject_area_id = sa.id
+            LEFT JOIN logical_databases db ON db.id = sald.logical_database_id
+            LEFT JOIN tables_metadata t ON t.database_id = db.id
+            ORDER BY l.id, sa.id, db.id, t.id
+        """)
 
-#         for row in rows:
-#             lob_id, lob_name, sa_id, sa_name, db_id, db_name, table_id, table_name = row
+        rows = cursor.fetchall()
+        hierarchy = {}
 
-#             if lob_id not in hierarchy:
-#                 hierarchy[lob_id] = {"name": lob_name, "subject_areas": {}}
+        for row in rows:
+            lob_id, lob_name, sa_id, sa_name, db_id, db_name, table_id, table_name = row
 
-#             if sa_id and sa_id not in hierarchy[lob_id]["subject_areas"]:
-#                 hierarchy[lob_id]["subject_areas"][sa_id] = {"name": sa_name, "databases": {}}
+            # Initialize LOB if not exists
+            if lob_id not in hierarchy:
+                hierarchy[lob_id] = {
+                    "name": lob_name,
+                    "subject_areas": {}
+                }
 
-#             if db_id and db_id not in hierarchy[lob_id]["subject_areas"][sa_id]["databases"]:
-#                 hierarchy[lob_id]["subject_areas"][sa_id]["databases"][db_id] = {"name": db_name, "tables": {}}
+            # Initialize Subject Area if exists and not already added
+            if sa_id and sa_id not in hierarchy[lob_id]["subject_areas"]:
+                hierarchy[lob_id]["subject_areas"][sa_id] = {
+                    "name": sa_name,
+                    "databases": {}
+                }
 
-#             if table_id:
-#                 hierarchy[lob_id]["subject_areas"][sa_id]["databases"][db_id]["tables"][table_id] = table_name
+            # Initialize Database if exists and not already added
+            if sa_id and db_id and db_id not in hierarchy[lob_id]["subject_areas"][sa_id]["databases"]:
+                hierarchy[lob_id]["subject_areas"][sa_id]["databases"][db_id] = {
+                    "name": db_name,
+                    "tables": {}
+                }
 
-#         return jsonify(hierarchy)
+            # Add table if exists
+            if sa_id and db_id and table_id:
+                hierarchy[lob_id]["subject_areas"][sa_id]["databases"][db_id]["tables"][table_id] = table_name
 
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+        logger.info(f"Retrieved hierarchy with {len(hierarchy)} LOBs")
+        return jsonify(hierarchy)
 
+    except oracledb.Error as e:
+        logger.error(f"Database error in get_hierarchy: {e}")
+        return jsonify({
+            "error": f"Database error: {str(e)}"
+        }), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in get_hierarchy: {e}")
+        return jsonify({
+            "error": f"An error occurred: {str(e)}"
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # ER Relationships
 @app.route('/api/er_relationships', methods=['POST'])
@@ -1162,7 +1624,6 @@ def get_all_er_relationships_inERdiag(er_entity_id):
             cursor.close()
         if conn:
             conn.close()
-
 @app.route('/api/er_relationships/<string:database_name>', methods=['GET'])
 def get_all_er_relationships_inDB(database_name):
     """Retrieves all ER Relationships for a specific database."""
@@ -1171,18 +1632,40 @@ def get_all_er_relationships_inDB(database_name):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # First verify if database exists
+        cursor.execute("""
+            SELECT id FROM logical_databases 
+            WHERE UPPER(name) = UPPER(:1)
+        """, [database_name])
+        
+        if not cursor.fetchone():
+            return jsonify({
+                "success": False,
+                "error": f"Database '{database_name}' not found",
+                "relationships": []
+            }), 404
+
+        # Get relationships
         cursor.execute("""
             SELECT 
-                er.id, er.from_table_id, er.from_column,
-                er.to_table_id, er.to_column, er.cardinality,
-                er.relationship_type, er.created_at, er.er_entity_id,
+                er.id, 
+                er.from_table_id, 
+                er.from_column,
+                er.to_table_id, 
+                er.to_column, 
+                er.cardinality,
+                er.relationship_type, 
+                er.created_at, 
+                er.er_entity_id,
                 tm_from.name as from_table_name,
                 tm_to.name as to_table_name
             FROM er_relationships er
             JOIN tables_metadata tm_from ON er.from_table_id = tm_from.id
             JOIN tables_metadata tm_to ON er.to_table_id = tm_to.id
-            WHERE tm_from.schema_name = :1
-               OR tm_to.schema_name = :1
+            JOIN logical_databases db ON tm_from.database_id = db.id 
+                OR tm_to.database_id = db.id
+            WHERE UPPER(db.name) = UPPER(:1)
         """, [database_name])
         
         columns = [desc[0].lower() for desc in cursor.description]
@@ -1193,20 +1676,35 @@ def get_all_er_relationships_inDB(database_name):
             relationship = dict(zip(columns, row))
             if relationship['created_at']:
                 relationship['created_at'] = relationship['created_at'].isoformat()
-            relationship['database_name'] = database_name
             relationship['display'] = f"{relationship['from_table_name']}.{relationship['from_column']} → {relationship['to_table_name']}.{relationship['to_column']}"
             relationships.append(relationship)
             
-        return jsonify(relationships), 200
+        return jsonify({
+            "success": True,
+            "database_name": database_name,
+            "relationships": relationships
+        }), 200
 
+    except oracledb.Error as e:
+        logger.error(f"Database error getting relationships for {database_name}: {e}")
+        return jsonify({
+            "success": False,
+            "error": f"Database error: {str(e)}",
+            "relationships": []
+        }), 500
     except Exception as e:
-        logger.error(f"Error getting ER relationships for database {database_name}: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Unexpected error getting relationships for {database_name}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "relationships": []
+        }), 500
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
 @app.route('/api/er_relationships/<string:database_name>/<int:table_id>', methods=['GET'])
 def get_all_er_relationships_inDB_tableid(database_name, table_id):
     """Get all ER relationships for a specific table in a database"""
@@ -1308,7 +1806,7 @@ def update_er_relationship(rel_id):
         params = []
         bind_names = []
 
-        # Build dynamic update query
+        # Build dynamic update query with Oracle bind variables
         if 'from_table_id' in data:
             updates.append("from_table_id = :next_bind")
             params.append(data['from_table_id'])
@@ -1344,13 +1842,10 @@ def update_er_relationship(rel_id):
         if not updates:
             return jsonify({'error': 'No fields provided for update'}), 400
 
-        # Add rel_id to params
-        params.append(rel_id)
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Execute update
+        # Execute update with RETURNING clause
         update_sql = f"""
             UPDATE er_relationships 
             SET {', '.join(updates)}
@@ -1359,7 +1854,7 @@ def update_er_relationship(rel_id):
         """
         
         return_id_var = cursor.var(oracledb.NUMBER)
-        bind_values = dict(zip(bind_names, params[:-1]))
+        bind_values = dict(zip(bind_names, params))
         bind_values['id'] = rel_id
         bind_values['return_id'] = return_id_var
         
@@ -1367,15 +1862,35 @@ def update_er_relationship(rel_id):
         
         if return_id_var.getvalue():
             conn.commit()
-            return jsonify({'message': f'ER Relationship with ID {rel_id} updated successfully'}), 200
+            return jsonify({
+                'message': f'ER Relationship with ID {rel_id} updated successfully'
+            }), 200
         else:
-            return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
+            return jsonify({
+                'error': f'ER Relationship with ID {rel_id} not found'
+            }), 404
 
+    except oracledb.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database integrity error: {e}")
+        return jsonify({
+            'error': f"Database constraint violated: {str(e)}"
+        }), 409
+    except oracledb.Error as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database error: {e}")
+        return jsonify({
+            'error': f"Database error: {str(e)}"
+        }), 500
     except Exception as e:
         if conn:
             conn.rollback()
-        logger.error(f"Error updating ER relationship {rel_id}: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Unexpected error: {e}")
+        return jsonify({
+            'error': str(e)
+        }), 500
     finally:
         if cursor:
             cursor.close()
@@ -1400,15 +1915,37 @@ def delete_er_relationship(rel_id):
         
         if deleted_id_var.getvalue():
             conn.commit()
-            return jsonify({'message': f'ER Relationship with ID {rel_id} deleted successfully'}), 200
+            logger.info(f"Successfully deleted ER relationship with ID {rel_id}")
+            return jsonify({
+                'message': f'ER Relationship with ID {rel_id} deleted successfully'
+            }), 200
         else:
-            return jsonify({'error': f'ER Relationship with ID {rel_id} not found'}), 404
+            logger.warning(f"ER Relationship with ID {rel_id} not found")
+            return jsonify({
+                'error': f'ER Relationship with ID {rel_id} not found'
+            }), 404
 
+    except oracledb.IntegrityError as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database integrity error: {e}")
+        return jsonify({
+            'error': f"Database constraint violated: {str(e)}"
+        }), 409
+    except oracledb.Error as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Database error: {e}")
+        return jsonify({
+            'error': f"Database error: {str(e)}"
+        }), 500
     except Exception as e:
         if conn:
             conn.rollback()
-        logger.error(f"Error deleting ER relationship {rel_id}: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Unexpected error: {e}")
+        return jsonify({
+            'error': 'Internal server error'
+        }), 500
     finally:
         if cursor:
             cursor.close()
@@ -1901,37 +2438,52 @@ def delete_table(table_id):
 #         print(f"Error downloading CSV: {str(e)}")  # For debugging
 #         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
 
-# @app.route("/api/logical-databases", methods=["GET"])
-# def get_logical_databases():
-#     """
-#     Return all logical databases with their LOB and Subject Area info.
-#     Used for import dropdown in frontend.
-#     """
-#     try:
-#         cursor.execute("""
-#             SELECT 
-#                 db.id, db.name, 
-#                 l.name AS lob_name, 
-#                 sa.name AS subject_area_name
-#             FROM logical_databases db
-#             JOIN subject_area_logical_database sald ON db.id = sald.logical_database_id
-#             JOIN subject_areas sa ON sald.subject_area_id = sa.id
-#             JOIN lobs l ON sa.lob_id = l.id
-#             ORDER BY db.id
-#         """)
-#         rows = cursor.fetchall()
-#         result = [
-#             {
-#                 "id": row[0],
-#                 "name": row[1],
-#                 "lob_name": row[2],
-#                 "subject_area_name": row[3]
-#             }
-#             for row in rows
-#         ]
-#         return jsonify(result), 200
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+#@app.route("/api/logical-databases", methods=["GET"])
+def get_logical_databases():
+    """
+    Return all logical databases with their LOB and Subject Area info.
+    Used for import dropdown in frontend.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                db.id, 
+                db.name, 
+                l.name AS lob_name, 
+                sa.name AS subject_area_name
+            FROM logical_databases db
+            JOIN subject_area_logical_database sald ON db.id = sald.logical_database_id
+            JOIN subject_areas sa ON sald.subject_area_id = sa.id
+            JOIN lobs l ON sa.lob_id = l.id
+            ORDER BY db.id
+        """)
+        
+        columns = ['id', 'name', 'lob_name', 'subject_area_name']
+        rows = cursor.fetchall()
+        result = [dict(zip(columns, row)) for row in rows]
+        
+        return jsonify(result), 200
+        
+    except oracledb.Error as e:
+        logger.error(f"Database error in get_logical_databases: {e}")
+        return jsonify({
+            "error": f"Database error: {str(e)}"
+        }), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in get_logical_databases: {e}")
+        return jsonify({
+            "error": str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 if __name__ == "__main__":
     try:

@@ -143,13 +143,16 @@ function ErDiagram({
   const createNodesAndEdges = useCallback(
     async (relationships = []) => {
       // Add default empty array
-      if (!relationships || relationships.length === 0) {
+      if (!relationships || !Array.isArray(relationships?.relationships)) {
         return { nodes: [], edges: [] };
       }
 
+      const relationshipArray = relationships.relationships || [];
+
+      // Use relationshipArray instead of relationships
       const tableIds = Array.from(
         new Set(
-          relationships.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
+          relationshipArray.flatMap((rel) => [rel.from_table_id, rel.to_table_id])
         )
       );
 
@@ -159,19 +162,19 @@ function ErDiagram({
         const info = await fetchTableInfo(tableId);
         tableInfos.push(info);
       }
+
       const tableMap = {};
       tableIds.forEach((tableId, index) => {
         tableMap[tableId] = tableInfos[index];
       });
 
-      // Group relationships by source-target pair
+      // Use relationshipArray here as well
       const edgeGroups = {};
-      relationships.forEach((rel) => {
+      relationshipArray.forEach((rel) => {
         const key = `${rel.from_table_id}-${rel.to_table_id}`;
         if (!edgeGroups[key]) {
           edgeGroups[key] = [];
         }
-        console.log(edgeGroups[key]);
 
         const exists = edgeGroups[key].some(
           (r) =>
