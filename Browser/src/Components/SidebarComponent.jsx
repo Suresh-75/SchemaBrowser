@@ -81,15 +81,18 @@ const SidebarComponent = ({
       const tablesResponse = await endpoints.getTablesByDatabase(
         selectedPath.database
       );
+      console.log("Tables Response:", tablesResponse);
       setData(tablesResponse.data);
 
       const relationshipsResponse = await endpoints.getRelationships(
         selectedPath.database
       );
+      console.log("Relationships Response:", relationshipsResponse);
       const relsData = relationshipsResponse.data;
-      // console.log("hereree");
-      // console.log(relsData);
-      const processedRels = relsData.map((rel) => ({
+      console.log("hereree");
+      const relationships = relsData?.relationships || [];
+      console.log(relsData);
+      const processedRels = relsData.relationships.map((rel) => ({
         id: rel.id,
         display: rel.display,
         from_column: rel.from_column,

@@ -1,16 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Save, X, Database } from "lucide-react";
 import endpoints from "../api";
 const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [entityName, setEntityName] = useState("");
-  const [schemaName, setSchemaName] = useState(
-    selectedPath?.database || "public"
-  );
-  const [databaseId, setDatabaseId] = useState(""); // Will need to be set based on selectedPath
+  const [schemaName, setSchemaName] = useState("");
+  const [databaseId, setDatabaseId] = useState(null);
   const [fields, setFields] = useState([
     {
-      name: "id",
+      name: "ID",
       type: "INTEGER",
       isPrimary: true,
       isRequired: true,
@@ -21,19 +19,36 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Update schema name when selectedPath changes
+useEffect(() => {
+  console.log('selectedPath:', selectedPath);
+  if (selectedPath?.database) {
+    setSchemaName(selectedPath.database.toUpperCase());
+    // Fetch database ID based on database name
+    fetch(`http://localhost:5000/api/logical-databases/${selectedPath.database.toUpperCase()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.id) {
+          setDatabaseId(data.id);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching database ID:', err);
+        setError('Failed to get database information');
+      });
+  }
+}, [selectedPath]);
+
+
   const dataTypes = [
-    "STRING",
     "INTEGER",
-    "BIGINT",
-    "FLOAT",
-    "DOUBLE",
-    "BOOLEAN",
+    "VARCHAR(255)",
     "DATE",
     "TIMESTAMP",
     "DECIMAL(10,2)",
-    "BINARY",
-    "VARCHAR(255)",
-    "TEXT",
+    "FLOAT",
+    "BOOLEAN",
+    "TEXT"
   ];
 
   const addField = () => {
@@ -85,10 +100,14 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
       auto_increment: field.autoIncrement,
     };
   };
-
   const handleSubmit = async () => {
     if (!entityName.trim()) {
       setError("Entity name is required");
+      return;
+    }
+    // console.log('Selected Path:', selectedPath);
+    if (!selectedPath?.database) {
+      setError("Please select a database first");
       return;
     }
 
@@ -104,31 +123,48 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
     setSuccess("");
 
     try {
+      const mappedFields = fields.map(field => {
+        const oracleType = mapToOracleType(field.type);
+        return {
+          name: field.name.toUpperCase(),
+          type: oracleType,
+          primary: field.isPrimary,
+          required: field.isRequired,
+          auto_increment: field.autoIncrement,
+          default_value: field.autoIncrement ? `${entityName.toUpperCase()}_SEQ.NEXTVAL` : null
+        };
+      });
+
       const payload = {
-        table_name: entityName,
-        database_id: databaseId,
+        table_name: entityName.toUpperCase(),
         schema_name: schemaName,
-        columns: fields.map(mapFieldToBackend),
+        database_id: parseInt(databaseId, 10),
+        columns: mappedFields
       };
 
-      // Use the imported endpoint (axios)
-      const response = await endpoints.createTable(payload);
-      const result = response.data;
-      console.log(result);
-      if (response.status === 200 || response.status === 201) {
-        setSuccess(
-          result.message || `Table "${entityName}" created successfully!`
-        );
-        // Minimize the component after successful creation
+      console.log('Sending payload:', payload);
+
+      const response = await fetch("http://localhost:5000/api/tables", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSuccess(`Table "${entityName.toUpperCase()}" created successfully!`);
         setTimeout(() => {
           setIsOpen(false);
-          // Reset form after minimizing
           setTimeout(() => {
             resetForm();
+            setCreate(false);
           }, 500);
         }, 1500);
       } else {
-        setError(result.message || "Failed to create table");
+        setError(result.error || result.message || "Failed to create table");
       }
     } catch (err) {
       setError(
@@ -141,13 +177,26 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
     }
   };
 
+  const mapToOracleType = (type) => {
+    const typeMap = {
+      'INTEGER': 'NUMBER',
+      'VARCHAR(255)': 'VARCHAR2(255)',
+      'TEXT': 'CLOB',
+      'BOOLEAN': 'NUMBER(1)',
+      'FLOAT': 'FLOAT',
+      'DECIMAL(10,2)': 'NUMBER(10,2)',
+      'DATE': 'DATE',
+      'TIMESTAMP': 'TIMESTAMP'
+    };
+    return typeMap[type] || type;
+  };
+
   const resetForm = () => {
     setEntityName("");
-    setSchemaName("public");
-    setDatabaseId("");
+    setSchemaName(selectedPath?.database?.toUpperCase() || "");
     setFields([
       {
-        name: "id",
+        name: "ID",
         type: "INTEGER",
         isPrimary: true,
         isRequired: true,
@@ -160,14 +209,11 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
 
   const handleClose = () => {
     setIsOpen(false);
-
-    if (onClose) {
-      onClose();
-    }
+    setCreate(false);
   };
 
   if (!isOpen) {
-    setCreate("");
+    return null;
   }
 
   return (

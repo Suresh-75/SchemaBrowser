@@ -242,7 +242,8 @@ export default function ErEntities({
     (async () => {
       try {
         const { data } = await endpoints.getErEntities(selectedPath.lob);
-        if (!ignore) setEntities(data?.data ?? []);
+        console.log("ER Entities Data:", data);
+        setEntities(data?.data ?? []);
       } catch (err) {
         if (!ignore) setError(err);
       } finally {
@@ -354,6 +355,12 @@ export default function ErEntities({
                   Add Relationship
                 </button>
               </div>
+              {/* <div className="flex items-center gap-3 ">
+                    <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      {entity.name}
+                    </span>
+                  </div> */}
 
               {rels.length > 0 ? (
                 rels.map((relItem) => (
@@ -566,18 +573,18 @@ export default function ErEntities({
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <Database className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" />
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
-                  No entities found
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
                   No entities found for <strong>{selectedPath.lob}</strong>
-                </p>
-                <button
+                </h3>
+                {/* <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  No entities found for <strong>{selectedPath.lob}</strong>
+                </p> */}
+                {/* <button
                   onClick={() => setCreate("erdiagram")}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Create your first entity
-                </button>
+                </button> */}
               </div>
             )}
 
@@ -598,7 +605,7 @@ export default function ErEntities({
                       <div className="flex items-center gap-3 ">
                         <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
                         <span className="font-medium text-gray-800 dark:text-gray-200">
-                          {entity.entity_name}
+                          {entity.name}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
