@@ -424,13 +424,15 @@ def profile_table():
 # ------------------- 1. Create LOB -------------------
 @app.route("/api/lobs", methods=["POST"])
 def create_lob():
-    data = request.json
-    name = data.get("name")
-
-    if not name:
-        return jsonify({"error": "LOB name is required"}), 400
-
+    conn = None
+    cursor = None
     try:
+        data = request.json
+        name = data.get("name")
+
+        if not name:
+            return jsonify({"error": "LOB name is required"}), 400
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -442,22 +444,36 @@ def create_lob():
         if cursor.fetchone():
             return jsonify({"error": "LOB with this name already exists"}), 409
 
-        # Insert new LOB
+        # Create output variable for the ID
+        lob_id_var = cursor.var(oracledb.NUMBER)
+
+        # Insert new LOB with RETURNING clause
         cursor.execute("""
             INSERT INTO lobs (name, created_at) 
             VALUES (:1, SYSTIMESTAMP)
             RETURNING id INTO :2
-        """, [name, cursor.var(oracledb.NUMBER)])
+        """, [name, lob_id_var])
         
-        lob_id = cursor.var.getvalue()
+        # Get the returned ID value
+        lob_id = lob_id_var.getvalue()[0]
         conn.commit()
-        return jsonify({"message": "LOB created", "id": lob_id}), 201
+
+        return jsonify({
+            "message": "LOB created successfully",
+            "id": lob_id,
+            "name": name
+        }), 201
 
     except oracledb.IntegrityError:
-        conn.rollback()
-        return jsonify({"error": "Database constraint failed: LOB name must be unique"}), 409
+        if conn:
+            conn.rollback()
+        return jsonify({
+            "error": "Database constraint failed: LOB name must be unique"
+        }), 409
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
+        logger.error(f"Error creating LOB: {str(e)}")
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor:
@@ -465,59 +481,65 @@ def create_lob():
         if conn:
             conn.close()
 
-
 # ------------------- 2. Create Subject Area -------------------
 @app.route("/api/subject-areas", methods=["POST"])
 def create_subject_area():
-    data = request.json
-    name = data["name"]
-    lob_name = data["lob_name"]
-
+    conn = None
+    cursor = None
     try:
+        data = request.json
+        name = data['name']
+        lob_name = data['lob_name']
+        
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Find LOB ID
-        cursor.execute(
-            "SELECT id FROM lobs WHERE name = :1",
-            [lob_name]
-        )
-        lob_result = cursor.fetchone()
-        if not lob_result:
-            return jsonify({"message": "LOB not found"}), 404
-
-        lob_id = lob_result[0]
-
-        # Check for existing subject area
-        cursor.execute(
-            "SELECT id FROM subject_areas WHERE name = :1 AND lob_id = :2",
-            [name, lob_id]
-        )
-        if cursor.fetchone():
-            return jsonify({"message": "Subject Area already exists under this LOB."}), 400
-
-        # Insert new subject area
+        # First verify if LOB exists
         cursor.execute("""
-            INSERT INTO subject_areas (name, lob_id, created_at) 
+            SELECT id FROM lobs
+            WHERE name = :1
+        """, [lob_name])
+        
+        lob_row = cursor.fetchone()
+        if not lob_row:
+            return jsonify({
+                "error": f"LOB '{lob_name}' not found"
+            }), 404
+
+        lob_id = lob_row[0]
+
+        # Check if subject area already exists
+        cursor.execute("""
+            SELECT COUNT(*) FROM subject_areas 
+            WHERE name = :1 AND lob_id = :2
+        """, [name, lob_id])
+        
+        if cursor.fetchone()[0] > 0:
+            return jsonify({
+                "error": f"Subject Area '{name}' already exists in this LOB"
+            }), 409
+
+        # Create new subject area
+        subject_id = cursor.var(oracledb.NUMBER)  # Create an output variable
+        cursor.execute("""
+            INSERT INTO subject_areas (name, lob_id, created_at)
             VALUES (:1, :2, SYSTIMESTAMP)
             RETURNING id INTO :3
-        """, [name, lob_id, cursor.var(oracledb.NUMBER)])
+        """, [name, lob_id, subject_id])
         
-        subject_id = cursor.var.getvalue()
         conn.commit()
-        
+
         return jsonify({
-            "message": "Subject Area created", 
-            "id": subject_id
+            "message": "Subject Area created successfully",
+            "id": subject_id.getvalue()[0],  # Get the first value from the output variable
+            "name": name,
+            "lob_name": lob_name
         }), 201
 
-    except oracledb.IntegrityError as e:
-        if conn:
-            conn.rollback()
-        return jsonify({"error": str(e)}), 409
     except Exception as e:
         if conn:
             conn.rollback()
+        logger.error(f"Error creating subject area: {str(e)}")
         return jsonify({"error": str(e)}), 500
     finally:
         if cursor:
@@ -531,9 +553,14 @@ def create_logical_db():
     cursor = None
     try:
         data = request.json
-        lob_name = data["lob_name"]
-        subject_name = data["subject_name"]
-        db_name = data["name"]
+        lob_name = data.get("lob_name")
+        subject_name = data.get("subject_name")
+        db_name = data.get("name")
+
+        if not all([lob_name, subject_name, db_name]):
+            return jsonify({
+                "error": "Missing required fields"
+            }), 400
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -548,11 +575,24 @@ def create_logical_db():
         
         result = cursor.fetchone()
         if not result:
-            return jsonify({"error": "Subject Area not found for given LOB"}), 404
+            return jsonify({
+                "error": f"Subject Area '{subject_name}' not found in LOB '{lob_name}'"
+            }), 404
         
         subject_area_id = result[0]
 
-        # Insert new logical database with RETURNING clause
+        # Check if database name already exists
+        cursor.execute("""
+            SELECT id FROM logical_databases 
+            WHERE name = :1
+        """, [db_name])
+        
+        if cursor.fetchone():
+            return jsonify({
+                "error": f"Database '{db_name}' already exists"
+            }), 409
+
+        # Create new logical database
         db_id_var = cursor.var(oracledb.NUMBER)
         cursor.execute("""
             INSERT INTO logical_databases (name, created_at) 
@@ -560,21 +600,24 @@ def create_logical_db():
             RETURNING id INTO :2
         """, [db_name, db_id_var])
         
-        new_db_id = db_id_var.getvalue()
+        new_db_id = db_id_var.getvalue()[0]
 
         # Create mapping in subject_area_logical_database
         cursor.execute("""
             INSERT INTO subject_area_logical_database 
-            (subject_area_id, logical_database_id, created_at) 
-            VALUES (:1, :2, SYSTIMESTAMP)
+            (subject_area_id, logical_database_id) 
+            VALUES (:1, :2)
         """, [subject_area_id, new_db_id])
 
         conn.commit()
 
-        # Return same format as before
         return jsonify({
-            "message": "Logical DB created", 
-            "id": new_db_id
+            "success": True,
+            "message": "Logical Database created successfully", 
+            "id": new_db_id,
+            "name": db_name,
+            "lob_name": lob_name,
+            "subject_name": subject_name
         }), 201
 
     except oracledb.IntegrityError as e:
@@ -582,6 +625,7 @@ def create_logical_db():
             conn.rollback()
         logger.error(f"Database integrity error: {e}")
         return jsonify({
+            "success": False,
             "error": f"Database constraint violated: {str(e)}"
         }), 409
     except Exception as e:
@@ -589,7 +633,8 @@ def create_logical_db():
             conn.rollback()
         logger.error(f"Error creating logical database: {e}")
         return jsonify({
-            "error": f"Failed to create Logical DB: {str(e)}"
+            "success": False,
+            "error": f"Failed to create Logical Database: {str(e)}"
         }), 500
     finally:
         if cursor:
@@ -2184,91 +2229,159 @@ def delete_table(table_id):
             cursor.close()
         if conn:
             conn.close()
-# @app.route("/api/schema-overview/<string:schema_name>", methods=["GET"])
-# def schema_overview(schema_name):
-#     """Return detailed info about a schema (database) and its tables."""
+
+# @app.route("/api/table-overview/<string:table_name>", methods=["GET"])
+# def table_overview(table_name):
+#     conn = None
+#     cursor = None
 #     try:
-#         # Check schema existence
+#         conn = get_db_connection()
+#         cursor = conn.cursor()
+#         table_name_upper = table_name.upper()
+
+#         # 1. Table Metadata
 #         cursor.execute("""
-#             SELECT schema_name
-#             FROM information_schema.schemata
-#             WHERE schema_name = %s
-#         """, (schema_name,))
-#         schema_row = cursor.fetchone()
-#         if not schema_row:
-#             return jsonify({"error": f"Schema '{schema_name}' not found"}), 404
+#             SELECT TABLE_NAME, NUM_ROWS, TABLESPACE_NAME, BLOCKS, EMPTY_BLOCKS, LAST_ANALYZED
+#             FROM USER_TABLES
+#             WHERE TABLE_NAME = :1
+#         """, (table_name_upper,))
+#         table_info = cursor.fetchone()
 
-#         # Get tables, owners, and sizes
+#         if not table_info:
+#             return jsonify({"error": f"Table '{table_name}' not found"}), 404
+
+#         table_data = {
+#             "table_name": table_info[0],
+#             "num_rows": table_info[1],
+#             "tablespace": table_info[2],
+#             "blocks": table_info[3],
+#             "empty_blocks": table_info[4],
+#             "last_analyzed": str(table_info[5])
+#         }
+
+#         # 2. Column Metadata
 #         cursor.execute("""
-#             SELECT
-#                 c.relname AS table_name,
-#                 r.rolname AS owner,
-#                 COALESCE(pg_total_relation_size(c.oid), 0) AS total_bytes
-#             FROM pg_class c
-#             JOIN pg_roles r ON c.relowner = r.oid
-#             JOIN pg_namespace n ON c.relnamespace = n.oid
-#             WHERE c.relkind = 'r' AND n.nspname = %s
-#             ORDER BY c.relname
-#         """, (schema_name,))
-#         table_rows = cursor.fetchall()
+#             SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH, DATA_PRECISION, DATA_SCALE, NULLABLE, COLUMN_ID
+#             FROM USER_TAB_COLUMNS
+#             WHERE TABLE_NAME = :1
+#             ORDER BY COLUMN_ID
+#         """, (table_name_upper,))
+#         columns = [
+#             {
+#                 "name": col[0],
+#                 "data_type": col[1],
+#                 "length": col[2],
+#                 "precision": col[3],
+#                 "scale": col[4],
+#                 "nullable": col[5],
+#                 "position": col[6]
+#             }
+#             for col in cursor.fetchall()
+#         ]
 
-#         tables = []
-#         for row in table_rows:
-#             table_name, owner, total_bytes = row
-#             # Get row count
+#         # 3. Constraints
+#         cursor.execute("""
+#             SELECT c.CONSTRAINT_NAME, c.CONSTRAINT_TYPE, col.COLUMN_NAME, c.STATUS, c.VALIDATED
+#             FROM USER_CONSTRAINTS c
+#             JOIN USER_CONS_COLUMNS col ON c.CONSTRAINT_NAME = col.CONSTRAINT_NAME
+#             WHERE c.TABLE_NAME = :1
+#         """, (table_name_upper,))
+#         constraints = [
+#             {
+#                 "name": row[0],
+#                 "type": row[1],
+#                 "column": row[2],
+#                 "status": row[3],
+#                 "validated": row[4]
+#             }
+#             for row in cursor.fetchall()
+#         ]
 
-#             try:
-#                 cursor.execute(
-#                     sql.SQL("SELECT COUNT(*) FROM {}.{}").format(
-#                         sql.Identifier(schema_name), sql.Identifier(table_name)
-#                     )
-#                 )
-#                 count = cursor.fetchone()[0]
-#             except Exception:
-#                 count = None
-#             tables.append({
-#                 "table": table_name,
-#                 "owner": owner,
-#                 "row_count": count,
-#                 "size_bytes": total_bytes if total_bytes is not None else 0,
+#         # 4. Indexes
+#         cursor.execute("""
+#             SELECT INDEX_NAME, UNIQUENESS, TABLE_TYPE
+#             FROM USER_INDEXES
+#             WHERE TABLE_NAME = :1
+#         """, (table_name_upper,))
+#         indexes = []
+#         for idx in cursor.fetchall():
+#             index_name, uniqueness, table_type = idx
+#             cursor.execute("""
+#                 SELECT COLUMN_NAME, COLUMN_POSITION, DESCEND
+#                 FROM USER_IND_COLUMNS
+#                 WHERE INDEX_NAME = :1
+#                 ORDER BY COLUMN_POSITION
+#             """, (index_name,))
+#             columns = cursor.fetchall()
+#             indexes.append({
+#                 "index_name": index_name,
+#                 "uniqueness": uniqueness,
+#                 "table_type": table_type,
+#                 "columns": [
+#                     {
+#                         "column_name": c[0],
+#                         "position": c[1],
+#                         "descend": c[2]
+#                     }
+#                     for c in columns
+#                 ]
 #             })
 
-#         # Get total schema size (use COALESCE to avoid NULL)
+#         # 5. Size Info
 #         cursor.execute("""
-#             SELECT
-#                 pg_size_pretty(COALESCE(SUM(pg_total_relation_size(c.oid)),0)) AS total_size_pretty,
-#                 COALESCE(SUM(pg_total_relation_size(c.oid)),0) AS total_size_bytes
-#             FROM pg_class c
-#             JOIN pg_namespace n ON c.relnamespace = n.oid
-#             WHERE n.nspname = %s AND c.relkind = 'r'
-#         """, (schema_name,))
+#             SELECT BYTES/1024 AS SIZE_KB, BLOCKS
+#             FROM USER_SEGMENTS
+#             WHERE SEGMENT_NAME = :1
+#         """, (table_name_upper,))
 #         size_row = cursor.fetchone()
-#         schema_size_pretty = size_row[0] if size_row else "0 bytes"
-#         schema_size_bytes = size_row[1] if size_row else 0
+#         size_kb = size_row[0] if size_row else None
+#         blocks = size_row[1] if size_row else None
 
-#         # Get tablespace (location)
+#         # 6. Triggers
 #         cursor.execute("""
-#             SELECT
-#                 n.nspname AS schema_name,
-#                 COALESCE(ts.spcname, 'pg_default') AS tablespace
-#             FROM pg_namespace n
-#             LEFT JOIN pg_tablespace ts ON nspacl IS NOT NULL AND ts.oid = (SELECT dattablespace FROM pg_database WHERE datname = current_database())
-#             WHERE n.nspname = %s
-#             LIMIT 1
-#         """, (schema_name,))
-#         ts_row = cursor.fetchone()
-#         tablespace = ts_row[1] if ts_row else "pg_default"
+#             SELECT TRIGGER_NAME, TRIGGER_TYPE, TRIGGERING_EVENT, STATUS
+#             FROM USER_TRIGGERS
+#             WHERE TABLE_NAME = :1
+#         """, (table_name_upper,))
+#         triggers = [
+#             {
+#                 "trigger_name": row[0],
+#                 "trigger_type": row[1],
+#                 "event": row[2],
+#                 "status": row[3]
+#             }
+#             for row in cursor.fetchall()
+#         ]
+
+#         # 7. Object Info
+#         cursor.execute("""
+#             SELECT OBJECT_NAME, OBJECT_TYPE, STATUS, CREATED, LAST_DDL_TIME
+#             FROM USER_OBJECTS
+#             WHERE OBJECT_NAME = :1
+#         """, (table_name_upper,))
+#         object_row = cursor.fetchone()
+#         object_info = {
+#             "name": object_row[0],
+#             "type": object_row[1],
+#             "status": object_row[2],
+#             "created": str(object_row[3]),
+#             "last_ddl_time": str(object_row[4])
+#         } if object_row else {}
 
 #         return jsonify({
-#             "schema": schema_name,
-#             "tables": tables,
-#             "table_count": len(tables),
-#             "schema_size_pretty": schema_size_pretty,
-#             "schema_size_bytes": schema_size_bytes,
-#             "tablespace": tablespace
+#             "table": table_data,
+#             "columns": columns,
+#             "constraints": constraints,
+#             "indexes": indexes,
+#             "size_kb": size_kb,
+#             "blocks": blocks,
+#             "triggers": triggers,
+#             "object_info": object_info
 #         })
+
 #     except Exception as e:
 #         return jsonify({"error": str(e)}), 500
+
 
 # @app.route("/api/table-overview/<string:schema>/<string:table>", methods=["GET"])
 # def table_overview(schema, table):
@@ -2385,6 +2498,269 @@ def delete_table(table_id):
 #         })
 #     except Exception as e:
 #         return jsonify({"error": str(e)}), 500
+@app.route("/api/table-overview/<string:table_name>", methods=["GET"])
+def table_overview(table_name):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        table_name_upper = table_name.upper()
+
+        # Basic table metadata
+        cursor.execute("""
+            SELECT TABLE_NAME, NUM_ROWS, TABLESPACE_NAME, 
+                   BLOCKS, EMPTY_BLOCKS, LAST_ANALYZED
+            FROM USER_TABLES 
+            WHERE TABLE_NAME = :1
+        """, [table_name_upper])
+        
+        table_info = cursor.fetchone()
+        if not table_info:
+            return jsonify({"error": f"Table '{table_name}' not found"}), 404
+
+        table_data = {
+            "table_name": table_info[0],
+            "num_rows": table_info[1],
+            "tablespace": table_info[2],
+            "blocks": table_info[3],
+            "empty_blocks": table_info[4],
+            "last_analyzed": str(table_info[5]) if table_info[5] else None
+        }
+
+        # Column metadata
+        cursor.execute("""
+            SELECT 
+                COLUMN_NAME,
+                DATA_TYPE,
+                DATA_LENGTH,
+                DATA_PRECISION,
+                DATA_SCALE,
+                NULLABLE,
+                COLUMN_ID,
+                DATA_DEFAULT
+            FROM USER_TAB_COLUMNS
+            WHERE TABLE_NAME = :1
+            ORDER BY COLUMN_ID
+        """, [table_name_upper])
+        
+        columns = []
+        for col in cursor.fetchall():
+            columns.append({
+                "name": col[0],
+                "data_type": col[1],
+                "length": col[2],
+                "precision": col[3],
+                "scale": col[4],
+                "nullable": col[5],
+                "position": col[6],
+                "default": col[7] if col[7] else None
+            })
+
+        return jsonify({
+            "table": table_data,
+            "columns": columns
+        })
+
+    except Exception as e:
+        logger.error(f"Error in table_overview: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    """Get comprehensive table overview including metadata, columns, constraints, etc."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        table_name_upper = table_name.upper()
+
+        # 1. Table Metadata with Comments
+        cursor.execute("""
+            SELECT t.TABLE_NAME, t.NUM_ROWS, t.TABLESPACE_NAME, 
+                   t.BLOCKS, t.EMPTY_BLOCKS, t.LAST_ANALYZED,
+                   c.COMMENTS AS table_comment
+            FROM USER_TABLES t
+            LEFT JOIN USER_TAB_COMMENTS c ON t.table_name = c.table_name
+            WHERE t.TABLE_NAME = :1
+        """, (table_name_upper,))
+        table_info = cursor.fetchone()
+
+        if not table_info:
+            return jsonify({"error": f"Table '{table_name}' not found"}), 404
+
+        table_data = {
+            "table_name": table_info[0],
+            "num_rows": table_info[1],
+            "tablespace": table_info[2],
+            "blocks": table_info[3],
+            "empty_blocks": table_info[4],
+            "last_analyzed": str(table_info[5]) if table_info[5] else None,
+            "comment": table_info[6]
+        }
+
+        # 2. Enhanced Column Metadata with Comments
+                # 2. Column-level metadata (with comments)
+        cursor.execute("""
+            SELECT
+                c.column_name,
+                c.data_type,
+                c.data_length,
+                c.data_precision,
+                c.data_scale,
+                c.nullable,
+                c.column_id,
+                c.data_default,
+                cm.comments
+            FROM user_tab_columns c
+            LEFT JOIN user_col_comments cm
+                ON c.table_name = cm.table_name AND c.column_name = cm.column_name
+            WHERE c.table_name = :1
+            ORDER BY c.column_id
+        """, (table_name_upper,))
+        
+        columns = [
+            {
+                "name": col[0],
+                "data_type": col[1],
+                "length": col[2],
+                "precision": col[3],
+                "scale": col[4],
+                "nullable": col[5],
+                "position": col[6],
+                "default": col[7],
+                "virtual_column": col[8],
+                "comment": col[9],
+                "char_length": col[10],
+                "char_used": col[11]
+            }
+            for col in cursor.fetchall()
+        ]
+
+        # 3. Constraints
+        cursor.execute("""
+            SELECT c.CONSTRAINT_NAME, c.CONSTRAINT_TYPE, 
+                   col.COLUMN_NAME, c.STATUS, c.VALIDATED,
+                   c.SEARCH_CONDITION
+            FROM USER_CONSTRAINTS c
+            JOIN USER_CONS_COLUMNS col ON c.CONSTRAINT_NAME = col.CONSTRAINT_NAME
+            WHERE c.TABLE_NAME = :1
+        """, (table_name_upper,))
+        constraints = [
+            {
+                "name": row[0],
+                "type": row[1],
+                "column": row[2],
+                "status": row[3],
+                "validated": row[4],
+                "condition": row[5]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        # 4. Indexes with Column Details
+        cursor.execute("""
+            SELECT INDEX_NAME, UNIQUENESS, INDEX_TYPE, COMPRESSION
+            FROM USER_INDEXES
+            WHERE TABLE_NAME = :1
+        """, (table_name_upper,))
+        indexes = []
+        for idx in cursor.fetchall():
+            index_name, uniqueness, index_type, compression = idx
+            cursor.execute("""
+                SELECT COLUMN_NAME, COLUMN_POSITION, DESCEND, COLUMN_EXPRESSION
+                FROM USER_IND_COLUMNS
+                WHERE INDEX_NAME = :1
+                ORDER BY COLUMN_POSITION
+            """, (index_name,))
+            columns = cursor.fetchall()
+            indexes.append({
+                "index_name": index_name,
+                "uniqueness": uniqueness,
+                "type": index_type,
+                "compression": compression,
+                "columns": [
+                    {
+                        "column_name": c[0],
+                        "position": c[1],
+                        "descend": c[2],
+                        "expression": c[3]
+                    }
+                    for c in columns
+                ]
+            })
+
+        # 5. Size Info
+        cursor.execute("""
+            SELECT BYTES/1024 AS SIZE_KB, BLOCKS, INITIAL_EXTENT, NEXT_EXTENT
+            FROM USER_SEGMENTS
+            WHERE SEGMENT_NAME = :1
+        """, (table_name_upper,))
+        size_row = cursor.fetchone()
+        size_info = {
+            "size_kb": size_row[0] if size_row else None,
+            "blocks": size_row[1] if size_row else None,
+            "initial_extent": size_row[2] if size_row else None,
+            "next_extent": size_row[3] if size_row else None
+        }
+
+        # 6. Triggers
+        cursor.execute("""
+            SELECT TRIGGER_NAME, TRIGGER_TYPE, TRIGGERING_EVENT, 
+                   STATUS, TRIGGER_BODY, DESCRIPTION
+            FROM USER_TRIGGERS
+            WHERE TABLE_NAME = :1
+        """, (table_name_upper,))
+        triggers = [
+            {
+                "trigger_name": row[0],
+                "trigger_type": row[1],
+                "event": row[2],
+                "status": row[3],
+                "body": row[4],
+                "description": row[5]
+            }
+            for row in cursor.fetchall()
+        ]
+
+        # 7. Object Info
+        cursor.execute("""
+            SELECT OBJECT_NAME, OBJECT_TYPE, STATUS, 
+                   CREATED, LAST_DDL_TIME, TIMESTAMP
+            FROM USER_OBJECTS
+            WHERE OBJECT_NAME = :1
+        """, (table_name_upper,))
+        object_row = cursor.fetchone()
+        object_info = {
+            "name": object_row[0],
+            "type": object_row[1],
+            "status": object_row[2],
+            "created": str(object_row[3]) if object_row[3] else None,
+            "last_ddl_time": str(object_row[4]) if object_row[4] else None,
+            "timestamp": str(object_row[5]) if object_row[5] else None
+        } if object_row else {}
+
+        return jsonify({
+            "table": table_data,
+            "columns": columns,
+            "constraints": constraints,
+            "indexes": indexes,
+            "size_info": size_info,
+            "triggers": triggers,
+            "object_info": object_info
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting table overview: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 # @app.route("/api/table-csv/<string:schema>/<string:table>", methods=["GET"])
 # def download_table_csv(schema, table):
@@ -2429,6 +2805,83 @@ def delete_table(table_id):
 #     except Exception as e:
 #         print(f"Error downloading CSV: {str(e)}")  # For debugging
 #         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
+@app.route("/api/schema-overview/<string:database_name>", methods=["GET"])
+def schema_overview(database_name):
+    conn=None
+    cursor=None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Step 1: Get the logical database id
+        cursor.execute("""
+            SELECT id FROM logical_databases WHERE name = :1
+        """, [database_name])
+        db_row = cursor.fetchone()
+        if not db_row:
+            return jsonify({"error": f"Logical database '{database_name}' not found"}), 404
+        database_id = db_row[0]
+
+        # Step 2: Get all tables associated with this logical DB
+        cursor.execute("""
+            SELECT id, name, schema_name
+            FROM tables_metadata
+            WHERE database_id = :1
+            ORDER BY name
+        """, [database_id])
+        table_rows = cursor.fetchall()
+
+        tables = []
+        total_size = 0
+
+        for table_id, table_name, schema_name in table_rows:
+            # Step 3: Get row count
+            try:
+                cursor.execute(f'SELECT COUNT(*) FROM "{schema_name}"."{table_name}"')
+                row_count = cursor.fetchone()[0]
+            except Exception:
+                row_count = None
+
+            # Step 4: Get table size in bytes
+            try:
+                cursor.execute("""
+                    SELECT NVL(SUM(bytes), 0)
+                    FROM dba_segments
+                    WHERE segment_type = 'TABLE'
+                    AND owner = :1 AND segment_name = :2
+                """, [schema_name.upper(), table_name.upper()])
+                size_bytes = cursor.fetchone()[0]
+            except Exception:
+                size_bytes = 0
+
+            # Step 5: Get table owner
+            try:
+                cursor.execute("""
+                    SELECT owner
+                    FROM all_tables
+                    WHERE table_name = :1 AND owner = :2
+                """, [table_name.upper(), schema_name.upper()])
+                owner_row = cursor.fetchone()
+                table_owner = owner_row[0] if owner_row else None
+            except Exception:
+                table_owner = None
+
+            total_size += size_bytes
+            tables.append({
+                "table": table_name,
+                "row_count": row_count,
+                "size_bytes": size_bytes,
+                "table_owner": table_owner
+            })
+
+        return jsonify({
+            "database": database_name,
+            "table_count": len(tables),
+            "tables": tables,
+            "database_size_bytes": total_size
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #@app.route("/api/logical-databases", methods=["GET"])
 def get_logical_databases():

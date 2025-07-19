@@ -13,8 +13,7 @@ export const endpoints = {
   deleteTable: (tableId) => api.delete(`/tables/${tableId}`),
 
   // Overview and profiles
-  getTableOverview: (schema, table) =>
-    api.get(`/table-overview/${schema}/${table}`),
+  getTableOverview: (table) => api.get(`/table-overview/${table}`),
   getSchemaOverview: (schema) => api.get(`/schema-overview/${schema}`),
   getTableProfile: (data) => api.post("/profile", data),
   downloadCsv: (schema, table) =>

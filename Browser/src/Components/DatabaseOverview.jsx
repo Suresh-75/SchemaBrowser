@@ -20,11 +20,26 @@ const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedP
         setErr("");
         endpoints.getSchemaOverview(schemaName)
             .then((res) => {
-                setOverview(res.data);
+                // Transform the data to match the expected format
+                const transformedData = {
+                    schema: res.data.database,
+                    table_count: res.data.table_count,
+                    schema_size_bytes: res.data.database_size_bytes,
+                    schema_size_pretty: formatBytes(res.data.database_size_bytes),
+                    tables: res.data.tables.map(table => ({
+                        table: table.table,
+                        table_id: table.table_id,
+                        owner: table.table_owner,
+                        row_count: table.row_count,
+                        size_bytes: table.size_bytes
+                    }))
+                };
+                setOverview(transformedData);
                 setLoading(false);
             })
             .catch((e) => {
-                setErr(e.response?.data?.error || "Failed to fetch schema info");
+                console.error('Database overview error:', e);
+                setErr(e.response?.data?.error || "Failed to fetch database info");
                 setLoading(false);
             });
     }, [schemaName]);
@@ -34,27 +49,25 @@ const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedP
             ...prev,
             table: table.table
         }));
-        setSelectedTable(table.table_id);
+        setSelectedTable(table.table);
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <span className={darkmode ? "text-blue-200" : "text-blue-700"}>
-                    Loading database overview...
-                </span>
-            </div>
-        );
-    }
-    if (err) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <span className={darkmode ? "text-red-300" : "text-red-700"}>
-                    {err}
-                </span>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="flex items-center justify-center h-full">
+            <span className={darkmode ? "text-blue-200" : "text-blue-700"}>
+                Loading database overview...
+            </span>
+        </div>
+    );
+
+    if (err) return (
+        <div className="flex items-center justify-center h-full">
+            <span className={darkmode ? "text-red-300" : "text-red-700"}>
+                {err}
+            </span>
+        </div>
+    );
+
     if (!overview) return null;
 
     return (
@@ -66,13 +79,10 @@ const DatabaseOverview = ({ schemaName, darkmode, setSelectedTable, setSelectedP
                 <span className="font-semibold">Total Tables:</span> {overview.table_count}
             </div>
             <div className="mb-2">
-                <span className="font-semibold">Schema Size:</span>{" "}
+                <span className="font-semibold">Database Size:</span>{" "}
                 <span title={overview.schema_size_bytes ? `${overview.schema_size_bytes} bytes` : ""}>
                     {overview.schema_size_pretty || "N/A"}
                 </span>
-            </div>
-            <div className="mb-4">
-                <span className="font-semibold">Tablespace:</span> {overview.tablespace || "N/A"}
             </div>
             <div>
                 <h3 className="font-semibold mb-2">Tables</h3>
