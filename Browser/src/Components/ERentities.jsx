@@ -550,7 +550,6 @@ export default function ErEntities({
                 </div>
               </div>
             )}
-
             {/* Error State */}
             {error && (
               <div className="p-4">
@@ -567,7 +566,6 @@ export default function ErEntities({
                 </div>
               </div>
             )}
-
             {/* Empty State */}
             {!loading && !error && entities.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">

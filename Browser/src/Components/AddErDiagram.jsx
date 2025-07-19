@@ -35,9 +35,17 @@ export default function AddErDiagram({
   const fetchTables = async () => {
     try {
       setIsLoading(true);
-      setError("");
+      // setError("");
       const response = await axios.get(`http://localhost:5000/api/tables`);
-      setTables(response.data || []);
+      const unique = [];
+      const ts = [];
+      response.data.forEach((table) => {
+        if (unique.includes(table.name) === false) {
+          unique.push(table.name);
+          ts.push(table);
+        }
+      });
+      setTables(ts || []);
     } catch (err) {
       setError("Failed to fetch tables. Please try again.");
       console.error("Error fetching tables:", err);
@@ -124,21 +132,17 @@ export default function AddErDiagram({
         relationshipType,
       };
       const response = await endpoints.createDiagram(relationshipData);
+      console.log(response);
       setEntities((entities) => {
         const newEntity = {
-          created_at: response.data.created_at,
-          id: response.data.id,
+          created_at: response.data.data.created_at,
+          id: response.data.data.er_entity_id,
           lob_name: selectedPath.lob,
-          entity_name: erDiagramName,
+          name: erDiagramName,
         };
         return [...entities, newEntity];
       });
       setSuccess("ER diagram created successfully!");
-      setTimeout(() => {
-        setSuccess("");
-        setCreate("");
-        window.location.reload(); // Reload to update ER Diagrams in the LOB tab
-      }, 1200);
     } catch (err) {
       setError("Failed to create relationship. Please try again.");
       console.error("Error creating relationship:", err);

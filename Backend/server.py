@@ -872,7 +872,7 @@ def create_er_relationship():
 
     try:
         data = request.get_json()
-        logger.info(f"Creating ER relationship with data: {data}")
+        # logger.info(f"Creating ER relationship with data: {data}")
 
         required_fields = ['erDiagramName', 'lob', 'fromTableId', 'fromColumn',
                            'toTableId', 'toColumn', 'cardinality', 'relationshipType']
@@ -901,29 +901,15 @@ def create_er_relationship():
             return jsonify({'success': False, 'error': f'LOB not found: {lob_name}'}), 400
 
         # Get or create ER Entity
-        er_entity_id = get_or_create_er_entity(conn, er_diagram_name, lob_id)
-        logger.info(f"ER Entity ID: {er_entity_id}")
-
-        # Check if relationship already exists - FIXED: Use named parameters instead of list
-        cursor.execute("""
-            SELECT id FROM er_relationships 
-            WHERE from_table_id = :from_table_id AND from_column = :from_column
-            AND to_table_id = :to_table_id AND to_column = :to_column 
-            AND er_entity_id = :er_entity_id
-        """, {
-            'from_table_id': from_table_id,
-            'from_column': from_column,
-            'to_table_id': to_table_id,
-            'to_column': to_column,
-            'er_entity_id': er_entity_id
-        })
+        er_entity_id_result = get_or_create_er_entity(conn, er_diagram_name, lob_id)
         
-        existing_relationship = cursor.fetchone()
-        if existing_relationship:
-            return jsonify({
-                'success': False,
-                'error': 'Relationship already exists between these tables and columns'
-            }), 409
+        # Handle the case where the function returns a list or a single value
+        if isinstance(er_entity_id_result, (list, tuple)) and len(er_entity_id_result) > 0:
+            er_entity_id = er_entity_id_result[0]
+        else:
+            er_entity_id = er_entity_id_result
+            
+        logger.info(f"ER Entity ID: {er_entity_id}")
         
         # Create the relationship
         relationship_id_var = cursor.var(oracledb.NUMBER)
@@ -948,10 +934,9 @@ def create_er_relationship():
             'created_at': created_at_var
         })
 
-        
+        # Now get the actual values from the Oracle variables
         relationship_id = relationship_id_var.getvalue()
-        created_at = created_at_var.getvalue()
-        
+
         # Commit transaction
         conn.commit()
         logger.info(f"Created ER relationship with ID: {relationship_id}")
@@ -969,10 +954,11 @@ def create_er_relationship():
                 'to_column': to_column,
                 'cardinality': cardinality,
                 'relationship_type': relationship_type,
-                # 'created_at': created_at.isoformat() if created_at else None
+                "name": er_diagram_name,
+                "lob_name": lob_name,
+
             }
         }), 201
-        
         
     except oracledb.IntegrityError as e:
         if conn:
@@ -997,6 +983,7 @@ def create_er_relationship():
             cursor.close()
         if conn:
             conn.close()
+
 @app.route("/api/createER", methods=["POST"])
 def createER():
     """Create a new ER relationship with existing entity ID"""
@@ -1053,7 +1040,7 @@ def createER():
         
         cursor.execute("""
             INSERT INTO er_relationships 
-            (from_table_id, from_column, to_table_id, to_column, 
+            (from_table_id, from_column, to_table_id, to_column,
             cardinality, relationship_type, created_at, er_entity_id)
             VALUES (:1, :2, :3, :4, :5, :6, SYSTIMESTAMP, :7)
             RETURNING id, created_at INTO :8, :9

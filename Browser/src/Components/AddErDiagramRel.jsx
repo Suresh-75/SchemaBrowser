@@ -74,7 +74,15 @@ export default function AddErDiagramRel({
       setIsLoading(true);
       // setError("");
       const response = await axios.get(`http://localhost:5000/api/tables`);
-      setTables(response.data || []);
+      const unique = [];
+      const ts = [];
+      response.data.forEach((table) => {
+        if (unique.includes(table.name) === false) {
+          unique.push(table.name);
+          ts.push(table);
+        }
+      });
+      setTables(ts || []);
     } catch (err) {
       showNotification("error", "Failed to fetch tables. Please try again.");
       console.error("Error fetching tables:", err);
