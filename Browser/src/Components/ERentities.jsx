@@ -340,21 +340,23 @@ export default function ErEntities({
                 darkmode ? "custom-scrollbar-dark" : "custom-scrollbar-light"
               }`}
             >
-              <div className="flex justify-start w-full  mb-4">
-                <button
-                  onClick={(e) => handleEditEntity(e, selectedErDiagram)}
-                  className={`flex items-center justify-centers w-full gap-2 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+              {user == "admin" && (
+                <div className="flex justify-start w-full  mb-4">
+                  <button
+                    onClick={(e) => handleEditEntity(e, selectedErDiagram)}
+                    className={`flex items-center justify-centers w-full gap-2 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
                     ${
                       darkmode
                         ? "bg-blue-900/60 text-blue-200 hover:bg-blue-800 hover:text-white"
                         : "bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-900"
                     }`}
-                  title="Add relationship"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Relationship
-                </button>
-              </div>
+                    title="Add relationship"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Relationship
+                  </button>
+                </div>
+              )}
               {/* <div className="flex items-center gap-3 ">
                     <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
                     <span className="font-medium text-gray-800 dark:text-gray-200">
@@ -606,15 +608,17 @@ export default function ErEntities({
                           {entity.name}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => handleDeleteEntity(e, entity.id)}
-                          className="p-1.5 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                          title="Delete entity"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {user == "admin" && (
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => handleDeleteEntity(e, entity.id)}
+                            className="p-1.5 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            title="Delete entity"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -623,16 +627,18 @@ export default function ErEntities({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
-            <button
-              onClick={() => setCreate("erdiagram")}
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
-              disabled={loading}
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
+          {user == "admin" && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
+              <button
+                onClick={() => setCreate("erdiagram")}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                disabled={loading}
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </button>
+            </div>
+          )}
         </div>
       )}
     </>
