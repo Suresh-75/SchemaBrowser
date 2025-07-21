@@ -289,7 +289,7 @@ const SchemaCards = ({
                     </div>
                   </button>
                 )}
-                {isExpanded && (
+                {/* {isExpanded && (
                   <div className=" flex justify-center">
                     <button
                       // onClick={handleDownloadCSV}
@@ -302,7 +302,7 @@ const SchemaCards = ({
                       Download CSV
                     </button>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           ) : (

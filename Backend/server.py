@@ -12,6 +12,9 @@ import time
 import logging
 import hashlib
 import sys
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+
 output_dir = tempfile.mkdtemp()
 
 load_dotenv()
@@ -68,297 +71,268 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False):
     finally:
         db_conn.close()
 
-class AutoProfiler:
-    def __init__(self):
-        self.setup_profiling_tables()
-        
-    def setup_profiling_tables(self):
-        """Create tables to store profiling results and table metadata"""
-        db_conn = get_db_connection()
-        if not db_conn:
-            return
-            
-        try:
-            with db_conn.cursor() as cur:
-                # Table to store profiling results
-                create_profiling_table = """
-                CREATE TABLE IF NOT EXISTS ydata_profiling_results (
-                    id SERIAL PRIMARY KEY,
-                    schema_name VARCHAR(255) NOT NULL,
-                    table_name VARCHAR(255) NOT NULL,
-                    profiling_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    profile_html TEXT,
-                    profile_json TEXT,
-                    row_count INTEGER,
-                    column_count INTEGER,
-                    data_hash VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(schema_name, table_name, profiling_date)
-                );
-                """
-                
-                # Table to track which tables to profile
-                create_tracking_table = """
-                CREATE TABLE IF NOT EXISTS profiling_table_registry (
-                    id SERIAL PRIMARY KEY,
-                    schema_name VARCHAR(255) NOT NULL,
-                    table_name VARCHAR(255) NOT NULL,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    last_profiled TIMESTAMP,
-                    profiling_frequency_days INTEGER DEFAULT 7,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(schema_name, table_name)
-                );
-                """
-                
-                cur.execute(create_profiling_table)
-                cur.execute(create_tracking_table)
-                db_conn.commit()
-                logger.info("Profiling tables created successfully")
-                
-        except Exception as e:
-            logger.error(f"Error creating profiling tables: {e}")
-            db_conn.rollback()
-        finally:
-            db_conn.close()
-    
-    def discover_tables(self):
-        """Discover all tables in the database and add them to registry"""
-        db_conn = get_db_connection()
-        if not db_conn:
-            return []
-            
-        try:
-            with db_conn.cursor() as cur:
-                # Get all user tables (excluding system tables)
-                query = """
-                SELECT table_schema, table_name 
-                FROM information_schema.tables 
-                WHERE table_type = 'BASE TABLE' 
-                AND table_schema NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
-                ORDER BY table_schema, table_name;
-                """
-                
-                cur.execute(query)
-                tables = cur.fetchall()
-                
-                # Add discovered tables to registry if not already present
-                for schema, table in tables:
-                    insert_query = """
-                    INSERT INTO profiling_table_registry (schema_name, table_name)
-                    VALUES (%s, %s)
-                    ON CONFLICT (schema_name, table_name) DO NOTHING;
-                    """
-                    cur.execute(insert_query, (schema, table))
-                
-                db_conn.commit()
-                logger.info(f"Discovered and registered {len(tables)} tables")
-                return tables
-                
-        except Exception as e:
-            logger.error(f"Error discovering tables: {e}")
-            return []
-        finally:
-            db_conn.close()
-    
-    def get_tables_to_profile(self):
-        """Get tables that need profiling based on schedule"""
-        db_conn = get_db_connection()
-        if not db_conn:
-            return []
-            
-        try:
-            with db_conn.cursor() as cur:
-                query = """
-                SELECT schema_name, table_name, profiling_frequency_days
-                FROM profiling_table_registry
-                WHERE is_active = TRUE
-                AND (
-                    last_profiled IS NULL 
-                    OR last_profiled < NOW() - INTERVAL '1 day' * profiling_frequency_days
-                );
-                """
-                
-                cur.execute(query)
-                return cur.fetchall()
-                
-        except Exception as e:
-            logger.error(f"Error getting tables to profile: {e}")
-            return []
-        finally:
-            db_conn.close()
-    
-    def generate_data_hash(self, df):
-        """Generate a hash of the data for change detection"""
-        try:
-            # Create a hash based on shape, dtypes, and sample of data
-            shape_str = str(df.shape)
-            dtypes_str = df.dtypes.to_string()
-            
-            # Use a sample of the data to create hash (first 100 rows)
-            sample_data = df.head(100).to_string()
-            
-            # Combine all info
-            data_info = f"{shape_str}_{dtypes_str}_{sample_data}"
-            
-            # Use SHA256 for consistent hashing
-            return hashlib.sha256(data_info.encode()).hexdigest()[:32]
-        except Exception as e:
-            logger.warning(f"Error generating data hash: {e}")
-            return str(hash(str(df.shape)))
-    
-    def profile_table(self, schema, table):
-        """Profile a specific table and store results"""
-        db_conn = get_db_connection()
-        if not db_conn:
-            return False
-            
-        try:
-            logger.info(f"Starting profiling for {schema}.{table}")
-            
-            # Fetch data from table
-            query = f'SELECT * FROM "{schema}"."{table}"'
-            df = pd.read_sql(query, con=db_conn)
-            
-            if df.empty:
-                logger.warning(f"Table {schema}.{table} is empty")
-                return False
-            
-            # Generate data hash
-            data_hash = self.generate_data_hash(df)
-            
-            # Check if we already have recent profiling with same hash
-            with db_conn.cursor() as cur:
-                check_query = """
-                SELECT id FROM ydata_profiling_results 
-                WHERE schema_name = %s AND table_name = %s 
-                AND data_hash = %s AND profiling_date > NOW() - INTERVAL '1 day'
-                """
-                cur.execute(check_query, (schema, table, data_hash))
-                
-                if cur.fetchone():
-                    logger.info(f"Data unchanged for {schema}.{table}, skipping profiling")
-                    return True
-                
-                # Generate profile
-                profile = ProfileReport(
-                    df, 
-                    title=f"YData Profile - {schema}.{table}",
-                    explorative=True,
-                    minimal=False
-                )
-                
-                profile_html = profile.to_html()
-                profile_json = json.dumps(profile.to_json())
-                
-                # Store results
-                insert_query = """
-                INSERT INTO ydata_profiling_results 
-                (schema_name, table_name, profile_html, profile_json, row_count, column_count, data_hash)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """
-                
-                cur.execute(insert_query, (
-                    schema, table, profile_html, profile_json,
-                    len(df), len(df.columns), data_hash
-                ))
-                
-                # Update last profiled timestamp
-                update_query = """
-                UPDATE profiling_table_registry 
-                SET last_profiled = CURRENT_TIMESTAMP
-                WHERE schema_name = %s AND table_name = %s
-                """
-                cur.execute(update_query, (schema, table))
-                
-                db_conn.commit()
-                logger.info(f"Profiling completed for {schema}.{table}")
-                return True
-                
-        except Exception as e:
-            logger.error(f"Error profiling table {schema}.{table}: {e}")
-            db_conn.rollback()
-            return False
-        finally:
-            db_conn.close()
-    
-    def run_scheduled_profiling(self):
-        """Run profiling for all tables that need it"""
-        logger.info("Starting scheduled profiling job")
-        
-        # Discover new tables
-        self.discover_tables()
-        
-        # Get tables that need profiling
-        tables_to_profile = self.get_tables_to_profile()
-        
-        if not tables_to_profile:
-            logger.info("No tables need profiling at this time")
-            return
-        
-        logger.info(f"Found {len(tables_to_profile)} tables to profile")
-        
-        # Profile each table
-        for schema, table, frequency in tables_to_profile:
-            try:
-                self.profile_table(schema, table)
-                # Add small delay between tables to avoid overwhelming the database
-                time.sleep(2)
-            except Exception as e:
-                logger.error(f"Failed to profile {schema}.{table}: {e}")
-                continue
-        
-        logger.info("Scheduled profiling job completed")
+logger = logging.getLogger(__name__)
 
-# Initialize auto profiler
-auto_profiler = AutoProfiler()
+# class AutoProfiler:
+#     def __init__(self):
+#         self.setup_profiling_tables()
+        
+#     def setup_profiling_tables(self):
+#         db_conn = get_db_connection()
+#         if not db_conn:
+#             return
+            
+#         try:
+#             with db_conn.cursor() as cur:
+#                 # Create profiling results table
+#                 create_profiling_table = """
+#                 BEGIN
+#                     EXECUTE IMMEDIATE '
+#                         CREATE TABLE ydata_profiling_results (
+#                             id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+#                             schema_name VARCHAR2(255) NOT NULL,
+#                             table_name VARCHAR2(255) NOT NULL,
+#                             profiling_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#                             profile_html CLOB,
+#                             profile_json CLOB,
+#                             row_count NUMBER,
+#                             column_count NUMBER,
+#                             data_hash VARCHAR2(255),
+#                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#                             CONSTRAINT uniq_profile UNIQUE (schema_name, table_name, profiling_date)
+#                         )';
+#                 EXCEPTION
+#                     WHEN OTHERS THEN
+#                         IF SQLCODE != -955 THEN RAISE; END IF;
+#                 END;
+#                 """
+
+#                 # Create profiling registry table
+#                 create_tracking_table = """
+#                 BEGIN
+#                     EXECUTE IMMEDIATE '
+#                         CREATE TABLE profiling_table_registry (
+#                             id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+#                             schema_name VARCHAR2(255) NOT NULL,
+#                             table_name VARCHAR2(255) NOT NULL,
+#                             is_active CHAR(1) DEFAULT ''Y'',
+#                             last_profiled TIMESTAMP,
+#                             profiling_frequency_days NUMBER DEFAULT 7,
+#                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#                             CONSTRAINT uniq_registry UNIQUE (schema_name, table_name)
+#                         )';
+#                 EXCEPTION
+#                     WHEN OTHERS THEN
+#                         IF SQLCODE != -955 THEN RAISE; END IF;
+#                 END;
+#                 """
+
+#                 cur.execute(create_profiling_table)
+#                 cur.execute(create_tracking_table)
+#                 db_conn.commit()
+#                 logger.info("Profiling tables created successfully")
+#         except Exception as e:
+#             logger.error(f"Error creating profiling tables: {e}")
+#             db_conn.rollback()
+#         finally:
+#             db_conn.close()
+
+#     def discover_tables(self):
+#         db_conn = get_db_connection()
+#         if not db_conn:
+#             return []
+#         try:
+#             with db_conn.cursor() as cur:
+#                 query = """
+#                 SELECT owner, table_name
+#                 FROM all_tables
+#                 WHERE owner NOT IN ('SYS', 'SYSTEM')
+#                 ORDER BY owner, table_name
+#                 """
+#                 cur.execute(query)
+#                 tables = cur.fetchall()
+
+#                 for schema, table in tables:
+#                    insert_query = """
+#                     MERGE INTO profiling_table_registry tgt
+#                     USING (SELECT :schema_name AS schema_name, :table_name AS table_name FROM dual) src
+#                     ON (tgt.schema_name = src.schema_name AND tgt.table_name = src.table_name)
+#                     WHEN NOT MATCHED THEN
+#                         INSERT (schema_name, table_name) 
+#                         VALUES (:schema_name, :table_name)
+#                     """
+#                 cur.execute(insert_query, {"schema_name": schema, "table_name": table})
+
+#                 db_conn.commit()
+#                 logger.info(f"Discovered and registered {len(tables)} tables")
+#                 return tables
+#         except Exception as e:
+#             logger.error(f"Error discovering tables: {e}")
+#             return []
+#         finally:
+#             db_conn.close()
+
+#     def get_tables_to_profile(self):
+#         db_conn = get_db_connection()
+#         if not db_conn:
+#             return []
+#         try:
+#             with db_conn.cursor() as cur:
+#                 query = """
+#                 SELECT schema_name, table_name, profiling_frequency_days
+#                 FROM profiling_table_registry
+#                 WHERE is_active = 'Y'
+#                 AND (
+#                     last_profiled IS NULL OR 
+#                     last_profiled < (CURRENT_TIMESTAMP - NUMTODSINTERVAL(profiling_frequency_days, 'DAY'))
+#                 )
+#                 """
+#                 cur.execute(query)
+#                 return cur.fetchall()
+#         except Exception as e:
+#             logger.error(f"Error getting tables to profile: {e}")
+#             return []
+#         finally:
+#             db_conn.close()
+
+#     def generate_data_hash(self, df):
+#         try:
+#             shape_str = str(df.shape)
+#             dtypes_str = df.dtypes.to_string()
+#             sample_data = df.head(100).to_string()
+#             data_info = f"{shape_str}_{dtypes_str}_{sample_data}"
+#             return hashlib.sha256(data_info.encode()).hexdigest()[:32]
+#         except Exception as e:
+#             logger.warning(f"Error generating data hash: {e}")
+#             return str(hash(str(df.shape)))
+
+#     def profile_table(self, schema, table):
+#         db_conn = get_db_connection()
+#         if not db_conn:
+#             return False
+#         try:
+#             logger.info(f"Starting profiling for {schema}.{table}")
+#             query = f'SELECT * FROM {schema}.{table}'
+#             df = pd.read_sql(query, con=db_conn)
+
+#             if df.empty:
+#                 logger.warning(f"Table {schema}.{table} is empty")
+#                 return False
+
+#             data_hash = self.generate_data_hash(df)
+
+#             with db_conn.cursor() as cur:
+#                 check_query = """
+#                 SELECT id FROM ydata_profiling_results
+#                 WHERE schema_name = :1 AND table_name = :2
+#                 AND data_hash = :3
+#                 AND profiling_date > (CURRENT_TIMESTAMP - NUMTODSINTERVAL(1, 'DAY'))
+#                 """
+#                 cur.execute(check_query, (schema, table, data_hash))
+#                 if cur.fetchone():
+#                     logger.info(f"Data unchanged for {schema}.{table}, skipping profiling")
+#                     return True
+
+#                 profile = ProfileReport(
+#                     df,
+#                     title=f"YData Profile - {schema}.{table}",
+#                     explorative=True,
+#                     minimal=False
+#                 )
+#                 profile_html = profile.to_html()
+#                 profile_json = json.dumps(profile.to_json())
+
+#                 insert_query = """
+#                 INSERT INTO ydata_profiling_results 
+#                 (schema_name, table_name, profile_html, profile_json, row_count, column_count, data_hash)
+#                 VALUES (:1, :2, :3, :4, :5, :6, :7)
+#                 """
+#                 cur.execute(insert_query, (
+#                     schema, table, profile_html, profile_json,
+#                     len(df), len(df.columns), data_hash
+#                 ))
+
+#                 update_query = """
+#                 UPDATE profiling_table_registry
+#                 SET last_profiled = CURRENT_TIMESTAMP
+#                 WHERE schema_name = :1 AND table_name = :2
+#                 """
+#                 cur.execute(update_query, (schema, table))
+
+#                 db_conn.commit()
+#                 logger.info(f"Profiling completed for {schema}.{table}")
+#                 return True
+#         except Exception as e:
+#             logger.error(f"Error profiling table {schema}.{table}: {e}")
+#             db_conn.rollback()
+#             return False
+#         finally:
+#             db_conn.close()
+
+#     def run_scheduled_profiling(self):
+#         logger.info("Starting scheduled profiling job")
+#         self.discover_tables()
+#         tables_to_profile = self.get_tables_to_profile()
+
+#         if not tables_to_profile:
+#             logger.info("No tables need profiling at this time")
+#             return
+
+#         logger.info(f"Found {len(tables_to_profile)} tables to profile")
+#         for schema, table, _ in tables_to_profile:
+#             try:
+#                 self.profile_table(schema, table)
+#                 time.sleep(2)
+#             except Exception as e:
+#                 logger.error(f"Failed to profile {schema}.{table}: {e}")
+#                 continue
+#         logger.info("Scheduled profiling job completed")
+
+# # Initialize
+# auto_profiler = AutoProfiler()
+
 
 @app.route("/api/profile", methods=["POST"])
 def profile_table():
-    """Get profiling results from database (cached) or generate new if not available"""
+    """Get profiling results from Oracle DB (cached) or generate new if not available"""
     try:
-        # Handle different content types
+        # Handle incoming data
         if request.is_json:
             data = request.get_json()
         elif request.content_type == 'application/x-www-form-urlencoded':
             data = request.form.to_dict()
         else:
-            # Try to get JSON regardless of content type
             try:
                 data = request.get_json(force=True)
             except:
-                return jsonify({"error": "Invalid request format. Expected JSON data with 'schema' and 'table' fields."}), 400
-        
+                return jsonify({"error": "Invalid request format. Expected JSON data with 'schema' and 'table'."}), 400
+
         if not data:
             return jsonify({"error": "No data provided"}), 400
-            
-        schema = "public"
+
+        schema = "SCHEMABROWSER"  # Oracle schemas are typically uppercase
         table = data.get("table")
-        
+        # print(table)
         if not schema or not table:
             return jsonify({"error": "Both 'schema' and 'table' parameters are required"}), 400
-        
-        # First try to get cached results
+
         db_conn = get_db_connection()
         if db_conn:
             try:
                 with db_conn.cursor() as cur:
-                    # Get latest profiling result
                     query = """
-                    SELECT profile_html, profiling_date, row_count, column_count
-                    FROM ydata_profiling_results
-                    WHERE schema_name = %s AND table_name = %s
-                    ORDER BY profiling_date DESC
-                    LIMIT 1
+                        SELECT profile_html, profiling_date, row_count, column_count
+                        FROM ydata_profiling_results
+                        WHERE schema_name = :1 AND table_name = :2
+                        ORDER BY profiling_date DESC
+                        FETCH FIRST 1 ROWS ONLY
                     """
-                    
                     cur.execute(query, (schema, table))
                     result = cur.fetchone()
-                    
+                    print(f"result: {result}")
                     if result:
                         profile_html, profiling_date, row_count, column_count = result
-                        
-                        # Add metadata header to HTML
+
                         metadata_header = f"""
                         <div style="background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #007bff;">
                             <h3 style="margin: 0 0 10px 0;">Cached Profiling Report</h3>
@@ -367,60 +341,61 @@ def profile_table():
                             <p style="margin: 0;"><strong>Rows:</strong> {row_count:,} | <strong>Columns:</strong> {column_count}</p>
                         </div>
                         """
-                        
-                        # Insert metadata at the beginning of the HTML body
                         if '<body>' in profile_html:
                             profile_html = profile_html.replace('<body>', f'<body>{metadata_header}')
                         else:
                             profile_html = metadata_header + profile_html
-                        
+
                         return Response(profile_html, mimetype='text/html')
             finally:
                 db_conn.close()
-        
-        # If no cached result, generate new profile
-        logger.info(f"No cached profile found for {schema}.{table}, generating new one")
-        
-        db_conn = get_db_connection()
-        if not db_conn:
-            return jsonify({"error": "Database connection failed"}), 500
-            
-        try:
-            query = f'SELECT * FROM "{schema}"."{table}"'
-            df = pd.read_sql(query, con=db_conn)
 
-            if df.empty:
-                return jsonify({"error": "Table is empty"}), 400
+            # If no cached result, generate real-time profile
+            logger.info(f"No cached profile found for {schema}.{table}, generating new one")
 
-            profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
-            
-            # Get HTML content directly
-            html_content = profile.to_html()
-            
-            # Add real-time generation notice
-            realtime_header = f"""
-            <div style="background: #fff3cd; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #ffc107;">
-                <h3 style="margin: 0 0 10px 0;">Real-time Profiling Report</h3>
-                <p style="margin: 0;"><strong>Table:</strong> {schema}.{table}</p>
-                <p style="margin: 0;"><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                <p style="margin: 0;"><strong>Note:</strong> This is a real-time generated report. Cached version will be available after next scheduled profiling.</p>
-            </div>
-            """
-            
-            if '<body>' in html_content:
-                html_content = html_content.replace('<body>', f'<body>{realtime_header}')
-            else:
-                html_content = realtime_header + html_content
-            
-            return Response(html_content, mimetype='text/html')
-            
-        finally:
-            db_conn.close()
+            db_conn = get_db_connection()
+            if not db_conn:
+                return jsonify({"error": "Database connection failed"}), 500
+
+            try:
+                query = f'SELECT * FROM {table}'  # No quotes unless table/schema is mixed/lowercase
+                df = pd.read_sql(query, con=db_conn)
+
+                if df.empty:
+                    return jsonify({"error": "Table is empty"}), 400
+
+                profile = ProfileReport(df, title=f"YData Profile - {schema}.{table}", explorative=True)
+                html_content = profile.to_html()
+
+                realtime_header = f"""
+                <div style="background: #fff3cd; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #ffc107;">
+                    <h3 style="margin: 0 0 10px 0;">Real-time Profiling Report</h3>
+                    <p style="margin: 0;"><strong>Table:</strong> {schema}.{table}</p>
+                    <p style="margin: 0;"><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <p style="margin: 0;"><strong>Note:</strong> This is a real-time generated report. Cached version will be available after next scheduled profiling.</p>
+                </div>
+                """
+                if '<body>' in html_content:
+                    html_content = html_content.replace('<body>', f'<body>{realtime_header}')
+                else:
+                    html_content = realtime_header + html_content
+
+                return Response(html_content, mimetype='text/html')
+
+            finally:
+                db_conn.close()
 
     except Exception as e:
         logger.error(f"Error in profile_table: {e}")
         return jsonify({"error": str(e)}), 500
-    
+
+
+
+
+
+
+
+
 # ------------------- 1. Create LOB -------------------
 @app.route("/api/lobs", methods=["POST"])
 def create_lob():
@@ -1703,12 +1678,7 @@ def get_all_er_relationships_inDB(database_name):
             relationship['display'] = f"{relationship['from_table_name']}.{relationship['from_column']} → {relationship['to_table_name']}.{relationship['to_column']}"
             relationships.append(relationship)
             
-        return jsonify({
-            "success": True,
-            "database_name": database_name,
-            "total_relationships": len(relationships),
-            "relationships": relationships
-        }), 200
+        return jsonify(relationships), 200
 
     except oracledb.Error as e:
         logger.error(f"Database error getting relationships for {database_name}: {e}")
@@ -2919,18 +2889,22 @@ def get_logical_databases():
         if conn:
             conn.close()
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime, timedelta
+import sys
+
 if __name__ == "__main__":
-    app.run(debug=True)
     # scheduler = BackgroundScheduler()
-    
-    # Schedule profiling job to run every week (Monday at 2 AM)
+
+    # # Schedule profiling job to run every week (Monday at 2 AM)
     # scheduler.add_job(
     #     func=auto_profiler.run_scheduled_profiling,
     #     trigger=CronTrigger(day_of_week='mon', hour=2, minute=0),
     #     id='weekly_profiling',
     #     replace_existing=True
     # )
-    
+
     # # Run initial profiling immediately when server starts (after 10 seconds)
     # scheduler.add_job(
     #     func=auto_profiler.run_scheduled_profiling,
@@ -2938,10 +2912,10 @@ if __name__ == "__main__":
     #     run_date=datetime.now() + timedelta(seconds=10),
     #     id='startup_profiling'
     # )
-    
+
     # scheduler.start()
     logger.info("Automated profiling scheduler started")
-    
+
     try:
         # Verify database configuration
         logger.info(f"Connecting to database at {DB_HOST}:{DB_PORT}/{DB_SERVICE}")
@@ -2952,11 +2926,11 @@ if __name__ == "__main__":
         else:
             logger.error("Could not establish database connection")
             sys.exit(1)
-            
+
         # Start Flask application
         logger.info("Starting Flask application")
         app.run(debug=True, host='0.0.0.0', port=5000)
-        
+
     except Exception as e:
         logger.error(f"Startup error: {e}")
         sys.exit(1)

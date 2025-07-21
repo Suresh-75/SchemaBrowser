@@ -111,6 +111,7 @@ function ErDiagram({
         const response = await axios.get(
           `http://localhost:5000/api/er_relationships/${databaseName}/${selectedTable}`
         );
+        // console.log(response.data);
         return response.data;
       }
     } catch (error) {
@@ -144,12 +145,11 @@ function ErDiagram({
   const createNodesAndEdges = useCallback(
     async (relationships = []) => {
       // Add default empty array
-      if (!relationships || !Array.isArray(relationships?.relationships)) {
+      if (!relationships) {
         return { nodes: [], edges: [] };
       }
-
-      const relationshipArray = relationships.relationships || [];
-
+      console.log(relationships);
+      const relationshipArray = relationships || [];
       // Use relationshipArray instead of relationships
       const tableIds = Array.from(
         new Set(
@@ -218,7 +218,7 @@ function ErDiagram({
           label: rels
             .map(
               (rel) =>
-                `${rel.from_table_name}.${rel.from_column} → ${rel.to_table_name}.${rel.to_column} (${rel.cardinality})`
+                `${rel.from_column} → ${rel.to_column} (${rel.cardinality})`
             )
             .join("\n"),
           style: { stroke: "#666", strokeWidth: 1 },
@@ -258,6 +258,7 @@ function ErDiagram({
       try {
         setErLoading(true);
         const relationships = await fetchRelationships(selectedPath.database);
+        console.log(relationships);
         if (!relationships) {
           setNodes([]);
           setEdges([]);
@@ -266,6 +267,7 @@ function ErDiagram({
         const { nodes: newNodes, edges: newEdges } = await createNodesAndEdges(
           relationships
         );
+        console.log(newNodes);
         setNodes(newNodes);
         setEdges(newEdges);
       } catch (error) {
