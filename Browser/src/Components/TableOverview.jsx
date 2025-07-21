@@ -21,6 +21,7 @@ const TableOverview = ({ table, darkmode }) => {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [filterType, setFilterType] = useState("all");
 
   useEffect(() => {
     if (!table) return;
@@ -45,6 +46,23 @@ const TableOverview = ({ table, darkmode }) => {
         setLoading(false);
       });
   }, [table]);
+
+  const filteredColumns = useMemo(() => {
+    if (!info?.columns) return [];
+
+    return info.columns.filter((col) => {
+      switch (filterType) {
+        case "primary":
+          return col.primary_key === "Y";
+        case "foreign":
+          return col.foreign_key === "Y";
+        case "nullable":
+          return col.nullable === "Y";
+        default:
+          return true;
+      }
+    });
+  }, [info?.columns, filterType]);
 
   const handleDownloadCSV = () => {
     if (!info || !info.columns) return;
@@ -163,7 +181,23 @@ const TableOverview = ({ table, darkmode }) => {
 
       {/* Columns section with enhanced metadata */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3">Columns</h3>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold">Columns</h3>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className={`px-3 py-1 text-sm rounded border ${
+              darkmode
+                ? "bg-gray-800 border-gray-700 text-white"
+                : "bg-white border-gray-200 text-gray-600"
+            }`}
+          >
+            <option value="all">All Columns</option>
+            <option value="primary">Primary Keys</option>
+            <option value="foreign">Foreign Keys</option>
+            <option value="nullable">Nullable</option>
+          </select>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
             <thead>
@@ -180,7 +214,7 @@ const TableOverview = ({ table, darkmode }) => {
               </tr>
             </thead>
             <tbody>
-              {info.columns.map((col) => (
+              {filteredColumns.map((col) => (
                 <tr
                   key={`${info.table.table_name}-${col.name}`}
                   className={
@@ -198,11 +232,11 @@ const TableOverview = ({ table, darkmode }) => {
                   <td className="px-3 py-2">{col.nullable}</td>
                   {/* Primary Key Cell */}
                   <td className="px-3 py-2">
-                    {col.primary_key || 'N'}
+                    {col.primary_key || "N"}
                   </td>
                   {/* Foreign Key Cell */}
                   <td className="px-3 py-2">
-                    {col.foreign_key || 'N'}
+                    {col.foreign_key || "N"}
                   </td>
                   <td className="px-3 py-2">{col.default || "-"}</td>
                   <td className="px-3 py-2">{col.comment || "-"}</td>
@@ -812,8 +846,8 @@ const TableOverview = ({ table, darkmode }) => {
 ///                           ? "bg-blue-900/20"
 ///                           : "bg-blue-50"
 ///                         : ""
-//                     }`}
-//                   >
+///                     }`}
+///                   >
 ///                     <td className="p-3">
 ///                       <input
 ///                         type="checkbox"
