@@ -1,0 +1,5 @@
+Browser/node_modules
+Backend/.env
+.venv/
+.venv311/
+env/

@@ -1,0 +1,8 @@
+Flask
+psycopg2-binary
+python-dotenv
+Flask-Cors
+pandas>=1.5
+ydata-profiling>=4.6
+setuptools
+oracledb
