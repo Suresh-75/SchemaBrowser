@@ -357,19 +357,57 @@ export default function App() {
               </ReactFlowProvider>
             </div>
           ) : !selectedPath.lob ? (
+            // Initial LOBs view
             <LandingView 
               darkmode={darkmode}
               onSelect={handleSelection}
+              selectedPath={selectedPath}
+            />
+          ) : !selectedPath.subject ? (
+            // Subject Areas view for selected LOB
+            <LandingView 
+              darkmode={darkmode}
+              onSelect={handleSelection}
+              selectedPath={selectedPath}
+            />
+          ) : !selectedPath.database ? (
+            // Databases view for selected Subject Area
+            <LandingView 
+              darkmode={darkmode}
+              onSelect={handleSelection}
+              selectedPath={selectedPath}
             />
           ) : (
+            // ER Entity view after database is selected
             <div 
-              className={`w-full h-full flex items-center justify-center backdrop-blur-sm rounded-2xl shadow-xl border ${
+              className={`w-full h-full flex flex-col backdrop-blur-sm rounded-2xl shadow-xl border ${
                 darkmode ? "bg-slate-900/90 border-gray-800" : "bg-white/90 border-gray-200"
               }`}
             >
-              <p className={`text-lg ${darkmode ? "text-blue-300" : "text-blue-600"}`}>
-                Select an ER entity to view
-              </p>
+              {/* Back Button */}
+              <div className="p-4 border-b flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedPath({ 
+                    ...selectedPath,
+                    database: null, 
+                    table: null 
+                  })}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                    darkmode 
+                      ? "hover:bg-slate-800 text-gray-300 hover:text-white" 
+                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  <ArrowBigLeft size={20} />
+                  <span>Back to {selectedPath.subject}</span>
+                </button>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center">
+                <p className={`text-lg ${darkmode ? "text-blue-300" : "text-blue-600"}`}>
+                  Select an ER entity to view
+                </p>
+              </div>
             </div>
           )}
         </div>

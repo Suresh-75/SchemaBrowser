@@ -2,3 +2,4 @@ Browser/node_modules
 Backend/.env
 .venv/
 .venv311/
+Browser/src/Components/LandingView.jsx/
