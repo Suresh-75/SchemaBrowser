@@ -2496,7 +2496,14 @@ def table_overview(table_name):
         cursor = conn.cursor()
         table_name_upper = table_name.upper()
 
-        # Basic table metadata
+        # ✅ Step 1: Gather fresh statistics to get accurate NUM_ROWS
+        try:
+            cursor.callproc("DBMS_STATS.GATHER_TABLE_STATS", [conn.username.upper(), table_name_upper])
+            conn.commit()  # optional, ensures stats persist
+        except oracledb.DatabaseError as stats_err:
+            logger.warning(f"Could not gather stats for {table_name_upper}: {stats_err}")
+
+        # ✅ Step 2: Get basic table metadata
         cursor.execute("""
             SELECT TABLE_NAME, NUM_ROWS, TABLESPACE_NAME, 
                    BLOCKS, EMPTY_BLOCKS, LAST_ANALYZED
@@ -2517,22 +2524,42 @@ def table_overview(table_name):
             "last_analyzed": str(table_info[5]) if table_info[5] else None
         }
 
-        # Column metadata
+        # ✅ Step 3: Primary key columns
+        cursor.execute("""
+            SELECT cols.column_name
+            FROM user_constraints cons
+            JOIN user_cons_columns cols ON cons.constraint_name = cols.constraint_name
+            WHERE cons.table_name = :1
+            AND cons.constraint_type = 'P'
+        """, [table_name_upper])
+        pk_columns = {row[0] for row in cursor.fetchall()}
+
+        # ✅ Step 4: Foreign key columns
+        cursor.execute("""
+            SELECT cols.column_name
+            FROM user_constraints cons
+            JOIN user_cons_columns cols ON cons.constraint_name = cols.constraint_name
+            WHERE cons.table_name = :1
+            AND cons.constraint_type = 'R'
+        """, [table_name_upper])
+        fk_columns = {row[0] for row in cursor.fetchall()}
+
+        # ✅ Step 5: Detailed column metadata
         cursor.execute("""
             SELECT 
-                COLUMN_NAME,
-                DATA_TYPE,
-                DATA_LENGTH,
-                DATA_PRECISION,
-                DATA_SCALE,
-                NULLABLE,
-                COLUMN_ID,
-                DATA_DEFAULT
-            FROM USER_TAB_COLUMNS
-            WHERE TABLE_NAME = :1
-            ORDER BY COLUMN_ID
+                c.COLUMN_NAME,
+                c.DATA_TYPE,
+                c.DATA_LENGTH,
+                c.DATA_PRECISION,
+                c.DATA_SCALE,
+                c.NULLABLE,
+                c.COLUMN_ID,
+                c.DATA_DEFAULT
+            FROM USER_TAB_COLUMNS c
+            WHERE c.TABLE_NAME = :1
+            ORDER BY c.COLUMN_ID
         """, [table_name_upper])
-        
+
         columns = []
         for col in cursor.fetchall():
             columns.append({
@@ -2543,7 +2570,9 @@ def table_overview(table_name):
                 "scale": col[4],
                 "nullable": col[5],
                 "position": col[6],
-                "default": col[7] if col[7] else None
+                "default": col[7] if col[7] else None,
+                "primary_key": "Y" if col[0] in pk_columns else "N",
+                "foreign_key": "Y" if col[0] in fk_columns else "N"
             })
 
         return jsonify({
@@ -2796,12 +2825,13 @@ def table_overview(table_name):
 #         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
 @app.route("/api/schema-overview/<string:database_name>", methods=["GET"])
 def schema_overview(database_name):
-    conn=None
-    cursor=None
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Step 1: Get the logical database id
+
+        # Step 1: Get the logical database ID
         cursor.execute("""
             SELECT id FROM logical_databases WHERE name = :1
         """, [database_name])
@@ -2812,7 +2842,7 @@ def schema_overview(database_name):
 
         # Step 2: Get all tables associated with this logical DB
         cursor.execute("""
-            SELECT id, name, schema_name
+            SELECT id, name
             FROM tables_metadata
             WHERE database_id = :1
             ORDER BY name
@@ -2822,44 +2852,58 @@ def schema_overview(database_name):
         tables = []
         total_size = 0
 
-        for table_id, table_name, schema_name in table_rows:
-            # Step 3: Get row count
+        for table_id, table_name in table_rows:
+            table_name_upper = table_name.upper()
+
+            # Step 3a: Trigger fresh stats collection
             try:
-                cursor.execute(f'SELECT COUNT(*) FROM "{schema_name}"."{table_name}"')
-                row_count = cursor.fetchone()[0]
-            except Exception:
+                cursor.callproc("DBMS_STATS.GATHER_TABLE_STATS", [DB_USER, table_name_upper])
+            except Exception as e:
+                logger.warning(f"Could not gather stats for {table_name_upper}: {e}")
+
+            # Step 3b: Try to get NUM_ROWS from USER_TABLES
+            try:
+                cursor.execute("""
+                    SELECT NUM_ROWS
+                    FROM USER_TABLES
+                    WHERE TABLE_NAME = :1
+                """, [table_name_upper])
+                row = cursor.fetchone()
+                row_count = row[0] if row and row[0] is not None else None
+            except Exception as e:
+                logger.warning(f"Failed to get NUM_ROWS for {table_name_upper}: {e}")
                 row_count = None
+
+            # Step 3c: Fallback to actual COUNT(*)
+            if row_count is None:
+                try:
+                    cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                    row_count = cursor.fetchone()[0]
+                except Exception as e:
+                    logger.error(f"Error executing COUNT(*) for {table_name}: {e}")
+                    row_count = None
 
             # Step 4: Get table size in bytes
             try:
                 cursor.execute("""
                     SELECT NVL(SUM(bytes), 0)
-                    FROM dba_segments
+                    FROM user_segments
                     WHERE segment_type = 'TABLE'
-                    AND owner = :1 AND segment_name = :2
-                """, [schema_name.upper(), table_name.upper()])
+                    AND segment_name = :1
+                """, [table_name_upper])
                 size_bytes = cursor.fetchone()[0]
             except Exception:
                 size_bytes = 0
 
-            # Step 5: Get table owner
-            try:
-                cursor.execute("""
-                    SELECT owner
-                    FROM all_tables
-                    WHERE table_name = :1 AND owner = :2
-                """, [table_name.upper(), schema_name.upper()])
-                owner_row = cursor.fetchone()
-                table_owner = owner_row[0] if owner_row else None
-            except Exception:
-                table_owner = None
+            # Step 5: Get owner
+            owner = DB_USER
 
             total_size += size_bytes
             tables.append({
                 "table": table_name,
                 "row_count": row_count,
                 "size_bytes": size_bytes,
-                "table_owner": table_owner
+                "owner": owner
             })
 
         return jsonify({
@@ -2870,7 +2914,14 @@ def schema_overview(database_name):
         })
 
     except Exception as e:
+        logger.error(f"Error in schema_overview: {str(e)}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 #@app.route("/api/logical-databases", methods=["GET"])
 def get_logical_databases():
@@ -2913,6 +2964,79 @@ def get_logical_databases():
         return jsonify({
             "error": str(e)
         }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+@app.route("/api/hierarchy-list", methods=["GET"])
+def get_hierarchy_list():
+    """Get flat list of all LOBs, Subject Areas, and Databases with their relationships"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            WITH hierarchy AS (
+                SELECT 
+                    l.id AS lob_id, 
+                    l.name AS lob_name,
+                    sa.id AS subject_area_id, 
+                    sa.name AS subject_area_name,
+                    db.id AS database_id, 
+                    db.name AS database_name
+                FROM lobs l
+                LEFT JOIN subject_areas sa ON sa.lob_id = l.id
+                LEFT JOIN subject_area_logical_database sald ON sald.subject_area_id = sa.id
+                LEFT JOIN logical_databases db ON db.id = sald.logical_database_id
+            )
+            SELECT DISTINCT
+                lob_id, lob_name,
+                subject_area_id, subject_area_name,
+                database_id, database_name
+            FROM hierarchy
+            ORDER BY lob_name, subject_area_name, database_name
+        """)
+        
+        rows = cursor.fetchall()
+        result = {
+            "lobs": [],
+            "subject_areas": [],
+            "databases": []
+        }
+
+        for row in rows:
+            lob_id, lob_name, sa_id, sa_name, db_id, db_name = row
+            
+            if lob_name and lob_id:
+                if not any(l['id'] == lob_id for l in result['lobs']):
+                    result['lobs'].append({
+                        'id': lob_id,
+                        'name': lob_name
+                    })
+            
+            if sa_name and sa_id:
+                result['subject_areas'].append({
+                    'id': sa_id,
+                    'name': sa_name,
+                    'lob_name': lob_name
+                })
+            
+            if db_name and db_id:
+                result['databases'].append({
+                    'id': db_id,
+                    'name': db_name,
+                    'subject_area_name': sa_name,
+                    'lob_name': lob_name
+                })
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in get_hierarchy_list: {str(e)}")
+        return jsonify({"error": str(e)}), 500
     finally:
         if cursor:
             cursor.close()
