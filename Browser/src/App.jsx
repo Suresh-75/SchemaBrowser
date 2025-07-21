@@ -27,6 +27,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import AddErDiagram from "./Components/AddErDiagram";
 import AddErDiagramRel from "./Components/AddErDiagramRel";
 import axios from "axios";
+import LandingView from './Components/LandingView';
 
 export default function App() {
   const location = useLocation();
@@ -355,16 +356,20 @@ export default function App() {
                 />
               </ReactFlowProvider>
             </div>
+          ) : !selectedPath.lob ? (
+            <LandingView 
+              darkmode={darkmode}
+              onSelect={handleSelection}
+            />
           ) : (
-            <div
-              className={`w-full h-full items-center text-2xl font-bold justify-center backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
-                darkmode
-                  ? "bg-slate-900/90 border-gray-800 text-blue-300"
-                  : "bg-white/90 border-gray-200 text-blue-400"
+            <div 
+              className={`w-full h-full flex items-center justify-center backdrop-blur-sm rounded-2xl shadow-xl border ${
+                darkmode ? "bg-slate-900/90 border-gray-800" : "bg-white/90 border-gray-200"
               }`}
-              style={{ minHeight: 0, minWidth: 0 }}
             >
-              Select an er diagram to view
+              <p className={`text-lg ${darkmode ? "text-blue-300" : "text-blue-600"}`}>
+                Select an ER entity to view
+              </p>
             </div>
           )}
         </div>
