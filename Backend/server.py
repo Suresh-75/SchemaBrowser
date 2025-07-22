@@ -318,40 +318,40 @@ def profile_table():
 
         db_conn = get_db_connection()
         if db_conn:
-            try:
-                with db_conn.cursor() as cur:
-                    query = """
-                        SELECT profile_html, profiling_date, row_count, column_count
-                        FROM ydata_profiling_results
-                        WHERE schema_name = :1 AND table_name = :2
-                        ORDER BY profiling_date DESC
-                        FETCH FIRST 1 ROWS ONLY
-                    """
-                    cur.execute(query, (schema, table))
-                    result = cur.fetchone()
-                    print(f"result: {result}")
-                    if result:
-                        profile_html, profiling_date, row_count, column_count = result
+            # try:
+            #     with db_conn.cursor() as cur:
+            #         query = """
+            #             SELECT profile_html, profiling_date, row_count, column_count
+            #             FROM ydata_profiling_results
+            #             WHERE schema_name = :1 AND table_name = :2
+            #             ORDER BY profiling_date DESC
+            #             FETCH FIRST 1 ROWS ONLY
+            #         """
+            #         cur.execute(query, (schema, table))
+            #         result = cur.fetchone()
+            #         print(f"result: {result}")
+            #         if result:
+            #             profile_html, profiling_date, row_count, column_count = result
 
-                        metadata_header = f"""
-                        <div style="background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #007bff;">
-                            <h3 style="margin: 0 0 10px 0;">Cached Profiling Report</h3>
-                            <p style="margin: 0;"><strong>Table:</strong> {schema}.{table}</p>
-                            <p style="margin: 0;"><strong>Generated:</strong> {profiling_date}</p>
-                            <p style="margin: 0;"><strong>Rows:</strong> {row_count:,} | <strong>Columns:</strong> {column_count}</p>
-                        </div>
-                        """
-                        if '<body>' in profile_html:
-                            profile_html = profile_html.replace('<body>', f'<body>{metadata_header}')
-                        else:
-                            profile_html = metadata_header + profile_html
+            #             metadata_header = f"""
+            #             <div style="background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #007bff;">
+            #                 <h3 style="margin: 0 0 10px 0;">Cached Profiling Report</h3>
+            #                 <p style="margin: 0;"><strong>Table:</strong> {schema}.{table}</p>
+            #                 <p style="margin: 0;"><strong>Generated:</strong> {profiling_date}</p>
+            #                 <p style="margin: 0;"><strong>Rows:</strong> {row_count:,} | <strong>Columns:</strong> {column_count}</p>
+            #             </div>
+            #             """
+            #             if '<body>' in profile_html:
+            #                 profile_html = profile_html.replace('<body>', f'<body>{metadata_header}')
+            #             else:
+            #                 profile_html = metadata_header + profile_html
 
-                        return Response(profile_html, mimetype='text/html')
-            finally:
-                db_conn.close()
+            #             return Response(profile_html, mimetype='text/html')
+            # finally:
+            #     db_conn.close()
 
-            # If no cached result, generate real-time profile
-            logger.info(f"No cached profile found for {schema}.{table}, generating new one")
+            # # If no cached result, generate real-time profile
+            # logger.info(f"No cached profile found for {schema}.{table}, generating new one")
 
             db_conn = get_db_connection()
             if not db_conn:
