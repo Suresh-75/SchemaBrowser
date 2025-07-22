@@ -20,25 +20,26 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
   const [success, setSuccess] = useState("");
 
   // Update schema name when selectedPath changes
-useEffect(() => {
-  console.log('selectedPath:', selectedPath);
-  if (selectedPath?.database) {
-    setSchemaName(selectedPath.database.toUpperCase());
-    // Fetch database ID based on database name
-    fetch(`http://localhost:5000/api/logical-databases/${selectedPath.database.toUpperCase()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.id) {
-          setDatabaseId(data.id);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching database ID:', err);
-        setError('Failed to get database information');
-      });
-  }
-}, [selectedPath]);
-
+  useEffect(() => {
+    console.log("selectedPath:", selectedPath);
+    if (selectedPath?.database) {
+      setSchemaName(selectedPath.database.toUpperCase());
+      // Fetch database ID based on database name
+      fetch(
+        `http://localhost:5000/api/logical-databases/${selectedPath.database.toUpperCase()}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.id) {
+            setDatabaseId(data.id);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching database ID:", err);
+          setError("Failed to get database information");
+        });
+    }
+  }, [selectedPath]);
 
   const dataTypes = [
     "INTEGER",
@@ -48,7 +49,7 @@ useEffect(() => {
     "DECIMAL(10,2)",
     "FLOAT",
     "BOOLEAN",
-    "TEXT"
+    "TEXT",
   ];
 
   const addField = () => {
@@ -123,7 +124,7 @@ useEffect(() => {
     setSuccess("");
 
     try {
-      const mappedFields = fields.map(field => {
+      const mappedFields = fields.map((field) => {
         const oracleType = mapToOracleType(field.type);
         return {
           name: field.name.toUpperCase(),
@@ -131,7 +132,9 @@ useEffect(() => {
           primary: field.isPrimary,
           required: field.isRequired,
           auto_increment: field.autoIncrement,
-          default_value: field.autoIncrement ? `${entityName.toUpperCase()}_SEQ.NEXTVAL` : null
+          default_value: field.autoIncrement
+            ? `${entityName.toUpperCase()}_SEQ.NEXTVAL`
+            : null,
         };
       });
 
@@ -139,10 +142,10 @@ useEffect(() => {
         table_name: entityName.toUpperCase(),
         schema_name: schemaName,
         database_id: parseInt(databaseId, 10),
-        columns: mappedFields
+        columns: mappedFields,
       };
 
-      console.log('Sending payload:', payload);
+      console.log("Sending payload:", payload);
 
       const response = await fetch("http://localhost:5000/api/tables", {
         method: "POST",
@@ -169,8 +172,8 @@ useEffect(() => {
     } catch (err) {
       setError(
         err.response?.data?.error ||
-        err.response?.data?.message ||
-        `Network error: ${err.message}`
+          err.response?.data?.message ||
+          `Network error: ${err.message}`
       );
     } finally {
       setIsLoading(false);
@@ -179,14 +182,14 @@ useEffect(() => {
 
   const mapToOracleType = (type) => {
     const typeMap = {
-      'INTEGER': 'NUMBER',
-      'VARCHAR(255)': 'VARCHAR2(255)',
-      'TEXT': 'CLOB',
-      'BOOLEAN': 'NUMBER(1)',
-      'FLOAT': 'FLOAT',
-      'DECIMAL(10,2)': 'NUMBER(10,2)',
-      'DATE': 'DATE',
-      'TIMESTAMP': 'TIMESTAMP'
+      INTEGER: "NUMBER",
+      "VARCHAR(255)": "VARCHAR2(255)",
+      TEXT: "CLOB",
+      BOOLEAN: "NUMBER(1)",
+      FLOAT: "FLOAT",
+      "DECIMAL(10,2)": "NUMBER(10,2)",
+      DATE: "DATE",
+      TIMESTAMP: "TIMESTAMP",
     };
     return typeMap[type] || type;
   };
@@ -218,12 +221,14 @@ useEffect(() => {
 
   return (
     <div
-      className={`max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50 ${darkmode ? "text-gray-100" : "text-gray-900"
-        }`}
+      className={`max-w-4xl mx-auto p-6 absolute top-1/6 left-1/2 transform -translate-x-1/2 z-50 ${
+        darkmode ? "text-gray-100" : "text-gray-900"
+      }`}
     >
       <div
-        className={`rounded-lg shadow-xl border ${darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-          }`}
+        className={`rounded-lg shadow-xl border ${
+          darkmode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}
       >
         <div
           className={`p-6 rounded-t-lg
@@ -262,8 +267,9 @@ useEffect(() => {
           {/* Entity Name */}
           <div className="mb-6">
             <label
-              className={`block text-sm font-medium mb-2 ${darkmode ? "text-gray-300" : "text-gray-700"
-                }`}
+              className={`block text-sm font-medium mb-2 ${
+                darkmode ? "text-gray-300" : "text-gray-700"
+              }`}
             >
               Entity/Table Name
             </label>
@@ -271,10 +277,11 @@ useEffect(() => {
               type="text"
               value={entityName}
               onChange={(e) => setEntityName(e.target.value)}
-              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${darkmode
+              className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                darkmode
                   ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+              }`}
               placeholder="e.g., users, products, orders"
               required
             />
@@ -284,18 +291,20 @@ useEffect(() => {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <label
-                className={`block text-sm font-medium ${darkmode ? "text-gray-300" : "text-gray-700"
-                  }`}
+                className={`block text-sm font-medium ${
+                  darkmode ? "text-gray-300" : "text-gray-700"
+                }`}
               >
                 Fields/Columns
               </label>
               <button
                 type="button"
                 onClick={addField}
-                className={`inline-flex items-center gap-1 font-medium text-sm ${darkmode
+                className={`inline-flex items-center gap-1 font-medium text-sm ${
+                  darkmode
                     ? "text-blue-400 hover:text-blue-300"
                     : "text-blue-600 hover:text-blue-700"
-                  }`}
+                }`}
               >
                 <Plus size={16} />
                 Add Field
@@ -306,8 +315,9 @@ useEffect(() => {
               {fields.map((field, index) => (
                 <div
                   key={index}
-                  className={`grid grid-cols-12 gap-3 items-center p-4 rounded-lg ${darkmode ? "bg-gray-700" : "bg-gray-50"
-                    }`}
+                  className={`grid grid-cols-12 gap-3 items-center p-4 rounded-lg ${
+                    darkmode ? "bg-gray-700" : "bg-gray-50"
+                  }`}
                 >
                   {/* Field Name */}
                   <div className="col-span-3">
@@ -317,10 +327,11 @@ useEffect(() => {
                       onChange={(e) =>
                         updateField(index, "name", e.target.value)
                       }
-                      className={`w-full p-2 border rounded text-sm ${darkmode
+                      className={`w-full p-2 border rounded text-sm ${
+                        darkmode
                           ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400"
                           : "bg-white border-gray-300 text-gray-900"
-                        }`}
+                      }`}
                       placeholder="Field name"
                       required
                     />
@@ -333,10 +344,11 @@ useEffect(() => {
                       onChange={(e) =>
                         updateField(index, "type", e.target.value)
                       }
-                      className={`w-full p-2 border rounded text-sm ${darkmode
+                      className={`w-full p-2 border rounded text-sm ${
+                        darkmode
                           ? "bg-gray-600 border-gray-500 text-white"
                           : "bg-white border-gray-300 text-gray-900"
-                        }`}
+                      }`}
                     >
                       {dataTypes.map((type) => (
                         <option key={type} value={type}>
@@ -349,8 +361,9 @@ useEffect(() => {
                   {/* Checkboxes */}
                   <div className="col-span-5 flex gap-4">
                     <label
-                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
-                        }`}
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -358,16 +371,18 @@ useEffect(() => {
                         onChange={(e) =>
                           updateField(index, "isPrimary", e.target.checked)
                         }
-                        className={`mr-1 ${darkmode
+                        className={`mr-1 ${
+                          darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
                             : "form-checkbox text-blue-600"
-                          }`}
+                        }`}
                       />
                       Primary
                     </label>
                     <label
-                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
-                        }`}
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -375,16 +390,18 @@ useEffect(() => {
                         onChange={(e) =>
                           updateField(index, "isRequired", e.target.checked)
                         }
-                        className={`mr-1 ${darkmode
+                        className={`mr-1 ${
+                          darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500"
                             : "form-checkbox text-blue-600"
-                          }`}
+                        }`}
                       />
                       Required
                     </label>
                     <label
-                      className={`flex items-center text-sm ${darkmode ? "text-gray-300" : "text-gray-700"
-                        }`}
+                      className={`flex items-center text-sm ${
+                        darkmode ? "text-gray-300" : "text-gray-700"
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -395,10 +412,11 @@ useEffect(() => {
                         disabled={
                           field.type !== "INTEGER" && field.type !== "BIGINT"
                         }
-                        className={`mr-1 ${darkmode
+                        className={`mr-1 ${
+                          darkmode
                             ? "form-checkbox text-blue-400 bg-gray-600 border-gray-500 disabled:opacity-50"
                             : "form-checkbox text-blue-600 disabled:opacity-50"
-                          }`}
+                        }`}
                       />
                       Auto Inc
                     </label>
@@ -410,10 +428,11 @@ useEffect(() => {
                       <button
                         type="button"
                         onClick={() => removeField(index)}
-                        className={`p-1 ${darkmode
+                        className={`p-1 ${
+                          darkmode
                             ? "text-red-400 hover:text-red-300"
                             : "text-red-500 hover:text-red-700"
-                          }`}
+                        }`}
                       >
                         <X size={16} />
                       </button>
@@ -429,10 +448,11 @@ useEffect(() => {
             <button
               type="button"
               onClick={handleClose}
-              className={`px-6 py-2 border rounded-lg transition-colors ${darkmode
+              className={`px-6 py-2 border rounded-lg transition-colors ${
+                darkmode
                   ? "border-gray-600 text-gray-300 hover:bg-gray-700"
                   : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
+              }`}
               disabled={isLoading}
             >
               Cancel
@@ -440,10 +460,11 @@ useEffect(() => {
             <button
               onClick={handleSubmit}
               disabled={isLoading || !entityName.trim()}
-              className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${isLoading || !entityName.trim()
+              className={`inline-flex items-center gap-2 font-semibold py-2 px-6 rounded-lg transition-colors ${
+                isLoading || !entityName.trim()
                   ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                   : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
+              }`}
             >
               {isLoading ? (
                 <>

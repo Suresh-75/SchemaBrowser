@@ -27,6 +27,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import AddErDiagram from "./Components/AddErDiagram";
 import AddErDiagramRel from "./Components/AddErDiagramRel";
 import axios from "axios";
+import LandingView from "./Components/LandingView";
 
 export default function App() {
   const location = useLocation();
@@ -355,16 +356,66 @@ export default function App() {
                 />
               </ReactFlowProvider>
             </div>
+          ) : !selectedPath.lob ? (
+            // Initial LOBs view
+            <LandingView
+              darkmode={darkmode}
+              onSelect={handleSelection}
+              selectedPath={selectedPath}
+            />
+          ) : !selectedPath.subject ? (
+            // Subject Areas view for selected LOB
+            <LandingView
+              darkmode={darkmode}
+              onSelect={handleSelection}
+              selectedPath={selectedPath}
+            />
+          ) : !selectedPath.database ? (
+            // Databases view for selected Subject Area
+            <LandingView
+              darkmode={darkmode}
+              onSelect={handleSelection}
+              selectedPath={selectedPath}
+            />
           ) : (
+            // ER Entity view after database is selected
             <div
-              className={`w-full h-full items-center text-2xl font-bold justify-center backdrop-blur-sm rounded-2xl shadow-xl border overflow-auto flex flex-col ${
+              className={`w-full h-full flex flex-col backdrop-blur-sm rounded-2xl shadow-xl border ${
                 darkmode
-                  ? "bg-slate-900/90 border-gray-800 text-blue-300"
-                  : "bg-white/90 border-gray-200 text-blue-400"
+                  ? "bg-slate-900/90 border-gray-800"
+                  : "bg-white/90 border-gray-200"
               }`}
-              style={{ minHeight: 0, minWidth: 0 }}
             >
-              Select an er diagram to view
+              {/* Back Button */}
+              <div className="p-4 border-b flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setSelectedPath({
+                      ...selectedPath,
+                      database: null,
+                      table: null,
+                    })
+                  }
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                    darkmode
+                      ? "hover:bg-slate-800 text-gray-300 hover:text-white"
+                      : "hover:bg-gray-100 text-gray-600 hover:text-gray-800"
+                  }`}
+                >
+                  <ArrowBigLeft size={20} />
+                  <span>Back to {selectedPath.subject}</span>
+                </button>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center">
+                <p
+                  className={`text-lg ${
+                    darkmode ? "text-blue-300" : "text-blue-600"
+                  }`}
+                >
+                  Select an ER entity to view
+                </p>
+              </div>
             </div>
           )}
         </div>

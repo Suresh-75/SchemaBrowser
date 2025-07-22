@@ -70,7 +70,7 @@ const Login = ({ setUser }) => {
                 onClick={() => setRole("developer")}
                 className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md text-sm font-medium transition-all ${
                   role === "developer"
-                  ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >

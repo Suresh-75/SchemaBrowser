@@ -172,11 +172,12 @@ export default function ErEntities({
             .join("\n"),
           style: {
             stroke: darkmode ? "#9CA3AF" : "#666",
-            strokeWidth: 2
+            strokeWidth: 2,
           },
           labelStyle: {
             fontSize: "12px",
-            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontFamily:
+              "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             fill: darkmode ? "#E5E7EB" : "#374151",
             lineHeight: "1.4em",
             whiteSpace: "pre",
@@ -282,7 +283,7 @@ export default function ErEntities({
         });
         const response = endpoints.deleteERdiagram(entityId);
       }
-    } catch { }
+    } catch {}
   };
 
   if (!selectedPath?.lob) return null;
@@ -291,21 +292,24 @@ export default function ErEntities({
     <>
       {selectedErDiagram ? (
         <div
-          className={`w-full max-w-md mx-auto ${darkmode ? "bg-gray-900" : "bg-white"
-            } rounded-xl shadow-lg overflow-hidden`}
+          className={`w-full max-w-md mx-auto ${
+            darkmode ? "bg-gray-900" : "bg-white"
+          } rounded-xl shadow-lg overflow-hidden`}
         >
           {/* Header */}
           <div
-            className={`px-6 py-4 border-b ${darkmode
-              ? "border-gray-700 bg-gray-800"
-              : "border-gray-200 bg-gray-50"
-              }`}
+            className={`px-6 py-4 border-b ${
+              darkmode
+                ? "border-gray-700 bg-gray-800"
+                : "border-gray-200 bg-gray-50"
+            }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
-                  className={`p-2 rounded-lg ${darkmode ? "bg-blue-900/50" : "bg-blue-100"
-                    }`}
+                  className={`p-2 rounded-lg ${
+                    darkmode ? "bg-blue-900/50" : "bg-blue-100"
+                  }`}
                 >
                   <Network
                     className={darkmode ? "text-blue-400" : "text-blue-600"}
@@ -314,15 +318,17 @@ export default function ErEntities({
                 </div>
                 <div>
                   <h3
-                    className={`font-semibold text-lg ${darkmode ? "text-blue-200" : "text-gray-800"
-                      }`}
+                    className={`font-semibold text-lg ${
+                      darkmode ? "text-blue-200" : "text-gray-800"
+                    }`}
                   >
                     Relationships
                   </h3>
                   {selectedPath.lob && (
                     <span
-                      className={`text-sm ${darkmode ? "text-gray-400" : "text-gray-500"
-                        }`}
+                      className={`text-sm ${
+                        darkmode ? "text-gray-400" : "text-gray-500"
+                      }`}
                     >
                       {erDiagramName}
                     </span>
@@ -335,18 +341,20 @@ export default function ErEntities({
           {/* Content */}
           <div className="p-3">
             <div
-              className={`space-y-4 max-h-96 overflow-y-auto ${darkmode ? "custom-scrollbar-dark" : "custom-scrollbar-light"
-                }`}
+              className={`space-y-4 max-h-96 overflow-y-auto ${
+                darkmode ? "custom-scrollbar-dark" : "custom-scrollbar-light"
+              }`}
             >
               {user == "admin" && (
                 <div className="flex justify-start w-full  mb-4">
                   <button
                     onClick={(e) => handleEditEntity(e, selectedErDiagram)}
                     className={`flex items-center justify-centers w-full gap-2 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                    ${darkmode
+                    ${
+                      darkmode
                         ? "bg-blue-900/60 text-blue-200 hover:bg-blue-800 hover:text-white"
                         : "bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-900"
-                      }`}
+                    }`}
                     title="Add relationship"
                   >
                     <Plus className="w-5 h-5" />
@@ -365,10 +373,11 @@ export default function ErEntities({
                 rels.map((relItem) => (
                   <div
                     key={relItem.id}
-                    className={`group  relative p-4 rounded-xl border transition-all duration-200 hover:shadow-md cursor-pointer ${darkmode
-                      ? "bg-gradient-to-r from-gray-800 to-gray-800 border-gray-700 hover:border-blue-600"
-                      : "bg-gradient-to-r from-blue-50 to-green-50 border-gray-200 hover:border-blue-300"
-                      }`}
+                    className={`group  relative p-4 rounded-xl border transition-all duration-200 hover:shadow-md cursor-pointer ${
+                      darkmode
+                        ? "bg-gradient-to-r from-gray-800 to-gray-800 border-gray-700 hover:border-blue-600"
+                        : "bg-gradient-to-r from-blue-50 to-green-50 border-gray-200 hover:border-blue-300"
+                    }`}
                     tabIndex={0}
                     aria-label={`Relationship: ${relItem.display}`}
                   >
@@ -382,16 +391,18 @@ export default function ErEntities({
                             size={16}
                           />
                           <span
-                            className={`font-medium ${darkmode ? "text-blue-100" : "text-gray-800"
-                              }`}
+                            className={`font-medium ${
+                              darkmode ? "text-blue-100" : "text-gray-800"
+                            }`}
                           >
                             {relItem.display}
                           </span>
                         </div>
 
                         <div
-                          className={`text-xs flex items-center gap-1 ${darkmode ? "text-gray-400" : "text-gray-500"
-                            }`}
+                          className={`text-xs flex items-center gap-1 ${
+                            darkmode ? "text-gray-400" : "text-gray-500"
+                          }`}
                         >
                           <Network size={14} />
                           <span>Foreign Key Relationship</span>
@@ -410,10 +421,11 @@ export default function ErEntities({
                               relItem.from_table_id
                             );
                           }}
-                          className={`opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ${darkmode
-                            ? "text-red-400 hover:bg-red-900/50 hover:text-red-300"
-                            : "text-red-500 hover:bg-red-100 hover:text-red-700"
-                            }`}
+                          className={`opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ${
+                            darkmode
+                              ? "text-red-400 hover:bg-red-900/50 hover:text-red-300"
+                              : "text-red-500 hover:bg-red-100 hover:text-red-700"
+                          }`}
                           aria-label={`Delete relationship ${relItem.display}`}
                           title={`Delete relationship ${relItem.display}`}
                         >
@@ -425,12 +437,14 @@ export default function ErEntities({
                 ))
               ) : (
                 <div
-                  className={`text-center py-8 ${darkmode ? "text-gray-400" : "text-gray-500"
-                    }`}
+                  className={`text-center py-8 ${
+                    darkmode ? "text-gray-400" : "text-gray-500"
+                  }`}
                 >
                   <Network
-                    className={`mx-auto mb-3 ${darkmode ? "text-gray-600" : "text-gray-400"
-                      }`}
+                    className={`mx-auto mb-3 ${
+                      darkmode ? "text-gray-600" : "text-gray-400"
+                    }`}
                     size={48}
                   />
                   <p className="text-sm">
@@ -441,17 +455,21 @@ export default function ErEntities({
             </div>
 
             {/* Back Button */}
-            <div className={`mt-6 pt-4 border-t ${darkmode ? "border-gray-700" : "border-gray-200"
-              }`}>
+            <div
+              className={`mt-6 pt-4 border-t ${
+                darkmode ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
               <button
                 onClick={() => {
                   setErDiagramName("");
                   setSelectedErDiagram();
                 }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${darkmode
-                  ? "text-gray-300 hover:bg-gray-800 hover:text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                  }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  darkmode
+                    ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                }`}
               >
                 <ArrowLeft size={16} />
                 <span>Back to Diagrams</span>
@@ -510,32 +528,50 @@ export default function ErEntities({
         </div>
       ) : (
         // </div>
-        <div className={`flex flex-col h-full rounded-lg shadow-lg border ${darkmode
-          ? "bg-gray-900 border-gray-700"
-          : "bg-white border-gray-200"
-          }`}>
+        <div
+          className={`flex flex-col h-full rounded-lg shadow-lg border ${
+            darkmode
+              ? "bg-gray-900 border-gray-700"
+              : "bg-white border-gray-200"
+          }`}
+        >
           {/* Header */}
-          <div className={`flex items-center justify-between p-4 border-b rounded-t-lg ${darkmode
-            ? "border-gray-700 bg-gray-800"
-            : "border-gray-200 bg-gray-50"
-            }`}>
+          <div
+            className={`flex items-center justify-between p-4 border-b rounded-t-lg ${
+              darkmode
+                ? "border-gray-700 bg-gray-800"
+                : "border-gray-200 bg-gray-50"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <Database className={`w-5 h-5 ${darkmode ? "text-blue-400" : "text-blue-600"
-                }`} />
-              <span className={`font-semibold ${darkmode ? "text-gray-200" : "text-gray-800"
-                }`}>
+              <Database
+                className={`w-5 h-5 ${
+                  darkmode ? "text-blue-400" : "text-blue-600"
+                }`}
+              />
+              <span
+                className={`font-semibold ${
+                  darkmode ? "text-gray-200" : "text-gray-800"
+                }`}
+              >
                 ER Diagrams
               </span>
               {selectedPath.lob && (
-                <span className={`text-sm ${darkmode ? "text-gray-400" : "text-gray-500"
-                  }`}>
+                <span
+                  className={`text-sm ${
+                    darkmode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
                   ({selectedPath.lob})
                 </span>
               )}
             </div>
             {entities.length > 0 && (
-              <span className={`text-sm ${darkmode ? "text-gray-400" : "text-gray-500"
-                }`}>
+              <span
+                className={`text-sm ${
+                  darkmode ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
                 {entities.length} entities
               </span>
             )}
@@ -546,9 +582,14 @@ export default function ErEntities({
             {loading && (
               <div className="flex items-center justify-center p-8 h-full">
                 <div className="text-center">
-                  <Loader2 className={`w-8 h-8 animate-spin mx-auto mb-2 ${darkmode ? "text-blue-400" : "text-blue-600"
-                    }`} />
-                  <span className={darkmode ? "text-gray-400" : "text-gray-600"}>
+                  <Loader2
+                    className={`w-8 h-8 animate-spin mx-auto mb-2 ${
+                      darkmode ? "text-blue-400" : "text-blue-600"
+                    }`}
+                  />
+                  <span
+                    className={darkmode ? "text-gray-400" : "text-gray-600"}
+                  >
                     Loading entities...
                   </span>
                 </div>
@@ -557,19 +598,31 @@ export default function ErEntities({
             {/* Error State */}
             {error && (
               <div className="p-4">
-                <div className={`flex items-start gap-3 p-4 border rounded-lg ${darkmode
-                  ? "bg-red-900/20 border-red-800"
-                  : "bg-red-50 border-red-200"
-                  }`}>
-                  <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${darkmode ? "text-red-400" : "text-red-600"
-                    }`} />
+                <div
+                  className={`flex items-start gap-3 p-4 border rounded-lg ${
+                    darkmode
+                      ? "bg-red-900/20 border-red-800"
+                      : "bg-red-50 border-red-200"
+                  }`}
+                >
+                  <AlertTriangle
+                    className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                      darkmode ? "text-red-400" : "text-red-600"
+                    }`}
+                  />
                   <div>
-                    <h3 className={`font-medium ${darkmode ? "text-red-300" : "text-red-800"
-                      }`}>
+                    <h3
+                      className={`font-medium ${
+                        darkmode ? "text-red-300" : "text-red-800"
+                      }`}
+                    >
                       Failed to load entities
                     </h3>
-                    <p className={`text-sm mt-1 ${darkmode ? "text-red-400" : "text-red-700"
-                      }`}>
+                    <p
+                      className={`text-sm mt-1 ${
+                        darkmode ? "text-red-400" : "text-red-700"
+                      }`}
+                    >
                       {error.message || "An unexpected error occurred"}
                     </p>
                   </div>
@@ -579,10 +632,16 @@ export default function ErEntities({
             {/* Empty State */}
             {!loading && !error && entities.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                <Database className={`w-12 h-12 mb-4 ${darkmode ? "text-gray-500" : "text-gray-400"
-                  }`} />
-                <h3 className={`text-lg font-medium mb-2 ${darkmode ? "text-gray-200" : "text-gray-800"
-                  }`}>
+                <Database
+                  className={`w-12 h-12 mb-4 ${
+                    darkmode ? "text-gray-500" : "text-gray-400"
+                  }`}
+                />
+                <h3
+                  className={`text-lg font-medium mb-2 ${
+                    darkmode ? "text-gray-200" : "text-gray-800"
+                  }`}
+                >
                   No entities found for <strong>{selectedPath.lob}</strong>
                 </h3>
               </div>
@@ -596,20 +655,27 @@ export default function ErEntities({
                     <div
                       key={entity.id}
                       onClick={() => handleEntityClick(entity)}
-                      className={`group flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-200 border hover:shadow-sm ${selectedErDiagram == entity.id
-                        ? darkmode
-                          ? "bg-blue-800/80 border-blue-600"
-                          : "bg-blue-100 border-blue-300"
-                        : darkmode
+                      className={`group flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-200 border hover:shadow-sm ${
+                        selectedErDiagram == entity.id
+                          ? darkmode
+                            ? "bg-blue-800/80 border-blue-600"
+                            : "bg-blue-100 border-blue-300"
+                          : darkmode
                           ? "bg-gray-800 border-gray-700 hover:bg-gray-700 hover:border-gray-600"
                           : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${darkmode ? "bg-blue-400" : "bg-blue-600"
-                          }`}></div>
-                        <span className={`font-medium ${darkmode ? "text-gray-200" : "text-gray-800"
-                          }`}>
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            darkmode ? "bg-blue-400" : "bg-blue-600"
+                          }`}
+                        ></div>
+                        <span
+                          className={`font-medium ${
+                            darkmode ? "text-gray-200" : "text-gray-800"
+                          }`}
+                        >
                           {entity.name}
                         </span>
                       </div>
@@ -617,10 +683,11 @@ export default function ErEntities({
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => handleDeleteEntity(e, entity.id)}
-                            className={`p-1.5 rounded transition-colors ${darkmode
-                              ? "text-gray-400 hover:text-red-400 hover:bg-red-900/20"
-                              : "text-gray-600 hover:text-red-600 hover:bg-red-50"
-                              }`}
+                            className={`p-1.5 rounded transition-colors ${
+                              darkmode
+                                ? "text-gray-400 hover:text-red-400 hover:bg-red-900/20"
+                                : "text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            }`}
                             title="Delete entity"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -636,18 +703,22 @@ export default function ErEntities({
 
           {/* Footer */}
           {user == "admin" && (
-            <div className={`p-4 border-t rounded-b-lg ${darkmode
-              ? "border-gray-700 bg-gray-800"
-              : "border-gray-200 bg-gray-50"
-              }`}>
+            <div
+              className={`p-4 border-t rounded-b-lg ${
+                darkmode
+                  ? "border-gray-700 bg-gray-800"
+                  : "border-gray-200 bg-gray-50"
+              }`}
+            >
               <button
                 onClick={() => setCreate("erdiagram")}
-                className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg transition-colors font-medium ${loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : darkmode
+                className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg transition-colors font-medium ${
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : darkmode
                     ? "bg-blue-600 hover:bg-blue-700"
                     : "bg-blue-600 hover:bg-blue-700"
-                  } text-white`}
+                } text-white`}
                 disabled={loading}
               >
                 <Plus className="w-4 h-4" />

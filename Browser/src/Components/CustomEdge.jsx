@@ -3,26 +3,26 @@ import { BaseEdge, EdgeLabelRenderer, getStraightPath } from "@xyflow/react";
 
 // Normalize "One - to - Many" → "one-to-many"
 function normalizeCardinality(card) {
-  return card?.toLowerCase().replace(/\s+/g, '').trim();
+  return card?.toLowerCase().replace(/\s+/g, "").trim();
 }
 
 // Map cardinality to marker type
 function getMarkerType(cardinality) {
   const normalized = cardinality?.toLowerCase();
-  if (normalized?.includes('many') || normalized?.includes('multiple')) {
-    return 'many';
-  } else if (normalized?.includes('one') || normalized?.includes('single')) {
-    return 'one';
-  } else if (normalized?.includes('zero') || normalized?.includes('optional')) {
-    return 'zero';
+  if (normalized?.includes("many") || normalized?.includes("multiple")) {
+    return "many";
+  } else if (normalized?.includes("one") || normalized?.includes("single")) {
+    return "one";
+  } else if (normalized?.includes("zero") || normalized?.includes("optional")) {
+    return "zero";
   }
-  return 'one'; // default
+  return "one"; // default
 }
 
 function CustomEdge({
   id,
-  source,     // <<== now using this
-  target,     // <<== and this
+  source, // <<== now using this
+  target, // <<== and this
   sourceX,
   sourceY,
   targetX,
@@ -96,7 +96,9 @@ function CustomEdge({
         <div
           style={{
             position: "absolute",
-            transform: `translate(-50%, -50%) translate(${labelX + labelOffset.x}px, ${labelY + labelOffset.y}px)`,
+            transform: `translate(-50%, -50%) translate(${
+              labelX + labelOffset.x
+            }px, ${labelY + labelOffset.y}px)`,
             fontSize: 12,
             pointerEvents: "all",
             zIndex: 1000,
