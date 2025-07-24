@@ -1,3 +1,5 @@
+
+
 import os
 import oracledb
 from flask_cors import CORS
@@ -1329,7 +1331,7 @@ def create_table():
             col_defs.append(col_def)
             
             # Track primary key columns
-            if col.get('primary_key'):
+            if col.get('primary'):
                 pk_cols.append(col['name'])
 
         # Add primary key constraint if specified
@@ -1389,7 +1391,6 @@ def create_table():
             cursor.close()
         if conn:
             conn.close()
-
 @app.route('/api/tables/<int:table_id>/attributes', methods=['GET'])
 def get_table_attributes(table_id):
 
@@ -1724,6 +1725,95 @@ def get_all_er_relationships_inDB(database_name):
             cursor.close()
         if conn:
             conn.close()
+
+@app.route('/api/tables/<table_name>/primary-key', methods=['GET'])
+def get_table_primary_key_columns(table_name):
+    """
+    Get only the primary key columns with detailed metadata for a specific table
+    
+    Parameters:
+    - table_name: Name of the table
+    
+    Returns:
+    - JSON object with primary key columns and their detailed metadata
+    """
+    try:
+        table_name_upper = table_name.upper()
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Check if table exists
+            cursor.execute("""
+                SELECT TABLE_NAME FROM USER_TABLES WHERE TABLE_NAME = :1
+            """, [table_name_upper])
+            
+            if not cursor.fetchone():
+                return jsonify({
+                    'success': False,
+                    'error': f'Table {table_name} not found'
+                }), 404
+            
+            # Get primary key columns with detailed metadata
+            cursor.execute("""
+                SELECT 
+                    c.COLUMN_NAME,
+                    c.DATA_TYPE,
+                    c.DATA_LENGTH,
+                    c.DATA_PRECISION,
+                    c.DATA_SCALE,
+                    c.NULLABLE,
+                    c.COLUMN_ID,
+                    c.DATA_DEFAULT,
+                    cc.POSITION as PK_POSITION,
+                    cons.CONSTRAINT_NAME
+                FROM USER_TAB_COLUMNS c
+                JOIN USER_CONS_COLUMNS cc ON c.TABLE_NAME = cc.TABLE_NAME 
+                    AND c.COLUMN_NAME = cc.COLUMN_NAME
+                JOIN USER_CONSTRAINTS cons ON cc.CONSTRAINT_NAME = cons.CONSTRAINT_NAME
+                WHERE c.TABLE_NAME = :1 
+                    AND cons.CONSTRAINT_TYPE = 'P'
+                ORDER BY cc.POSITION
+            """, [table_name_upper])
+
+            results = cursor.fetchall()
+            
+            if not results:
+                return jsonify({
+                    'success': False,
+                    'error': f'Table {table_name} has no primary key'
+                }), 404
+
+            columns = []
+            constraint_name = results[0][9]  # All rows will have same constraint name
+            
+            for col in results:
+                columns.append({
+                    "name": col[0],
+                    "data_type": col[1],
+                    "length": col[2],
+                    "precision": col[3],
+                    "scale": col[4],
+                    "nullable": col[5],
+                    "position": col[6],
+                    "default": col[7] if col[7] else None,
+                    "pk_position": col[8]
+                })
+
+            return jsonify({
+                "success": True,
+                "table_name": table_name_upper,
+                "constraint_name": constraint_name,
+                "primary_key_columns": columns,
+                "count": len(columns)
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/er_relationships/<string:database_name>/<int:table_id>', methods=['GET'])
 def get_all_er_relationships_inDB_tableid(database_name, table_id):
     """Get all ER relationships for a specific table in a database"""
@@ -2150,21 +2240,20 @@ def delete_table(table_id):
             FROM tables_metadata 
             WHERE id = :1
         """, [table_id])
-        
         table_row = cursor.fetchone()
         if not table_row:
             return jsonify({"error": "Table not found in metadata"}), 404
-        
+
         table_name = table_row[0]
-        schema_name = "public"  # Always use public schema
-        
+        schema_name = table_row[1]
+
         # Step 2: Delete all ER relationships involving this table
         cursor.execute("""
             DELETE FROM er_relationships 
             WHERE from_table_id = :1 OR to_table_id = :2
         """, [table_id, table_id])
         relationships_deleted = cursor.rowcount
-        
+
         # Step 3: Drop the actual table from Oracle
         try:
             drop_sql = f'DROP TABLE "{table_name}" CASCADE CONSTRAINTS'
@@ -2175,25 +2264,23 @@ def delete_table(table_id):
             return jsonify({
                 "error": f"Failed to drop table from database: {str(e)}"
             }), 500
-        
+
         # Step 4: Remove table metadata
         cursor.execute("""
             DELETE FROM tables_metadata 
-            WHERE id = :1
-        """, [table_id])
-        
+            WHERE name = :1
+        """, [table_name])
         if cursor.rowcount == 0:
             conn.rollback()
             return jsonify({"error": "Failed to delete table metadata"}), 500
-        
+
         conn.commit()
-        
         return jsonify({
             "message": f"Table {table_name} deleted successfully",
             "table_id": table_id,
             "relationships_deleted": relationships_deleted
         }), 200
-        
+
     except oracledb.DatabaseError as e:
         if conn:
             conn.rollback()
@@ -3007,3 +3094,5 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Startup error: {e}")
         sys.exit(1)
+
+

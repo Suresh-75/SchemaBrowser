@@ -30,7 +30,7 @@ const TableOverview = ({ table, darkmode }) => {
     endpoints
       .getTableOverview(table)
       .then((res) => {
-        console.log("API Response:", res.data);
+        // console.log("API Response:", res.data);
 
         if (!res.data || !res.data.columns) {
           throw new Error("Invalid response format: missing columns data");
@@ -38,6 +38,7 @@ const TableOverview = ({ table, darkmode }) => {
 
         // No need for complex transformation, just use the data as is
         setInfo(res.data);
+        // console.log(res.data);
         setLoading(false);
       })
       .catch((e) => {

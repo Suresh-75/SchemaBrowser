@@ -145,7 +145,7 @@ const AddEntityComponent = ({ selectedPath, setCreate, darkmode }) => {
         columns: mappedFields,
       };
 
-      console.log("Sending payload:", payload);
+      // console.log("Sending payload:", payload);
 
       const response = await fetch("http://localhost:5000/api/tables", {
         method: "POST",

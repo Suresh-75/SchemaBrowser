@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { ChevronDown, ChevronsDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronsDown, ChevronUp, Key, Link } from "lucide-react";
 
 const SchemaCards = ({
   table,
@@ -10,6 +10,7 @@ const SchemaCards = ({
   setSelectedPath,
 }) => {
   const [relationshipColumns, setRelationshipColumns] = useState([]);
+  const [foreignKeyColumns, setForeignKeyColumns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const visibleColumns = isExpanded
@@ -17,9 +18,11 @@ const SchemaCards = ({
     : table.attributes.slice(0, 5);
   const hasMoreColumns = table.attributes.length > 5;
   console.log(table.attributes);
+
   useEffect(() => {
     if (table && table.table_id && selectedDatabase) {
       fetchRelationshipColumns();
+      fetchForeignKeyColumns();
     }
   }, [table, selectedDatabase]);
 
@@ -27,10 +30,43 @@ const SchemaCards = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/er_relationships/${selectedDatabase}`
+        `http://localhost:5000/api/tables/${table.table_name}/primary-key`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        console.log(data);
+
+        if (data.success) {
+          // Extract primary key column names
+          const primaryKeyColumns = data.primary_key_columns.map(
+            (col) => col.name
+          );
+          setRelationshipColumns(primaryKeyColumns);
+          console.log("Primary key columns: ", primaryKeyColumns);
+        } else {
+          console.error("API error:", data.error);
+          setRelationshipColumns([]);
+        }
+      } else {
+        console.error("Failed to fetch primary key data");
+        setRelationshipColumns([]);
+      }
+    } catch (error) {
+      console.error("Error fetching primary key columns:", error);
+      setRelationshipColumns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchForeignKeyColumns = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/er_relationships`
       );
       if (response.ok) {
         const relationships = await response.json();
+        console.log("Relationships data:", relationships);
 
         // Filter relationships that involve this table
         const tableRelationships = relationships.filter(
@@ -39,23 +75,132 @@ const SchemaCards = ({
             rel.to_table_id === table.table_id
         );
 
-        // Extract unique columns involved in relationships
-        const columns = new Set();
+        // Extract unique foreign key columns from this table
+        const fkColumns = new Set();
+        console.log("tablerels: ", tableRelationships);
         tableRelationships.forEach((rel) => {
           if (rel.from_table_id === table.table_id) {
-            columns.add(rel.from_column);
+            fkColumns.add(rel.from_column);
           }
           if (rel.to_table_id === table.table_id) {
-            columns.add(rel.to_column);
+            fkColumns.add(rel.to_column);
           }
         });
 
-        setRelationshipColumns(Array.from(columns));
+        setForeignKeyColumns(Array.from(fkColumns));
+        console.log("Foreign key columns: ", Array.from(fkColumns));
+      } else {
+        console.error("Failed to fetch relationships data");
+        setForeignKeyColumns([]);
       }
     } catch (error) {
-      console.error("Error fetching relationship columns:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching foreign key columns:", error);
+      setForeignKeyColumns([]);
+    }
+  };
+
+  const getColumnType = (columnName) => {
+    const isPrimaryKey = relationshipColumns.includes(columnName);
+    const isForeignKey = foreignKeyColumns.includes(columnName);
+
+    if (isPrimaryKey && isForeignKey) return "both";
+    if (isPrimaryKey) return "primary";
+    if (isForeignKey) return "foreign";
+    return "regular";
+  };
+
+  const renderColumnIcon = (columnType) => {
+    switch (columnType) {
+      case "primary":
+        return (
+          <div
+            className={`p-1 rounded ${
+              darkmode ? "bg-yellow-600" : "bg-yellow-500"
+            }`}
+          >
+            <Key className="w-3 h-3 text-white" />
+          </div>
+        );
+      case "foreign":
+        return (
+          <div
+            className={`p-1 rounded ${
+              darkmode ? "bg-blue-600" : "bg-blue-500"
+            }`}
+          >
+            <Link className="w-3 h-3 text-white" />
+          </div>
+        );
+      case "both":
+        return (
+          <div className="flex gap-1">
+            <div
+              className={`p-1 rounded ${
+                darkmode ? "bg-yellow-600" : "bg-yellow-500"
+              }`}
+            >
+              <Key className="w-3 h-3 text-white" />
+            </div>
+            <div
+              className={`p-1 rounded ${
+                darkmode ? "bg-blue-600" : "bg-blue-500"
+              }`}
+            >
+              <Link className="w-3 h-3 text-white" />
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div
+            className={`w-2 h-2 rounded-full ${
+              darkmode ? "bg-gray-400" : "bg-gray-500"
+            }`}
+          />
+        );
+    }
+  };
+
+  const getColumnBadge = (columnType) => {
+    switch (columnType) {
+      case "primary":
+        return (
+          <div
+            className={`ml-auto px-2 py-1 text-xs rounded-full ${
+              darkmode
+                ? "bg-yellow-600 text-yellow-100"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            PK
+          </div>
+        );
+      case "foreign":
+        return (
+          <div
+            className={`ml-auto px-2 py-1 text-xs rounded-full ${
+              darkmode
+                ? "bg-blue-600 text-blue-100"
+                : "bg-blue-100 text-blue-800"
+            }`}
+          >
+            FK
+          </div>
+        );
+      case "both":
+        return (
+          <div
+            className={`ml-auto px-2 py-1 text-xs rounded-full ${
+              darkmode
+                ? "bg-purple-600 text-purple-100"
+                : "bg-purple-100 text-purple-800"
+            }`}
+          >
+            PK/FK
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -122,11 +267,18 @@ const SchemaCards = ({
     );
   }
 
+  // Get only primary key and foreign key columns
+  const keyColumns = Array.from(
+    new Set([...relationshipColumns, ...foreignKeyColumns])
+  );
+
+  const visibleKeyColumns = isExpanded ? keyColumns : keyColumns.slice(0, 5);
+  const hasMoreKeyColumns = keyColumns.length > 5;
+
   return (
     <div
       onClick={() => {
         setSelectedPath((path) => {
-          // console.log({ ...path, table: table.table_name });
           return { ...path, table: table.table_name };
         });
         setSelectedTable(table.table_id);
@@ -187,7 +339,7 @@ const SchemaCards = ({
         </div>
       </div>
 
-      {/* Relationship Columns Section */}
+      {/* Columns Section */}
       <div className="p-6">
         <div className="flex items-center justify-between mb-5">
           <h4 className="text-lg font-semibold flex items-center gap-2">
@@ -212,7 +364,7 @@ const SchemaCards = ({
                 />
               </svg>
             </div>
-            Relationship Columns
+            Key Columns
           </h4>
           <span
             className={`text-sm px-2 py-1 rounded-full font-medium ${
@@ -221,7 +373,7 @@ const SchemaCards = ({
                 : "bg-gray-100 text-gray-600"
             }`}
           >
-            {/* {loading ? "..." : relationshipColumns.length} */}
+            {keyColumns.length}
           </span>
         </div>
 
@@ -230,41 +382,37 @@ const SchemaCards = ({
             <div className="flex items-center justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
             </div>
-          ) : table?.attributes.length > 0 ? (
+          ) : keyColumns.length > 0 ? (
             <div className="p-2 max-w-md mx-auto">
               <div className="space-y-2">
-                {visibleColumns.map((columnName, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg ${
-                      darkmode
-                        ? "bg-gray-800 border border-gray-700"
-                        : "bg-slate-50 border border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          darkmode ? "bg-emerald-400" : "bg-emerald-500"
-                        }`}
-                      />
-                      <span className="font-medium text-sm">{columnName}</span>
-                      {/* <div
-                        className={`ml-auto px-2 py-1 text-xs rounded-full ${
-                          darkmode
-                            ? "bg-indigo-600 text-indigo-200"
-                            : "bg-indigo-100 text-indigo-700"
-                        }`}
-                      >
-                        FK/PK
-                      </div> */}
+                {visibleKeyColumns.map((columnName, index) => {
+                  const columnType = getColumnType(columnName);
+                  return (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg ${
+                        darkmode
+                          ? "bg-gray-800 border border-gray-700"
+                          : "bg-slate-50 border border-slate-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {renderColumnIcon(columnType)}
+                        <span className="font-medium text-sm">
+                          {columnName}
+                        </span>
+                        {getColumnBadge(columnType)}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                {hasMoreColumns && (
+                {hasMoreKeyColumns && (
                   <button
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(!isExpanded);
+                    }}
                     className={`w-full p-3 rounded-lg border-2 border-dashed transition-colors ${
                       darkmode
                         ? "border-gray-600 hover:border-gray-500 text-gray-400 hover:text-gray-300"
@@ -276,33 +424,18 @@ const SchemaCards = ({
                         <>
                           <ChevronUp className="w-4 h-4" />
                           <span className="text-sm font-medium">Show Less</span>
-                          {/* <button>Download CSV</button> */}
                         </>
                       ) : (
                         <>
                           <ChevronsDown className="w-4 h-4" />
                           <span className="text-sm font-medium">
-                            Show {table.attributes.length - 5} More Columns
+                            Show {keyColumns.length - 5} More Columns
                           </span>
                         </>
                       )}
                     </div>
                   </button>
                 )}
-                {/* {isExpanded && (
-                  <div className=" flex justify-center">
-                    <button
-                      // onClick={handleDownloadCSV}
-                      className={`px-4 py-2 rounded  ${
-                        darkmode
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                          : "bg-blue-500 hover:bg-blue-600 text-white"
-                      } transition-colors`}
-                    >
-                      Download CSV
-                    </button>
-                  </div>
-                )} */}
               </div>
             </div>
           ) : (
@@ -326,119 +459,11 @@ const SchemaCards = ({
                   d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                 />
               </svg>
-              <p className="text-sm">No relationship columns found</p>
+              <p className="text-sm">No key columns found</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Metadata Section */}
-      {/* {(table.schema_name || table.table_id) && (
-        <div
-          className={`px-6 py-5 border-t ${
-            darkmode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-slate-50 border-slate-200"
-          }`}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <h4 className="text-lg font-semibold flex items-center gap-2">
-              <div
-                className={`p-2 rounded-lg ${
-                  darkmode
-                    ? "bg-gray-700 text-blue-400"
-                    : "bg-blue-100 text-blue-600"
-                }`}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 17v-6h13M9 7H5a2 2 0 00-2 2v9a2 2 0 002 2h4m13-6l-3-3m0 0l3-3m-3 3H9"
-                  />
-                </svg>
-              </div>
-              Metadata
-            </h4>
-          </div>
-
-          <div className="grid gap-4">
-            {table.table_id && (
-              <div
-                className={`p-3 rounded-lg ${
-                  darkmode ? "bg-gray-700" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <svg
-                    className={`w-4 h-4 ${
-                      darkmode ? "text-gray-400" : "text-gray-500"
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                    />
-                  </svg>
-                  <span className="font-semibold text-sm">Table ID</span>
-                </div>
-                <span
-                  className={`text-sm font-mono ${
-                    darkmode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {table.table_id}
-                </span>
-              </div>
-            )}
-
-            {table.schema_name && (
-              <div
-                className={`p-3 rounded-lg ${
-                  darkmode ? "bg-gray-700" : "bg-white"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <svg
-                    className={`w-4 h-4 ${
-                      darkmode ? "text-gray-400" : "text-gray-500"
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
-                  <span className="font-semibold text-sm">Schema</span>
-                </div>
-                <span
-                  className={`text-sm font-mono ${
-                    darkmode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {table.schema_name}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };

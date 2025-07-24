@@ -77,16 +77,21 @@ const ERLegend = ({ darkmode }) => {
         boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
         zIndex: 1000,
         color: darkmode ? "#D1D5DB" : "#374151",
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         minWidth: "200px",
       }}
     >
-      <div style={{ fontWeight: "bold", marginBottom: "8px", fontSize: "13px" }}>
+      <div
+        style={{ fontWeight: "bold", marginBottom: "8px", fontSize: "13px" }}
+      >
         Relationship Legend
       </div>
 
       {/* One-to-One */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: "6px" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", marginBottom: "6px" }}
+      >
         <svg width="40" height="20" style={{ marginRight: "8px" }}>
           <defs>
             <marker
@@ -98,7 +103,11 @@ const ERLegend = ({ darkmode }) => {
               markerHeight="8"
               orient="auto"
             >
-              <path d="M 24 6 L 24 18" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" />
+              <path
+                d="M 24 6 L 24 18"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+              />
             </marker>
             <marker
               id="legend-one-end"
@@ -109,7 +118,11 @@ const ERLegend = ({ darkmode }) => {
               markerHeight="8"
               orient="auto"
             >
-              <path d="M 24 6 L 24 18" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" />
+              <path
+                d="M 24 6 L 24 18"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+              />
             </marker>
           </defs>
           <line
@@ -127,7 +140,9 @@ const ERLegend = ({ darkmode }) => {
       </div>
 
       {/* One-to-Many */}
-      <div style={{ display: "flex", alignItems: "center", marginBottom: "6px" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", marginBottom: "6px" }}
+      >
         <svg width="40" height="20" style={{ marginRight: "8px" }}>
           <defs>
             <marker
@@ -139,7 +154,11 @@ const ERLegend = ({ darkmode }) => {
               markerHeight="8"
               orient="auto"
             >
-              <path d="M 24 6 L 24 18" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" />
+              <path
+                d="M 24 6 L 24 18"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+              />
             </marker>
             <marker
               id="legend-many"
@@ -150,9 +169,24 @@ const ERLegend = ({ darkmode }) => {
               markerHeight="10"
               orient="auto"
             >
-              <path d="M 24 12 L 12 6" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" fill="none" />
-              <path d="M 24 12 L 12 12" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" fill="none" />
-              <path d="M 24 12 L 12 18" stroke={darkmode ? "#9CA3AF" : "#333"} strokeWidth="2" fill="none" />
+              <path
+                d="M 24 12 L 12 6"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+                fill="none"
+              />
+              <path
+                d="M 24 12 L 12 12"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+                fill="none"
+              />
+              <path
+                d="M 24 12 L 12 18"
+                stroke={darkmode ? "#9CA3AF" : "#333"}
+                strokeWidth="2"
+                fill="none"
+              />
             </marker>
           </defs>
           <line
@@ -168,8 +202,6 @@ const ERLegend = ({ darkmode }) => {
         </svg>
         <span>One-to-Many</span>
       </div>
-
-
     </div>
   );
 };
@@ -336,11 +368,12 @@ function ErDiagram({
             .join("\n"),
           style: {
             stroke: darkmode ? "#9CA3AF" : "#666",
-            strokeWidth: 2
+            strokeWidth: 2,
           },
           labelStyle: {
             fontSize: "12px",
-            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontFamily:
+              "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             fill: darkmode ? "#E5E7EB" : "#374151",
             lineHeight: "1.4em",
             whiteSpace: "pre",
@@ -402,27 +435,28 @@ function ErDiagram({
   useEffect(() => {
     if (nodes.length > 0) {
       // Update node data for darkmode
-      const updatedNodes = nodes.map(node => ({
+      const updatedNodes = nodes.map((node) => ({
         ...node,
         data: {
           ...node.data,
-          darkmode: darkmode
-        }
+          darkmode: darkmode,
+        },
       }));
       setNodes(updatedNodes);
     }
 
     if (edges.length > 0) {
       // Update edge styling for darkmode
-      const updatedEdges = edges.map(edge => ({
+      const updatedEdges = edges.map((edge) => ({
         ...edge,
         style: {
           stroke: darkmode ? "#9CA3AF" : "#666",
-          strokeWidth: 2
+          strokeWidth: 2,
         },
         labelStyle: {
           fontSize: "12px",
-          fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          fontFamily:
+            "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           fill: darkmode ? "#E5E7EB" : "#374151",
           lineHeight: "1.4em",
           whiteSpace: "pre",
@@ -433,7 +467,7 @@ function ErDiagram({
           stroke: darkmode ? "#4B5563" : "#E5E7EB",
           strokeWidth: 1,
           rx: 3,
-        }
+        },
       }));
       setEdges(updatedEdges);
     }
